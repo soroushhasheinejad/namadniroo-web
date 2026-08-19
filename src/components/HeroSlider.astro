@@ -1,15 +1,28 @@
 ---
 import Icon from './Icon.astro';
 import { heroSlides } from '../data/site';
+import { getImage } from 'astro:assets';
+
+/* این پوسترها پس‌زمینهٔ CSS هستند (نه تگ img)، بنابراین به‌جای کامپوننت
+   <Image> از getImage استفاده می‌کنیم تا همان مزیت WebP و تغییر اندازه را
+   بگیریم بدون این‌که چیدمان اسلایدر عوض شود.
+   دو اندازه می‌سازیم تا موبایل نسخهٔ ۲۵۶۰ پیکسلی را دانلود نکند. */
+const slides = await Promise.all(
+  heroSlides.map(async (s) => ({
+    ...s,
+    lg: await getImage({ src: s.img, format: 'webp', width: 1920, quality: 80 }),
+    sm: await getImage({ src: s.img, format: 'webp', width: 900, quality: 78 }),
+  })),
+);
 ---
 <section class="hero" id="activity" data-slider="hero" aria-roledescription="اسلایدر" aria-label="حوزه‌های فعالیت">
   <div class="hero-viewport">
     <div class="hero-slides">
-      {heroSlides.map((s, i) => (
+      {slides.map((s, i) => (
         <article
           class:list={['hero-slide', i === 0 && 'is-active']}
           data-slide={i}
-          style={`--img:url('${s.img}')`}
+          style={`--img:url('${s.lg.src}');--img-sm:url('${s.sm.src}')`}
           aria-label={s.label}
         />
       ))}

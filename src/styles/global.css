@@ -120,6 +120,10 @@ a { color: inherit; text-decoration: none; }
   background-image: var(--img);
   background-size: cover; background-position: center; background-repeat: no-repeat;
 }
+/* روی موبایل نسخهٔ کوچک‌تر پوستر بارگذاری می‌شود */
+@media (max-width: 768px) {
+  .hero-slide { background-image: var(--img-sm, var(--img)); }
+}
 
 /* progress bar (bottom of the poster) */
 .hero-progress { position: absolute; z-index: 5; inset-inline: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.12); }
@@ -230,6 +234,9 @@ section { scroll-margin-top: 84px; }
   aspect-ratio: 4/3; display: grid; place-items: center;
   background: radial-gradient(120% 100% at 50% 0%, #23303a 0%, #14181c 70%);
   border-bottom: 1px solid var(--line);
+  /* بدون این، تصویری که ابعاد ذاتی‌اش از این کادر بزرگ‌تر است
+     نسبت ابعاد را کش می‌دهد و کارت‌ها هم‌قد نمی‌مانند */
+  overflow: hidden;
 }
 .thumb-brand { font-family: var(--mono); font-size: 13px; letter-spacing: 2px; color: var(--cerulean-3); }
 .product-body { padding: 18px; }
@@ -573,8 +580,9 @@ section { scroll-margin-top: 84px; }
 .article-body a { color: var(--yellow); }
 .article-body img { border-radius: var(--r); margin: 18px 0; }
 
-/* عکس محصول (وقتی فایل تصویر اضافه شود) */
-.product-img { max-width: 78%; max-height: 78%; width: auto; object-fit: contain; }
+/* عکس محصول — height:auto لازم است چون کامپوننت <Image> اتریبیوت‌های
+   width/height را روی تگ می‌گذارد و بدون آن ارتفاع ذاتی اعمال می‌شود */
+.product-img { max-width: 78%; max-height: 78%; width: auto; height: auto; object-fit: contain; }
 
 /* ============================================================
    AE SOLAR — نمایندگی رسمی

@@ -1,3 +1,12 @@
+import activity1 from '../assets/activity-1.jpg';
+import activity2 from '../assets/activity-2.jpg';
+import activity3 from '../assets/activity-3.jpg';
+import banner1 from '../assets/banner-1.jpg';
+import banner2 from '../assets/banner-2.jpg';
+import area1 from '../assets/area-1.jpg';
+import area2 from '../assets/area-2.jpg';
+import area3 from '../assets/area-3.jpg';
+
 export const site = {
   name: 'نماد نیرو',
   phone: '۰۳۴ ۳۲۵۲۱۴۱۶',
@@ -19,14 +28,14 @@ export const nav = [
 
 /* اسلایدر صفحهٔ اصلی — پوسترها متن روی خودشان دارند */
 export const heroSlides = [
-  { img: '/assets/activity-1.jpg', label: 'پیمانکاری', icon: 'contract' },
-  { img: '/assets/activity-2.jpg', label: 'بازرگانی و تجهیزات', icon: 'panel' },
-  { img: '/assets/activity-3.jpg', label: 'سرمایه‌گذاری', icon: 'chart' },
+  { img: activity1, label: 'پیمانکاری', icon: 'contract' },
+  { img: activity2, label: 'بازرگانی و تجهیزات', icon: 'panel' },
+  { img: activity3, label: 'سرمایه‌گذاری', icon: 'chart' },
 ] as const;
 
 export const promoSlides = [
-  { img: '/assets/banner-1.jpg', href: '/#quote', alt: 'ارائه‌دهندهٔ راه‌کارهای جامع انرژی پایدار' },
-  { img: '/assets/banner-2.jpg', href: '/shop.html', alt: 'فروشگاه محصولات نماد نیرو' },
+  { img: banner1, href: '/#quote', alt: 'ارائه‌دهندهٔ راه‌کارهای جامع انرژی پایدار' },
+  { img: banner2, href: '/shop.html', alt: 'فروشگاه محصولات نماد نیرو' },
 ];
 
 export const stats = [
@@ -38,7 +47,7 @@ export const stats = [
 
 export const areas = [
   {
-    id: 'contracting', eyebrow: 'پیمانکاری', icon: 'contract', image: '/assets/area-1.jpg',
+    id: 'contracting', eyebrow: 'پیمانکاری', icon: 'contract', image: area1,
     title: 'طراحی، احداث و بهره‌برداری نیروگاه',
     desc: 'از امکان‌سنجی و طراحی تا اجرا، راه‌اندازی و نگه‌داری نیروگاه‌های خورشیدی و حرارتی؛ همراه شما در تمام مراحل پروژه با سامانه‌های پایش و کنترل.',
     items: ['امکان‌سنجی فنی و اقتصادی پروژه', 'طراحی و مهندسی (EPC)', 'احداث نیروگاه خورشیدی و مولد مقیاس‌کوچک (DG)', 'بهره‌برداری و نگه‌داری (O&M)', 'سامانه‌های پایش و کنترل SCADA و DCS'],
@@ -46,7 +55,7 @@ export const areas = [
     proof: { label: 'سابقه:', value: '۲ دهه', tail: 'اجرا و بهره‌برداری' },
   },
   {
-    id: 'trading', eyebrow: 'بازرگانی و تجهیزات', icon: 'panel', image: '/assets/area-2.jpg', reverse: true,
+    id: 'trading', eyebrow: 'بازرگانی و تجهیزات', icon: 'panel', image: area2, reverse: true,
     title: 'تأمین تجهیزات استاندارد خورشیدی',
     desc: 'واردات و توزیع اینورتر و پنل خورشیدی از برندهای معتبر جهانی، از مقیاس خانگی تا مگاواتی، همراه با گارانتی و پشتیبانی فنی.',
     items: ['اینورترهای Fronius، Sungrow، Sunways و Deye', 'پنل‌های خورشیدی مونوکریستال نیم‌سلولی', 'سازه، کابل و تجهیزات جانبی', 'گارانتی و خدمات پس از فروش', 'مشاورهٔ انتخاب تجهیزات متناسب با پروژه'],
@@ -54,7 +63,7 @@ export const areas = [
     proof: { label: 'تأمین: بیش از', value: '۷۰ مگاوات', tail: 'تجهیزات' },
   },
   {
-    id: 'investment', eyebrow: 'سرمایه‌گذاری', icon: 'chart', image: '/assets/area-3.jpg',
+    id: 'investment', eyebrow: 'سرمایه‌گذاری', icon: 'chart', image: area3,
     title: 'مشارکت و سرمایه‌گذاری در انرژی خورشیدی',
     desc: 'تأمین مالی و مشارکت در احداث نیروگاه‌های خورشیدی با بازده مشخص؛ از امکان‌سنجی تا بهره‌برداری و فروش تضمینی برق.',
     items: ['مشارکت در احداث نیروگاه خورشیدی', 'تأمین مالی پروژه‌های تجدیدپذیر', 'قرارداد فروش تضمینی برق', 'بازده سرمایه‌گذاری شفاف و بلندمدت', 'مدیریت پروژه تا بهره‌برداری'],

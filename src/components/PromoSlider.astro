@@ -1,18 +1,27 @@
 ---
 import Icon from './Icon.astro';
 import { promoSlides } from '../data/site';
+import { getImage } from 'astro:assets';
+
+// بنرها هم پس‌زمینهٔ CSS هستند — همان روش اسلایدر اصلی
+const slides = await Promise.all(
+  promoSlides.map(async (s) => ({
+    ...s,
+    optimized: await getImage({ src: s.img, format: 'webp', width: 1600, quality: 80 }),
+  })),
+);
 ---
 <section class="promo" data-slider="promo" aria-roledescription="اسلایدر" aria-label="بنرهای معرفی">
   <div class="wrap">
     <div class="promo-viewport">
       <div class="promo-track">
-        {promoSlides.map((s, i) => (
+        {slides.map((s, i) => (
           <a
             class:list={['promo-slide', 'has-img', i === 0 && 'is-active']}
             data-slide={i}
             href={s.href}
             aria-label={s.alt}
-            style={`--img:url('${s.img}')`}
+            style={`--img:url('${s.optimized.src}')`}
           />
         ))}
       </div>

@@ -1,9 +1,16 @@
 ---
+import { getImage } from 'astro:assets';
+
 interface Props { p: any; large?: boolean }
 const { p, large = false } = Astro.props;
+
+// تصویر پروژه پس‌زمینهٔ CSS است، پس با getImage بهینه می‌شود
+const optimized = p.image
+  ? await getImage({ src: p.image, format: 'webp', width: large ? 900 : 600, quality: 80 })
+  : null;
 ---
 <article class:list={['proj-card', large && 'proj-lg']}>
-  <div class="proj-img" style={p.image ? `--img:url('${p.image}')` : undefined}></div>
+  <div class="proj-img" style={optimized ? `--img:url('${optimized.src}')` : undefined}></div>
   <div class="proj-meta">
     <span class="proj-cap">{p.capacity} مگاوات · {p.tag}</span>
     <h3 class="proj-name">{p.name}</h3>

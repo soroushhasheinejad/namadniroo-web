@@ -1,17 +1,19 @@
 import { defineCollection, z } from 'astro:content';
 import { file, glob } from 'astro/loaders';
 
-/* پروژه‌ها — از فایل داده‌ای JSON */
+/* پروژه‌ها — از فایل داده‌ای JSON
+   helper به‌نام image() باعث می‌شود Astro تصویر را پردازش و بهینه کند
+   (WebP، اندازه‌های مختلف). مسیرها نسبت به همین فایل داده حساب می‌شوند. */
 const projects = defineCollection({
   loader: file('src/data/projects.json'),
-  schema: z.object({
+  schema: ({ image }) => z.object({
     name: z.string(),
     capacity: z.string(),
     unit: z.string(),
     tag: z.string(),
     cat: z.enum(['supply', 'build', 'invest']),
     note: z.string().optional(),
-    image: z.string().optional(),
+    image: image().optional(),
     featured: z.boolean().default(false),
     order: z.number().default(999),
   }),
@@ -20,14 +22,14 @@ const projects = defineCollection({
 /* محصولات — لیدجن امروز، آمادهٔ افزودن سبد خرید در آینده */
 const products = defineCollection({
   loader: file('src/data/products.json'),
-  schema: z.object({
+  schema: ({ image }) => z.object({
     name: z.string(),
     brand: z.string(),
     spec: z.string(),
     specUnit: z.string(),
     cat: z.enum(['home', 'industrial']),
     kind: z.enum(['inverter', 'panel', 'storage', 'accessory']),
-    image: z.string().optional(),
+    image: image().optional(),
     featured: z.boolean().default(false),
     order: z.number().default(999),
     // ---- برای فاز فروش آنلاین (فعلاً استفاده نمی‌شود) ----

@@ -1,5 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
 import Base from '../../layouts/Base.astro';
 import ProductCard from '../../components/ProductCard.astro';
 import { categoryLabel } from '../../data/site';
@@ -63,7 +64,7 @@ const pageSchema = [
     <div class="wrap about-intro">
       <div class="product-thumb product-hero">
         {p.image
-          ? <img class="product-img" src={p.image} alt={p.name} loading="lazy" />
+          ? <Image class="product-img" src={p.image} alt={p.name} width={620} densities={[1, 2]} loading="eager" />
           : <span class="thumb-brand" set:html={p.brand} />}
       </div>
       <div>

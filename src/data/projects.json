@@ -1,7 +1,7 @@
 [
-  { "id": "foolad-khouzestan", "name": "فولاد خوزستان", "capacity": "۱۰۰", "unit": "MW", "tag": "تأمین پنل", "cat": "supply", "note": "تام ایران‌خودرو · ۲۰ مگاوات تحویل‌شده", "featured": true, "image": "/assets/project-1.jpg", "order": 1 },
-  { "id": "taknirou-isatis", "name": "تک‌نیرو ایساتیس، یزد", "capacity": "۱۳٫۵", "unit": "MW", "tag": "احداث", "cat": "build", "note": "۶٫۵ مگاوات سنکرون‌شده", "featured": true, "image": "/assets/project-2.jpg", "order": 2 },
-  { "id": "kabutarkhan-2", "name": "کبوترخان ۲، کرمان", "capacity": "۱۰", "unit": "MW", "tag": "سرمایه‌گذاری", "cat": "invest", "note": "مشارکت، سرمایه‌گذاری و اجرا", "featured": true, "image": "/assets/project-3.jpg", "order": 3 },
+  { "id": "foolad-khouzestan", "name": "فولاد خوزستان", "capacity": "۱۰۰", "unit": "MW", "tag": "تأمین پنل", "cat": "supply", "note": "تام ایران‌خودرو · ۲۰ مگاوات تحویل‌شده", "featured": true, "image": "../assets/project-1.jpg", "order": 1 },
+  { "id": "taknirou-isatis", "name": "تک‌نیرو ایساتیس، یزد", "capacity": "۱۳٫۵", "unit": "MW", "tag": "احداث", "cat": "build", "note": "۶٫۵ مگاوات سنکرون‌شده", "featured": true, "image": "../assets/project-2.jpg", "order": 2 },
+  { "id": "kabutarkhan-2", "name": "کبوترخان ۲، کرمان", "capacity": "۱۰", "unit": "MW", "tag": "سرمایه‌گذاری", "cat": "invest", "note": "مشارکت، سرمایه‌گذاری و اجرا", "featured": true, "image": "../assets/project-3.jpg", "order": 3 },
   { "id": "kabutarkhan-3", "name": "کبوترخان ۳، کرمان", "capacity": "۱۰", "unit": "MW", "tag": "سرمایه‌گذاری", "cat": "invest", "note": "مشارکت، سرمایه‌گذاری و اجرا", "order": 4 },
   { "id": "jondishapour", "name": "جندی‌شاپور اصفهان", "capacity": "۱۰", "unit": "MW", "tag": "تأمین پنل", "cat": "supply", "note": "نیروگاه خورشیدی", "order": 5 },
   { "id": "damavand", "name": "تولید برق دماوند", "capacity": "۱۰", "unit": "MW", "tag": "تأمین + ITS", "cat": "supply", "note": "پنل و اینورتر · ۷ مگاوات تحویل‌شده", "order": 6 },

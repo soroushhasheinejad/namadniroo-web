@@ -1,4 +1,5 @@
 ---
+import { Image } from 'astro:assets';
 import { categoryLabel } from '../data/site';
 interface Props { p: any; id: string; showCat?: boolean }
 const { p, id, showCat = true } = Astro.props;
@@ -7,7 +8,7 @@ const { p, id, showCat = true } = Astro.props;
   <div class="product-thumb">
     {showCat && <span class="product-cat">{categoryLabel[p.cat]}</span>}
     {p.image
-      ? <img class="product-img" src={p.image} alt={p.name} loading="lazy" />
+      ? <Image class="product-img" src={p.image} alt={p.name} width={360} densities={[1, 2]} loading="lazy" />
       : <span class="thumb-brand" set:html={p.brand} />}
   </div>
   <div class="product-body">

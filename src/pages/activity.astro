@@ -2,10 +2,21 @@
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import Icon from '../components/Icon.astro';
+import { getImage } from 'astro:assets';
 import { areas } from '../data/site';
 import { breadcrumbSchema } from '../utils';
 
 const pageSchema = breadcrumbSchema([{ name: 'حوزه‌های فعالیت', href: '/activity.html' }]);
+
+// تصاویر این بخش پس‌زمینهٔ CSS هستند، پس با getImage بهینه می‌شوند
+const blocks = await Promise.all(
+  areas.map(async (a) => ({
+    ...a,
+    // این تصاویر پس‌زمینهٔ تزئینی پشت متن‌اند و در عمل حدود ۵۶۰ پیکسل عرض
+    // نمایش داده می‌شوند؛ ۱۰۰۰ پیکسل برای نمایشگرهای رتینا هم کافی است.
+    optimized: await getImage({ src: a.image, format: 'webp', width: 1000, quality: 72 }),
+  })),
+);
 ---
 <Base schema={pageSchema} title="حوزه‌های فعالیت | نماد نیرو" description="سه حوزهٔ فعالیت نماد نیرو: پیمانکاری و احداث نیروگاه، بازرگانی و تأمین تجهیزات خورشیدی، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر.">
   <PageHero
@@ -14,10 +25,10 @@ const pageSchema = breadcrumbSchema([{ name: 'حوزه‌های فعالیت', h
     lead="از احداث و بهره‌برداری نیروگاه تا تأمین تجهیزات و سرمایه‌گذاری در انرژی خورشیدی؛ نماد نیرو در تمام مسیر همراه شماست."
   />
 
-  {areas.map((a) => (
+  {blocks.map((a) => (
     <section class:list={['area-block', a.reverse && 'is-reverse']} id={a.id}>
       <div class="wrap area-inner">
-        <div class="area-visual" style={`--img:url('${a.image}')`}>
+        <div class="area-visual" style={`--img:url('${a.optimized.src}')`}>
           <span class="area-badge"><Icon name={a.icon} /></span>
         </div>
         <div class="area-copy">

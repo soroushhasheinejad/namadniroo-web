@@ -1,19 +1,19 @@
 [
-  { "id": "fronius-primo", "name": "اینورتر رشته‌ای Primo", "brand": "FRONIUS", "spec": "۳ – ۸٫۲", "specUnit": "kW · تک‌فاز", "cat": "home", "kind": "inverter", "image": "/assets/products/fronius-primo.jpg", "featured": true, "order": 1 },
+  { "id": "fronius-primo", "name": "اینورتر رشته‌ای Primo", "brand": "FRONIUS", "spec": "۳ – ۸٫۲", "specUnit": "kW · تک‌فاز", "cat": "home", "kind": "inverter", "image": "../assets/products/fronius-primo.jpg", "featured": true, "order": 1 },
   { "id": "deye-sun-g05", "name": "اینورتر هایبرید SUN‑G05", "brand": "DEYE", "spec": "۳٫۶ – ۶", "specUnit": "kW · تک‌فاز", "cat": "home", "kind": "inverter", "order": 2 },
   { "id": "deye-ai-w51", "name": "ذخیره‌ساز یکپارچه AI‑W5.1", "brand": "DEYE", "spec": "۵ – ۱۲", "specUnit": "kWh · All‑in‑One", "cat": "home", "kind": "storage", "order": 3 },
   { "id": "deye-rw-f", "name": "باتری لیتیومی RW‑F", "brand": "DEYE", "spec": "تا ۱۰٫۲", "specUnit": "kWh · کم‌ولتاژ", "cat": "home", "kind": "storage", "order": 4 },
-  { "id": "ae-md-panel", "name": "پنل نیم‌سلولی AE‑MD", "brand": "AE&nbsp;SOLAR", "spec": "۵۳۰ – ۵۵۰", "specUnit": "W · مونوکریستال", "cat": "home", "kind": "panel", "image": "/assets/products/ae-md-panel.jpg", "featured": true, "order": 5 },
+  { "id": "ae-md-panel", "name": "پنل نیم‌سلولی AE‑MD", "brand": "AE&nbsp;SOLAR", "spec": "۵۳۰ – ۵۵۰", "specUnit": "W · مونوکریستال", "cat": "home", "kind": "panel", "image": "../assets/products/ae-md-panel.jpg", "featured": true, "order": 5 },
   { "id": "sungrow-rs", "name": "اینورتر خانگی SG‑RS", "brand": "SUNGROW", "spec": "۳ – ۱۰", "specUnit": "kW · تک‌فاز", "cat": "home", "kind": "inverter", "order": 6 },
   { "id": "deye-logger", "name": "لاگر و مانیتورینگ WiFi", "brand": "DEYE", "spec": "پایش", "specUnit": "لحظه‌ای تولید", "cat": "home", "kind": "accessory", "order": 7 },
-  { "id": "fronius-symo", "name": "اینورتر Symo سه‌فاز", "brand": "FRONIUS", "spec": "۳ – ۲۰", "specUnit": "kW · سه‌فاز", "cat": "home", "kind": "inverter", "image": "/assets/products/fronius-symo.jpg", "order": 8 },
+  { "id": "fronius-symo", "name": "اینورتر Symo سه‌فاز", "brand": "FRONIUS", "spec": "۳ – ۲۰", "specUnit": "kW · سه‌فاز", "cat": "home", "kind": "inverter", "image": "../assets/products/fronius-symo.jpg", "order": 8 },
 
-  { "id": "sungrow-sg110cx", "name": "اینورتر نیروگاهی SG110CX", "brand": "SUNGROW", "spec": "۱۱۰", "specUnit": "kW · سه‌فاز", "cat": "industrial", "kind": "inverter", "image": "/assets/products/sungrow-sg110cx.webp", "featured": true, "order": 9 },
-  { "id": "sunways-stt", "name": "اینورتر تجاری STT", "brand": "SUNWAYS", "spec": "۳۰ – ۱۲۵", "specUnit": "kW · سه‌فاز", "cat": "industrial", "kind": "inverter", "image": "/assets/products/sunways-stt.webp", "featured": true, "order": 10 },
+  { "id": "sungrow-sg110cx", "name": "اینورتر نیروگاهی SG110CX", "brand": "SUNGROW", "spec": "۱۱۰", "specUnit": "kW · سه‌فاز", "cat": "industrial", "kind": "inverter", "image": "../assets/products/sungrow-sg110cx.webp", "featured": true, "order": 9 },
+  { "id": "sunways-stt", "name": "اینورتر تجاری STT", "brand": "SUNWAYS", "spec": "۳۰ – ۱۲۵", "specUnit": "kW · سه‌فاز", "cat": "industrial", "kind": "inverter", "image": "../assets/products/sunways-stt.webp", "featured": true, "order": 10 },
   { "id": "deye-sun-70-110k", "name": "اینورتر صنعتی SUN 70‑110K", "brand": "DEYE", "spec": "۷۰ – ۱۱۰", "specUnit": "kW · سه‌فاز", "cat": "industrial", "kind": "inverter", "order": 11 },
   { "id": "goodwe-ht", "name": "اینورتر نیروگاهی HT", "brand": "GOODWE", "spec": "۷۳ – ۱۳۶", "specUnit": "kW · ۱۵۰۰V", "cat": "industrial", "kind": "inverter", "order": 12 },
   { "id": "sineng-sp350k", "name": "اینورتر مرکزی SP‑350K", "brand": "SINENG", "spec": "۳۵۰", "specUnit": "kW · نیروگاهی", "cat": "industrial", "kind": "inverter", "order": 13 },
-  { "id": "fronius-tauro", "name": "اینورتر مقاوم Tauro", "brand": "FRONIUS", "spec": "تا ۱۰۰", "specUnit": "kW · نصب بیرونی", "cat": "industrial", "kind": "inverter", "image": "/assets/products/fronius-tauro.jpg", "order": 14 },
-  { "id": "ae-cme-bifacial", "name": "پنل دوطرفه CME", "brand": "AE&nbsp;SOLAR", "spec": "۷۱۰ – ۷۳۰", "specUnit": "W · Bifacial", "cat": "industrial", "kind": "panel", "image": "/assets/products/ae-cme-bifacial.jpg", "order": 15 },
+  { "id": "fronius-tauro", "name": "اینورتر مقاوم Tauro", "brand": "FRONIUS", "spec": "تا ۱۰۰", "specUnit": "kW · نصب بیرونی", "cat": "industrial", "kind": "inverter", "image": "../assets/products/fronius-tauro.jpg", "order": 14 },
+  { "id": "ae-cme-bifacial", "name": "پنل دوطرفه CME", "brand": "AE&nbsp;SOLAR", "spec": "۷۱۰ – ۷۳۰", "specUnit": "W · Bifacial", "cat": "industrial", "kind": "panel", "image": "../assets/products/ae-cme-bifacial.jpg", "order": 15 },
   { "id": "trina-vertex", "name": "پنل نیروگاهی Vertex", "brand": "TRINA", "spec": "تا ۷۰۰", "specUnit": "W · نیم‌سلولی", "cat": "industrial", "kind": "panel", "order": 16 }
 ]
