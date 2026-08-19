@@ -1,0 +1,42 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props { title: string; description?: string }
+const { title, description = 'نماد نیرو — طراحی، اجرا و بهره‌برداری نیروگاه‌های خورشیدی، تأمین تجهیزات و سرمایه‌گذاری در انرژی‌های تجدیدپذیر.' } = Astro.props;
+---
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
+  <link rel="preload" href="/fonts/DanaVF.woff2" as="font" type="font/woff2" crossorigin />
+</head>
+<body id="top">
+  <Header />
+  <main>
+    <slot />
+  </main>
+  <Footer />
+
+  <script>
+    // منوی موبایل
+    const btn = document.getElementById('menuToggle');
+    const nav = document.querySelector('.nav');
+    btn?.addEventListener('click', () => {
+      const open = nav?.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    nav?.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).tagName === 'A') {
+        nav.classList.remove('is-open');
+        btn?.setAttribute('aria-expanded', 'false');
+      }
+    });
+  </script>
+</body>
+</html>

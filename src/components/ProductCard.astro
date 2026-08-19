@@ -1,0 +1,18 @@
+---
+import { categoryLabel } from '../data/site';
+interface Props { p: any; id: string; showCat?: boolean }
+const { p, id, showCat = true } = Astro.props;
+---
+<article class="product-card" data-cat={p.cat}>
+  <div class="product-thumb">
+    {showCat && <span class="product-cat">{categoryLabel[p.cat]}</span>}
+    {p.image
+      ? <img class="product-img" src={p.image} alt={p.name} loading="lazy" />
+      : <span class="thumb-brand" set:html={p.brand} />}
+  </div>
+  <div class="product-body">
+    <h3 class="product-name">{p.name}</h3>
+    <p class="product-spec"><b>{p.spec}</b> {p.specUnit}</p>
+    <div class="product-foot"><a class="product-link" href={`/shop/${id}.html`}>مشاهدهٔ محصول ←</a></div>
+  </div>
+</article>

@@ -1,0 +1,12 @@
+---
+import { categoryLabel } from '../data/site';
+import { fa } from '../utils';
+interface Props { a: any }
+const { a } = Astro.props;
+const d = a.data;
+---
+<a class="mag-card" data-cat={d.category} href={`/magazine/${a.id}.html`}>
+  <span class="mag-tag">{categoryLabel[d.category]}</span>
+  <h3 class="mag-title">{d.title}</h3>
+  <span class="mag-date">{d.date} · {fa(d.readTime)} دقیقه</span>
+</a>

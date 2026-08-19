@@ -1,0 +1,41 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import Icon from '../components/Icon.astro';
+import { areas } from '../data/site';
+---
+<Base title="حوزه‌های فعالیت | نماد نیرو" description="سه حوزهٔ فعالیت نماد نیرو: پیمانکاری و احداث نیروگاه، بازرگانی و تأمین تجهیزات خورشیدی، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر.">
+  <PageHero
+    crumb="حوزه‌های فعالیت"
+    title="سه حوزه، یک شریک انرژی"
+    lead="از احداث و بهره‌برداری نیروگاه تا تأمین تجهیزات و سرمایه‌گذاری در انرژی خورشیدی؛ نماد نیرو در تمام مسیر همراه شماست."
+  />
+
+  {areas.map((a) => (
+    <section class:list={['area-block', a.reverse && 'is-reverse']} id={a.id}>
+      <div class="wrap area-inner">
+        <div class="area-visual" style={`--img:url('${a.image}')`}>
+          <span class="area-badge"><Icon name={a.icon} /></span>
+        </div>
+        <div class="area-copy">
+          <p class="eyebrow">{a.eyebrow}</p>
+          <h2 class="area-title">{a.title}</h2>
+          <p class="area-desc">{a.desc}</p>
+          <ul class="area-list">
+            {a.items.map((it) => <li>{it}</li>)}
+          </ul>
+          <a class="btn btn-solid" href={a.cta.href}>{a.cta.label}</a>
+          <span class="area-proof">{a.proof.label} <b>{a.proof.value}</b> {a.proof.tail}</span>
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <section class="cta-band">
+    <div class="wrap">
+      <h2>مطمئن نیستید کدام مسیر مناسب شماست؟</h2>
+      <p>کارشناسان ما با یک تماس، بهترین حوزه را برای پروژهٔ شما پیشنهاد می‌دهند.</p>
+      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+    </div>
+  </section>
+</Base>

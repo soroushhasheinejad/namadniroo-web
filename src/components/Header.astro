@@ -1,0 +1,26 @@
+---
+import { nav, site } from '../data/site';
+const path = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === path || href.replace('.html', '') === path.replace('.html', '');
+---
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label={site.name}>
+      <img class="brand-logo" src="/assets/logo.png" alt={site.name} width="157" height="34" />
+    </a>
+
+    <nav class="nav" aria-label="ناوبری اصلی">
+      {nav.map((n) => (
+        <a href={n.href} aria-current={isActive(n.href) ? 'page' : undefined}>{n.label}</a>
+      ))}
+    </nav>
+
+    <div class="header-actions">
+      <a href="/#quote" class="btn btn-solid btn-sm">درخواست مشاوره</a>
+      <button class="menu-toggle" id="menuToggle" aria-label="منو" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>

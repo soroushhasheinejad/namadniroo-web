@@ -1,0 +1,12 @@
+---
+interface Props { p: any }
+const { p } = Astro.props;
+---
+<article class="pcard" data-cat={p.cat}>
+  <div class="pcard-top">
+    <span class="pcard-cap">{p.capacity}<i>{p.unit}</i></span>
+    <span class="pcard-tag">{p.tag}</span>
+  </div>
+  <h3 class="pcard-name">{p.name}</h3>
+  {p.note && <p class="pcard-sub">{p.note}</p>}
+</article>

@@ -1,0 +1,81 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import ProjectTile from '../components/ProjectTile.astro';
+
+const invested = (await getCollection('projects'))
+  .filter((p) => p.data.cat === 'invest')
+  .sort((a, b) => a.data.order - b.data.order);
+
+const toLatinDigits = (s: string) => s.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+const totalMW = invested.reduce((sum, p) => sum + (parseFloat(toLatinDigits(p.data.capacity)) || 0), 0);
+const faNum = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
+---
+<Base title="سرمایه‌گذاری | نماد نیرو" description="نماد نیرو در نیروگاه‌هایی که می‌سازد، خودش هم سرمایه‌گذار است — مشارکت در انرژی خورشیدی با سابقهٔ اجرایی اثبات‌شده.">
+  <PageHero
+    crumb="سرمایه‌گذاری"
+    title="ما فقط نمی‌سازیم؛ خودمان هم سرمایه‌گذاریم"
+    lead="پیش از آن‌که از شما بخواهیم در نیروگاه خورشیدی سرمایه‌گذاری کنید، خودمان چند ده مگاوات از سرمایهٔ خودمان را در همین مسیر گذاشته‌ایم."
+  >
+    <div class="page-stats">
+      <div class="page-stat"><b>{faNum(totalMW)}<i>MW</i></b><span>سرمایه‌گذاری مستقیم نماد نیرو</span></div>
+      <div class="page-stat"><b>{faNum(invested.length)}</b><span>نیروگاه با مشارکت مستقیم</span></div>
+      <div class="page-stat"><b>۲<i>دهه</i></b><span>سابقهٔ اجرا و بهره‌برداری نیروگاه</span></div>
+    </div>
+  </PageHero>
+
+  <section class="about-sec">
+    <div class="wrap about-intro">
+      <div>
+        <p class="lead-lg">وقتی پیشنهاد سرمایه‌گذاری می‌دهیم، پشت آن سرمایهٔ خودمان ایستاده است.</p>
+        <p>بسیاری از شرکت‌های EPC فقط نیروگاه می‌سازند و پروژه را به کارفرما تحویل می‌دهند. نماد نیرو مسیر دیگری را هم رفته: در کنار پیمانکاری و تأمین تجهیزات، در تعدادی از نیروگاه‌هایی که خودمان طراحی و اجرا کرده‌ایم، سرمایه‌گذار هم بوده‌ایم.</p>
+        <p>این یعنی همان ریسک، بازده و چالش‌های بهره‌برداری که برای یک سرمایه‌گذار مطرح می‌شود، برای ما هم واقعی بوده — و تجربه‌اش را مستقیم داریم، نه فقط از زاویهٔ پیمانکار.</p>
+      </div>
+      <div class="about-visual"><b>مشارکت، تأمین مالی و اجرا زیر یک سقف</b></div>
+    </div>
+  </section>
+
+  <section class="projects">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">نمونهٔ سرمایه‌گذاری‌های ما</p>
+        <h2 class="section-title">نیروگاه‌هایی که در آن‌ها سهیم‌ایم</h2>
+      </header>
+      <div class="proj-grid">
+        {invested.map((p, i) => <ProjectTile p={p.data} large={i === 0} />)}
+      </div>
+    </div>
+  </section>
+
+  <section class="about-sec alt">
+    <div class="wrap">
+      <header class="about-head">
+        <p class="eyebrow">چرا با ما سرمایه‌گذاری کنید</p>
+        <h2>از امکان‌سنجی تا فروش تضمینی برق</h2>
+      </header>
+      <div class="cap-grid">
+        <div class="cap-card">
+          <h3>سابقهٔ اجرایی واقعی</h3>
+          <p>پیش از پیشنهاد به شما، همین مسیر را با سرمایهٔ خودمان رفته‌ایم — از مجوز تا بهره‌برداری.</p>
+        </div>
+        <div class="cap-card">
+          <h3>مدیریت کامل پروژه</h3>
+          <p>طراحی، تأمین تجهیزات، احداث و بهره‌برداری همه زیر یک مجموعه انجام می‌شود.</p>
+        </div>
+        <div class="cap-card">
+          <h3>شفافیت در بازده</h3>
+          <p>برآورد بازده و جدول زمانی بازگشت سرمایه پیش از ورود شما مشخص و مکتوب می‌شود.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="wrap">
+      <h2>می‌خواهید در پروژهٔ بعدی سهیم شوید؟</h2>
+      <p>فرصت‌های سرمایه‌گذاری فعلی و شرایط مشارکت را با کارشناسان ما در میان بگذارید.</p>
+      <a class="btn btn-solid" href="/#quote">بررسی فرصت سرمایه‌گذاری</a>
+    </div>
+  </section>
+</Base>

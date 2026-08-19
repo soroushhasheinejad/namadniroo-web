@@ -1,0 +1,36 @@
+---
+import { site } from '../data/site';
+---
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <span class="brand">
+        <img class="brand-logo" src="/assets/logo.png" alt={site.name} width="148" height="32" />
+      </span>
+      <p class="footer-note">از سال {site.since}، انرژیِ پایدار برای صنعت ایران. {site.city}</p>
+      <p class="footer-note" dir="ltr">{site.phone}</p>
+    </div>
+    <nav class="footer-col" aria-label="حوزه‌ها">
+      <h4>حوزه‌ها</h4>
+      <a href="/activity.html#contracting">پیمانکاری</a>
+      <a href="/activity.html#trading">بازرگانی و تجهیزات</a>
+      <a href="/investment.html">سرمایه‌گذاری</a>
+    </nav>
+    <nav class="footer-col" aria-label="شرکت">
+      <h4>شرکت</h4>
+      <a href="/projects.html">پروژه‌ها</a>
+      <a href="/shop.html">فروشگاه</a>
+      <a href="/magazine.html">مجله</a>
+    </nav>
+    <nav class="footer-col" aria-label="ارتباط">
+      <h4>ارتباط</h4>
+      <a href="/contact.html">تماس با ما</a>
+      <a href="/#quote">درخواست مشاوره</a>
+      <a href={site.phoneHref}>تماس تلفنی</a>
+      <a href="#top">بالای صفحه</a>
+    </nav>
+  </div>
+  <div class="wrap footer-base">
+    <span>© ۱۴۰۴ {site.name} — همهٔ حقوق محفوظ است.</span>
+  </div>
+</footer>

@@ -1,0 +1,13 @@
+---
+import { brands } from '../data/site';
+const loop = [...brands, ...brands];
+---
+<div class="marquee" aria-label="برندهای همکار">
+  <div class="marquee-track">
+    {loop.map((b) => (
+      <div class="brand-tile">
+        {b.logo ? <img class="brand-mark-img" src={b.logo} alt={b.name} /> : <span class="brand-text">{b.name}</span>}
+      </div>
+    ))}
+  </div>
+</div>

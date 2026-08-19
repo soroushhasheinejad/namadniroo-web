@@ -1,0 +1,85 @@
+---
+import { site } from '../data/site';
+---
+<section class="quote" id="quote" aria-label="درخواست مشاوره">
+  <div class="wrap quote-inner">
+    <div class="quote-copy">
+      <h2 class="section-title quote-title">پروژه‌ای در ذهن دارید؟<br />از یک تماس شروع می‌شود.</h2>
+      <p class="quote-lead">فرم را پر کنید؛ کارشناسان ما ظرف یک روز کاری با یک برآورد اولیه تماس می‌گیرند.</p>
+      <ul class="quote-points">
+        <li>مشاورهٔ فنی رایگان و برآورد ظرفیت</li>
+        <li>پاسخ در کمتر از ۲۴ ساعت کاری</li>
+        <li>پشتیبانی از امکان‌سنجی تا بهره‌برداری</li>
+      </ul>
+      <p class="quote-contact">یا مستقیم تماس بگیرید: <a href={site.phoneHref} dir="ltr">{site.phone}</a></p>
+    </div>
+
+    <form class="quote-form" id="quoteForm" novalidate>
+      <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true" />
+      <div class="field">
+        <label for="q-name">نام و نام خانوادگی</label>
+        <input id="q-name" name="name" type="text" autocomplete="name" required />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="q-phone">شمارهٔ تماس</label>
+          <input id="q-phone" name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" required />
+        </div>
+        <div class="field">
+          <label for="q-cap">ظرفیت موردنظر</label>
+          <select id="q-cap" name="capacity">
+            <option value="">انتخاب کنید</option>
+            <option>زیر ۱۰ کیلووات (خانگی)</option>
+            <option>۱۰ تا ۱۰۰ کیلووات (تجاری)</option>
+            <option>بالای یک مگاوات (صنعتی)</option>
+            <option>هنوز مطمئن نیستم</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="q-area">حوزهٔ درخواست</label>
+        <select id="q-area" name="area">
+          <option value="">انتخاب کنید</option>
+          <option>پیمانکاری و ساخت نیروگاه</option>
+          <option>خرید اینورتر و پنل</option>
+          <option>سرمایه‌گذاری در پروژه</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-solid btn-block">ارسال درخواست</button>
+      <p class="form-note" id="formNote" role="status"></p>
+    </form>
+  </div>
+</section>
+
+<script>
+  const form = document.getElementById('quoteForm') as HTMLFormElement | null;
+  const note = document.getElementById('formNote');
+  const submitBtn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (note) note.textContent = 'در حال ارسال...';
+
+    try {
+      const res = await fetch('/send-quote.php', {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        body: new FormData(form),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (note) note.textContent = 'درخواست شما ثبت شد؛ به‌زودی تماس می‌گیریم.';
+        form.reset();
+      } else {
+        if (note) note.textContent = 'ارسال با خطا مواجه شد؛ لطفاً مستقیم تماس بگیرید.';
+      }
+    } catch {
+      if (note) note.textContent = 'ارسال با خطا مواجه شد؛ لطفاً مستقیم تماس بگیرید.';
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+</script>

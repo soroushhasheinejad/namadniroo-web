@@ -1,0 +1,61 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import { categoryLabel } from '../../data/site';
+import { fa } from '../../utils';
+
+export async function getStaticPaths() {
+  const articles = (await getCollection('articles')).filter((a) => !a.data.draft);
+  return articles.map((a) => ({
+    params: { slug: a.id },
+    props: { article: a, all: articles },
+  }));
+}
+
+const { article, all } = Astro.props;
+const { Content } = await render(article);
+const d = article.data;
+
+const related = all
+  .filter((a: any) => a.id !== article.id && a.data.category === d.category)
+  .slice(0, 3);
+---
+<Base title={`${d.title} | مجلهٔ نماد نیرو`} description={d.title}>
+  <article class="article">
+    <div class="wrap article-head">
+      <p class="breadcrumb">
+        <a href="/">خانه</a><span>/</span><a href="/magazine.html">مجله</a><span>/</span>{categoryLabel[d.category]}
+      </p>
+      <span class="mag-tag">{categoryLabel[d.category]}</span>
+      <h1 class="article-title">{d.title}</h1>
+      <p class="article-meta">{d.date} · {fa(d.readTime)} دقیقه مطالعه</p>
+    </div>
+
+    <div class="wrap article-body">
+      <Content />
+    </div>
+  </article>
+
+  {related.length > 0 && (
+    <section class="magazine">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">مطالب مرتبط</p>
+          <h2 class="section-title">در همین دسته</h2>
+        </header>
+        <div class="mag-grid">
+          {related.map((a: any) => <ArticleCard a={a} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="cta-band">
+    <div class="wrap">
+      <h2>سؤالی دربارهٔ پروژه‌تان دارید؟</h2>
+      <p>کارشناسان ما فراتر از مقاله، مستقیم راهنمایی‌تان می‌کنند.</p>
+      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+    </div>
+  </section>
+</Base>

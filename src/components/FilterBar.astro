@@ -1,0 +1,23 @@
+---
+interface Props { items: { key: string; label: string }[]; label?: string }
+const { items, label = 'فیلتر' } = Astro.props;
+---
+<div class="pfilters" role="tablist" aria-label={label}>
+  {items.map((f, i) => (
+    <button class:list={['pchip', i === 0 && 'is-active']} data-filter={f.key}>{f.label}</button>
+  ))}
+</div>
+
+<script>
+  const chips = [...document.querySelectorAll<HTMLButtonElement>('.pchip')];
+  if (chips.length) {
+    const cards = [...document.querySelectorAll<HTMLElement>('[data-cat]')];
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        chips.forEach((c) => c.classList.toggle('is-active', c === chip));
+        const f = chip.dataset.filter;
+        cards.forEach((card) => card.classList.toggle('is-hidden', f !== 'all' && card.dataset.cat !== f));
+      });
+    });
+  }
+</script>

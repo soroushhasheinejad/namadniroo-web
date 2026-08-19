@@ -1,0 +1,19 @@
+---
+interface Props { name: string; class?: string }
+const { name, class: cls = '' } = Astro.props;
+
+const paths: Record<string, string> = {
+  contract: '<path d="M4 7h7l3 3 3-3M4 7v9a2 2 0 0 0 2 2h4"/><path d="m13 13 2.4 2.4a1.4 1.4 0 0 0 2-2L15 11l2-2 3 3v5a2 2 0 0 1-2 2h-2"/>',
+  panel: '<rect x="3" y="5" width="18" height="11" rx="1"/><path d="M3 9h18M3 12.5h18M9 5v11M15 5v11M12 16v4M8 20h8"/>',
+  chart: '<path d="M4 19V5M4 19h16"/><path d="M7.5 15l3-4 3 2 4.5-6.5"/><path d="M16 5.5h2V7.5"/>',
+  sun: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.2"/>',
+  monitor: '<rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 20h8M12 17v3M7 9l2.5 2.5L13 8l4 4"/>',
+  shield: '<path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9.5 12l1.8 1.8L15 10"/>',
+  arrowNext: '<path d="m15 6-6 6 6 6"/>',
+  arrowPrev: '<path d="m9 6 6 6-6 6"/>',
+  phone: '<path d="M6.6 10.8a15.3 15.3 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.36 2.3.56 3.6.56a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.4 21 3 13.6 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.3.2 2.5.56 3.6a1 1 0 0 1-.25 1z"/>',
+  pin: '<path d="M12 21s7-6.6 7-12a7 7 0 1 0-14 0c0 5.4 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+};
+---
+<svg class={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" set:html={paths[name] ?? ''} />

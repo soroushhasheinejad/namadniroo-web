@@ -1,0 +1,71 @@
+---
+import Icon from './Icon.astro';
+import { heroSlides } from '../data/site';
+---
+<section class="hero" id="activity" data-slider="hero" aria-roledescription="اسلایدر" aria-label="حوزه‌های فعالیت">
+  <div class="hero-viewport">
+    <div class="hero-slides">
+      {heroSlides.map((s, i) => (
+        <article
+          class:list={['hero-slide', i === 0 && 'is-active']}
+          data-slide={i}
+          style={`--img:url('${s.img}')`}
+          aria-label={s.label}
+        />
+      ))}
+    </div>
+    <div class="hero-progress" aria-hidden="true"><span></span></div>
+  </div>
+
+  <div class="hero-rail" role="tablist" aria-label="انتخاب حوزه فعالیت">
+    {heroSlides.map((s, i) => (
+      <button class:list={['hero-tab', i === 0 && 'is-active']} role="tab" aria-selected={i === 0} data-tab={i}>
+        <span class="tab-icon"><Icon name={s.icon} /></span>
+        <span class="tab-label">{s.label}</span>
+      </button>
+    ))}
+  </div>
+</section>
+
+<script>
+  const hero = document.querySelector<HTMLElement>('[data-slider="hero"]');
+  if (hero) {
+    const track = hero.querySelector<HTMLElement>('.hero-slides')!;
+    const slides = [...hero.querySelectorAll('.hero-slide')];
+    const tabs = [...hero.querySelectorAll<HTMLButtonElement>('.hero-tab')];
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const DELAY = 6000;
+    let cur = 0, timer: ReturnType<typeof setInterval> | null = null;
+
+    const show = (i: number) => {
+      cur = (i + slides.length) % slides.length;
+      track.style.transform = `translateX(${-cur * 100}%)`;
+      slides.forEach((s, n) => s.classList.toggle('is-active', n === cur));
+      tabs.forEach((t, n) => {
+        t.classList.toggle('is-active', n === cur);
+        t.setAttribute('aria-selected', String(n === cur));
+      });
+      hero.classList.remove('is-playing');
+      if (!reduce) { void hero.offsetWidth; hero.classList.add('is-playing'); }
+    };
+    const play = () => { if (reduce) return; stop(); timer = setInterval(() => show(cur + 1), DELAY); };
+    const stop = () => { if (timer) clearInterval(timer); timer = null; };
+
+    tabs.forEach((t) => t.addEventListener('click', () => { show(Number(t.dataset.tab)); play(); }));
+    hero.addEventListener('mouseenter', stop);
+    hero.addEventListener('mouseleave', play);
+    hero.addEventListener('focusin', stop);
+    hero.addEventListener('focusout', play);
+
+    let x0: number | null = null;
+    hero.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    hero.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 45) { show(cur + (dx < 0 ? 1 : -1)); play(); }
+      x0 = null;
+    }, { passive: true });
+
+    show(0); play();
+  }
+</script>

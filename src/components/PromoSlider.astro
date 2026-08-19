@@ -1,0 +1,68 @@
+---
+import Icon from './Icon.astro';
+import { promoSlides } from '../data/site';
+---
+<section class="promo" data-slider="promo" aria-roledescription="اسلایدر" aria-label="بنرهای معرفی">
+  <div class="wrap">
+    <div class="promo-viewport">
+      <div class="promo-track">
+        {promoSlides.map((s, i) => (
+          <a
+            class:list={['promo-slide', 'has-img', i === 0 && 'is-active']}
+            data-slide={i}
+            href={s.href}
+            aria-label={s.alt}
+            style={`--img:url('${s.img}')`}
+          />
+        ))}
+      </div>
+
+      <button class="promo-arrow promo-prev" aria-label="بنر قبلی"><Icon name="arrowPrev" class="ico" /></button>
+      <button class="promo-arrow promo-next" aria-label="بنر بعدی"><Icon name="arrowNext" class="ico" /></button>
+
+      <div class="promo-dots" role="tablist" aria-label="انتخاب بنر">
+        {promoSlides.map((_, i) => (
+          <button class:list={['promo-dot', i === 0 && 'is-active']} data-dot={i} aria-label={`بنر ${i + 1}`} />
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const promo = document.querySelector<HTMLElement>('[data-slider="promo"]');
+  if (promo) {
+    const track = promo.querySelector<HTMLElement>('.promo-track')!;
+    const slides = [...promo.querySelectorAll('.promo-slide')];
+    const dots = [...promo.querySelectorAll<HTMLButtonElement>('.promo-dot')];
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const DELAY = 7000;
+    let cur = 0, timer: ReturnType<typeof setInterval> | null = null;
+
+    const go = (i: number) => {
+      cur = (i + slides.length) % slides.length;
+      track.style.transform = `translateX(${-cur * 100}%)`;
+      dots.forEach((d, n) => d.classList.toggle('is-active', n === cur));
+      slides.forEach((s, n) => s.classList.toggle('is-active', n === cur));
+    };
+    const play = () => { if (reduce) return; stop(); timer = setInterval(() => go(cur + 1), DELAY); };
+    const stop = () => { if (timer) clearInterval(timer); timer = null; };
+
+    promo.querySelector('.promo-next')?.addEventListener('click', () => { go(cur + 1); play(); });
+    promo.querySelector('.promo-prev')?.addEventListener('click', () => { go(cur - 1); play(); });
+    dots.forEach((d) => d.addEventListener('click', () => { go(Number(d.dataset.dot)); play(); }));
+    promo.addEventListener('mouseenter', stop);
+    promo.addEventListener('mouseleave', play);
+
+    let x0: number | null = null;
+    promo.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    promo.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 45) { go(cur + (dx < 0 ? 1 : -1)); play(); }
+      x0 = null;
+    }, { passive: true });
+
+    go(0); play();
+  }
+</script>

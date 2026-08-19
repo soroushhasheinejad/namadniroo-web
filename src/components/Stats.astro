@@ -1,0 +1,49 @@
+---
+import { stats } from '../data/site';
+---
+<section class="stats" aria-label="نماد نیرو در یک نگاه">
+  <div class="wrap stats-grid">
+    {stats.map((s) => (
+      <div class="stat">
+        <span class="stat-num">
+          {'value' in s && s.value != null
+            ? <b class="num" data-to={s.value} data-plus={s.plus ? '1' : undefined}>۰</b>
+            : <b>{s.text}</b>}
+          {s.unit && <i>{s.unit}</i>}
+        </span>
+        <span class="stat-cap">{s.caption}</span>
+      </div>
+    ))}
+  </div>
+</section>
+
+<script>
+  const fa = (n: number | string) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
+  const nums = [...document.querySelectorAll<HTMLElement>('.num[data-to]')];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (nums.length) {
+    if (reduce || !('IntersectionObserver' in window)) {
+      nums.forEach((n) => { n.textContent = fa(n.dataset.to!) + (n.dataset.plus ? '+' : ''); });
+    } else {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((en) => {
+          if (!en.isIntersecting) return;
+          const el = en.target as HTMLElement;
+          const to = Number(el.dataset.to);
+          const plus = el.dataset.plus ? '+' : '';
+          let t0: number | null = null;
+          const step = (ts: number) => {
+            if (!t0) t0 = ts;
+            const p = Math.min((ts - t0) / 1100, 1);
+            el.textContent = fa(Math.round(to * (1 - Math.pow(1 - p, 3)))) + (p === 1 ? plus : '');
+            if (p < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+          io.unobserve(el);
+        });
+      }, { threshold: 0.5 });
+      nums.forEach((n) => io.observe(n));
+    }
+  }
+</script>

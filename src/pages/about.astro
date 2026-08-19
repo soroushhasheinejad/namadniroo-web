@@ -1,0 +1,79 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import Stats from '../components/Stats.astro';
+import Icon from '../components/Icon.astro';
+import BrandMarquee from '../components/BrandMarquee.astro';
+import { capabilities, clients, site } from '../data/site';
+---
+<Base title="درباره ما | نماد نیرو" description="نماد نیرو؛ فعال از سال ۱۳۸۷ در کرمان در حوزهٔ نیروگاه‌های خورشیدی و حرارتی — پیمانکاری، تأمین تجهیزات و سرمایه‌گذاری.">
+  <PageHero
+    crumb="درباره ما"
+    title="از دل کویر، انرژیِ صنعت"
+    lead="نماد نیرو از سال ۱۳۸۷ در کرمان، از یک پیمانکار برق تا شریکی جامع در انرژی خورشیدی رشد کرده است."
+  />
+
+  <section class="about-sec">
+    <div class="wrap about-intro">
+      <div>
+        <p class="lead-lg">ما نیروگاه می‌سازیم، تجهیزش می‌کنیم و در آن سرمایه‌گذاری می‌کنیم — همه زیر یک سقف.</p>
+        <p>نماد نیرو کار خود را در سال ۱۳۸۷ در حوزهٔ تولید و توزیع برق صنعتی آغاز کرد و به‌مرور به یکی از فعال‌ترین شرکت‌های انرژی خورشیدی در کرمان و مرکز ایران تبدیل شد.</p>
+        <p>امروز در سه حوزهٔ پیمانکاری و احداث نیروگاه، بازرگانی و تأمین تجهیزات، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر فعالیت می‌کنیم؛ از یک کیلووات روی پشت‌بام تا نیروگاه‌های مگاواتی در دشت.</p>
+      </div>
+      <div class="about-visual"><b>{site.city} · از {site.since}</b></div>
+    </div>
+  </section>
+
+  <Stats />
+
+  <section class="about-sec">
+    <div class="wrap">
+      <header class="about-head">
+        <p class="eyebrow">توانمندی‌ها</p>
+        <h2>از طراحی تا بهره‌برداری و پایش</h2>
+      </header>
+      <div class="cap-grid">
+        {capabilities.map((c) => (
+          <div class="cap-card">
+            <span class="cap-ic"><Icon name={c.icon} /></span>
+            <h3>{c.title}</h3>
+            <p>{c.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="about-sec alt">
+    <div class="wrap">
+      <header class="about-head">
+        <p class="eyebrow">برندهای همکار</p>
+        <h2>تجهیزات از سازندگان معتبر جهانی</h2>
+      </header>
+      <BrandMarquee />
+    </div>
+  </section>
+
+  <section class="about-sec">
+    <div class="wrap">
+      <header class="about-head">
+        <p class="eyebrow">کارفرمایان ما</p>
+        <h2>اعتماد صنایع بزرگ کشور</h2>
+      </header>
+      <div class="client-row">
+        {clients.map((c) => <span class="client-chip">{c}</span>)}
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="wrap">
+      <h2>بیایید پروژهٔ بعدی را با هم بسازیم</h2>
+      <p>از مشاورهٔ اولیه تا بهره‌برداری، کنار شما هستیم.</p>
+      <div class="cta-actions">
+        <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+        <a class="btn btn-ghost" href="/downloads/portfolio.pdf" download>دانلود پورتفوی کامل</a>
+      </div>
+    </div>
+  </section>
+</Base>

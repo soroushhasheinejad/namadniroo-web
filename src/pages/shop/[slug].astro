@@ -1,0 +1,75 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { categoryLabel } from '../../data/site';
+
+export async function getStaticPaths() {
+  const products = await getCollection('products');
+  return products.map((p) => ({
+    params: { slug: p.id },
+    props: { product: p, all: products },
+  }));
+}
+
+const { product, all } = Astro.props;
+const p = product.data;
+
+const related = all
+  .filter((x: any) => x.id !== product.id && x.data.cat === p.cat)
+  .sort((a: any, b: any) => a.data.order - b.data.order)
+  .slice(0, 4);
+---
+<Base title={`${p.name} | فروشگاه نماد نیرو`} description={`${p.name} — ${p.brand} — ${p.spec} ${p.specUnit}`}>
+  <div class="article-head">
+    <div class="wrap">
+      <p class="breadcrumb">
+        <a href="/">خانه</a><span>/</span><a href="/shop.html">فروشگاه</a><span>/</span>{categoryLabel[p.cat]}
+      </p>
+      <span class="mag-tag">{categoryLabel[p.cat]}</span>
+      <h1 class="article-title">{p.name}</h1>
+      <p class="article-meta" dir="ltr">{p.brand} · {p.spec} {p.specUnit}</p>
+    </div>
+  </div>
+
+  <section class="about-sec">
+    <div class="wrap about-intro">
+      <div class="product-thumb product-hero">
+        {p.image
+          ? <img class="product-img" src={p.image} alt={p.name} loading="lazy" />
+          : <span class="thumb-brand" set:html={p.brand} />}
+      </div>
+      <div>
+        <p class="lead-lg">{p.brand} · {p.spec} {p.specUnit}</p>
+        <p>
+          محصولی از دستهٔ محصولات {categoryLabel[p.cat]} نماد نیرو، مناسب برای پروژه‌های
+          {p.cat === 'home' ? ' خانگی و تجاری کوچک' : ' صنعتی و نیروگاهی'}.
+          مشخصات فنی کامل، قیمت روز، موجودی و زمان تحویل را از کارشناسان فروش استعلام بگیرید.
+        </p>
+        <a class="btn btn-solid" href="/#quote">استعلام قیمت و موجودی</a>
+      </div>
+    </div>
+  </section>
+
+  {related.length > 0 && (
+    <section class="shop">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">محصولات مرتبط</p>
+          <h2 class="section-title">در همین دسته</h2>
+        </header>
+        <div class="products">
+          {related.map((r: any) => <ProductCard p={r.data} id={r.id} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="cta-band">
+    <div class="wrap">
+      <h2>دربارهٔ این محصول سؤال دارید؟</h2>
+      <p>کارشناسان ما مشخصات فنی، قیمت و زمان تحویل را برایتان مشخص می‌کنند.</p>
+      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+    </div>
+  </section>
+</Base>

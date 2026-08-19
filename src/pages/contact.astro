@@ -1,0 +1,38 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import QuoteForm from '../components/QuoteForm.astro';
+import Icon from '../components/Icon.astro';
+import { site } from '../data/site';
+
+const info = [
+  { icon: 'phone', title: 'تماس تلفنی', text: site.phone, href: site.phoneHref, dir: 'ltr' },
+  { icon: 'pin', title: 'محل شرکت', text: site.city },
+  { icon: 'clock', title: 'ساعات پاسخ‌گویی', text: 'شنبه تا چهارشنبه، ۸ تا ۱۷' },
+];
+---
+<Base title="تماس با ما | نماد نیرو" description="راه‌های تماس با نماد نیرو در کرمان — تلفن، فرم درخواست مشاوره و آدرس دفتر مرکزی.">
+  <PageHero
+    crumb="تماس با ما"
+    title="گفت‌وگو را شروع کنید"
+    lead="چه یک نیروگاه خانگی مدنظرتان باشد چه یک پروژهٔ صنعتی، کارشناسان ما آماده‌ی پاسخ‌گویی‌اند."
+  />
+
+  <section class="about-sec">
+    <div class="wrap">
+      <div class="cap-grid">
+        {info.map((i) => (
+          <div class="cap-card">
+            <span class="cap-ic"><Icon name={i.icon} /></span>
+            <h3>{i.title}</h3>
+            {i.href
+              ? <p><a href={i.href} dir={i.dir}>{i.text}</a></p>
+              : <p>{i.text}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <QuoteForm />
+</Base>

@@ -1,0 +1,34 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import FilterBar from '../components/FilterBar.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { filters } from '../data/site';
+
+const products = (await getCollection('products')).sort((a, b) => a.data.order - b.data.order);
+---
+<Base title="فروشگاه | نماد نیرو" description="فروشگاه تجهیزات خورشیدی نماد نیرو؛ اینورتر، پنل و ذخیره‌ساز از برندهای معتبر جهانی، در دو دستهٔ محصولات خانگی و صنعتی.">
+  <PageHero
+    crumb="فروشگاه"
+    title="تجهیزاتی که پروژه را می‌سازند"
+    lead="اینورتر، پنل و ذخیره‌ساز از برندهای معتبر جهانی؛ برای خانه‌ها و صنایع، همراه با گارانتی و پشتیبانی فنی."
+  />
+
+  <section class="shop-sec">
+    <div class="wrap">
+      <FilterBar items={filters.products} label="فیلتر محصولات" />
+      <div class="shop-grid">
+        {products.map((p) => <ProductCard p={p.data} id={p.id} />)}
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="wrap">
+      <h2>تجهیز موردنظرتان را پیدا نکردید؟</h2>
+      <p>لیست کامل برندها و مدل‌ها را داریم؛ نیازتان را بگویید تا بهترین گزینه را پیشنهاد دهیم.</p>
+      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,36 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import FilterBar from '../components/FilterBar.astro';
+import ArticleCard from '../components/ArticleCard.astro';
+import { filters } from '../data/site';
+
+const articles = (await getCollection('articles'))
+  .filter((a) => !a.data.draft)
+  .sort((a, b) => b.data.date.localeCompare(a.data.date));
+---
+<Base title="مجله | نماد نیرو" description="مجلهٔ انرژی نماد نیرو؛ آموزش، بازار انرژی و اخبار شرکت دربارهٔ نیروگاه خورشیدی، اینورتر، نگه‌داری و سرمایه‌گذاری.">
+  <PageHero
+    crumb="مجله"
+    title="مجلهٔ انرژی"
+    lead="راهنمای ساده و کاربردی دربارهٔ نیروگاه خورشیدی، تجهیزات، نگه‌داری و اقتصاد انرژی — برای صاحبان صنایع و علاقه‌مندان."
+  />
+
+  <section class="mag-sec">
+    <div class="wrap">
+      <FilterBar items={filters.articles} label="فیلتر مقاله‌ها" />
+      <div class="mag-grid">
+        {articles.map((a) => <ArticleCard a={a} />)}
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="wrap">
+      <h2>سؤالی دربارهٔ پروژه‌تان دارید؟</h2>
+      <p>کارشناسان ما فراتر از مقاله، مستقیم راهنمایی‌تان می‌کنند.</p>
+      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+    </div>
+  </section>
+</Base>

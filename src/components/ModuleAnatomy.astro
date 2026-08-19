@@ -1,0 +1,106 @@
+---
+import { layers } from '../data/aesolar';
+import { fa } from '../utils';
+
+/* هندسهٔ ایزومتریک: هر لایه یک صفحهٔ لوزی با کمی ضخامت */
+const HALF_W = 178;
+const HALF_H = 40;
+const THICK = 7;
+const GAP = 54;
+const TOP = 62;
+
+const plate = (y: number) =>
+  `M 0 ${y - HALF_H} L ${HALF_W} ${y} L 0 ${y + HALF_H} L ${-HALF_W} ${y} Z`;
+
+const sideL = (y: number) =>
+  `M ${-HALF_W} ${y} L 0 ${y + HALF_H} L 0 ${y + HALF_H + THICK} L ${-HALF_W} ${y + THICK} Z`;
+
+const sideR = (y: number) =>
+  `M ${HALF_W} ${y} L 0 ${y + HALF_H} L 0 ${y + HALF_H + THICK} L ${HALF_W} ${y + THICK} Z`;
+
+const fills: Record<string, string> = {
+  glass: 'rgba(200,225,240,.20)',
+  'enc-f': 'rgba(255,235,180,.16)',
+  cells: '#0d1b26',
+  'enc-b': 'rgba(255,235,180,.13)',
+  back: 'rgba(235,235,235,.30)',
+  frame: 'rgba(150,160,168,.42)',
+};
+---
+<div class="anatomy" data-anatomy>
+  <ol class="anat-list">
+    {layers.map((l, i) => (
+      <li>
+        <button class:list={['anat-item', i === 2 && 'is-active']} data-layer={l.id} type="button">
+          <span class="anat-idx">{fa(String(i + 1).padStart(2, '0'))}</span>
+          <span class="anat-text">
+            <span class="anat-fa">{l.fa}</span>
+            <span class="anat-en">{l.en}</span>
+            <span class="anat-note">{l.note}</span>
+          </span>
+        </button>
+      </li>
+    ))}
+  </ol>
+
+  <div class="anat-stage" aria-hidden="true">
+    <svg viewBox="-210 0 420 400" role="img">
+      <defs>
+        <linearGradient id="cellSheen" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#16303f" />
+          <stop offset="1" stop-color="#08121a" />
+        </linearGradient>
+      </defs>
+
+      {layers.map((l, i) => {
+        const y = TOP + i * GAP;
+        return (
+          <g class="anat-layer" data-layer={l.id} style={`--y:${y}px`}>
+            <path class="pl-side" d={sideL(y)} fill={fills[l.id]} />
+            <path class="pl-side" d={sideR(y)} fill={fills[l.id]} />
+            <path
+              class="pl-top"
+              d={plate(y)}
+              fill={l.id === 'cells' ? 'url(#cellSheen)' : fills[l.id]}
+            />
+            {l.id === 'cells' && (
+              <g class="pl-cells">
+                {[-3, -1.5, 0, 1.5, 3].map((k) => (
+                  <line
+                    x1={k * 44} y1={y - HALF_H + Math.abs(k) * 9}
+                    x2={k * 44} y2={y + HALF_H - Math.abs(k) * 9}
+                  />
+                ))}
+                <line x1={-HALF_W + 30} y1={y - 7} x2={HALF_W - 30} y2={y - 7} />
+                <line x1={-HALF_W + 30} y1={y + 7} x2={HALF_W - 30} y2={y + 7} />
+              </g>
+            )}
+            <path class="pl-edge" d={plate(y)} fill="none" />
+          </g>
+        );
+      })}
+    </svg>
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-anatomy]');
+  if (root) {
+    const items = [...root.querySelectorAll<HTMLButtonElement>('.anat-item')];
+    const plates = [...root.querySelectorAll<SVGGElement>('.anat-layer')];
+
+    const setActive = (id: string) => {
+      items.forEach((b) => b.classList.toggle('is-active', b.dataset.layer === id));
+      plates.forEach((g) => g.classList.toggle('is-active', g.dataset.layer === id));
+    };
+
+    items.forEach((b) => {
+      const id = b.dataset.layer!;
+      b.addEventListener('mouseenter', () => setActive(id));
+      b.addEventListener('focus', () => setActive(id));
+      b.addEventListener('click', () => setActive(id));
+    });
+
+    setActive('cells');
+  }
+</script>

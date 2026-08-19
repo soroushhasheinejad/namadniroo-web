@@ -1,0 +1,259 @@
+---
+import Base from '../layouts/Base.astro';
+import ModuleAnatomy from '../components/ModuleAnatomy.astro';
+import { fa } from '../utils';
+import { ae, aeStats, series, whyUs, techGuide, warranty, datasheets, faq } from '../data/aesolar';
+---
+<Base
+  title="AE Solar | نمایندگی رسمی در ایران — نماد نیرو"
+  description="نماد نیرو، نمایندهٔ رسمی AE Solar آلمان در ایران. تأمین ماژول‌های خورشیدی سری Aurora، Meteor، Comet و Eclipse با گارانتی معتبر سازنده."
+>
+  <div class="ae-page">
+
+    <!-- ===== سربرگ ===== -->
+    <section class="ae-hero">
+      <div class="wrap">
+        <span class="ae-badge">نمایندهٔ رسمی در ایران</span>
+        <h1 class="ae-title">
+          ماژول‌های خورشیدی<br />
+          <span class="red">مهندسی آلمان</span><br />
+          <span class="dim">حالا از انبار کرمان</span>
+        </h1>
+        <p class="ae-lead">
+          AE Solar از سال {ae.since} در آلمان ماژول تولید می‌کند. ما نمایندهٔ رسمی آن در ایران هستیم —
+          یعنی همان کیفیت، با گارانتی معتبر سازنده و تحویل از موجودی داخلی.
+        </p>
+        <div class="ae-hero-cta">
+          <a class="btn btn-solid" href="/#quote">استعلام قیمت و موجودی</a>
+          <a class="btn btn-ghost" href="#series">مشاهدهٔ سری‌ها</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== آمار ===== -->
+    <section class="ae-stats" aria-label="AE Solar در یک نگاه">
+      {aeStats.map((s) => (
+        <div class="ae-stat">
+          <b>{s.value}{s.plus && <i>+</i>}{s.unit && <i>{s.unit}</i>}</b>
+          <span>{s.label}</span>
+        </div>
+      ))}
+    </section>
+
+    <!-- ===== امضا: کالبدشکافی ماژول ===== -->
+    <section class="ae-sec">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">آنچه داخل ماژول است</p>
+          <h2 class="ae-h2">
+            کیفیت را نمی‌شود دید.<br />
+            <em>مگر اینکه بازش کنی.</em>
+          </h2>
+          <p class="ae-sub">
+            هر ماژول از شش لایه ساخته شده و عمر واقعی آن را همین لایه‌ها تعیین می‌کنند، نه برچسب روی جعبه.
+            روی هر لایه نگه دارید تا جای آن را ببینید.
+          </p>
+        </header>
+        <ModuleAnatomy />
+      </div>
+    </section>
+
+    <!-- ===== سری‌ها ===== -->
+    <section class="ae-sec alt" id="series">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">سری‌های ماژول</p>
+          <h2 class="ae-h2">
+            هر سری برای <span class="red">یک شرایط</span><br />
+            <em>ساخته شده است.</em>
+          </h2>
+          <p class="ae-sub">
+            AE Solar نام هر سری را از یک پدیدهٔ کیهانی یا طبیعی گرفته است. تفاوت‌شان تزئینی نیست —
+            هر کدام تکنولوژی سلول متفاوتی دارد و برای اقلیم و نوع پروژهٔ مشخصی بهینه شده.
+          </p>
+        </header>
+
+        <div class="series-grid">
+          {series.map((s) => (
+            <article class="series-card">
+              <h3 class="series-name">{s.name}<span class="series-fa">{s.fa}</span></h3>
+              <span class="series-tech">{s.tech}</span>
+              <p class="series-tag">{s.tagline}</p>
+              <p class="series-desc">{s.desc}</p>
+              <div class="series-foot">
+                {s.power !== '—'
+                  ? <span class="series-power">{s.power}<i>W</i></span>
+                  : <span class="series-power" style="color:var(--faint)">بنا به سفارش</span>}
+                <span class:list={['series-stock', !s.stocked && 'no']}>
+                  {s.stocked ? 'موجود در ایران' : 'سفارش‌پذیر'}
+                </span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== راهنمای انتخاب ===== -->
+    <section class="ae-sec">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">راهنمای انتخاب</p>
+          <h2 class="ae-h2">
+            کدام تکنولوژی<br />
+            <em>برای پروژهٔ شما؟</em>
+          </h2>
+          <p class="ae-sub">
+            تفاوت PERC، TOPCon، HJT و بک‌کنتکت در بازده و رفتار دمایی است. برای اقلیم گرم،
+            ضریب دمایی از خودِ بازده مهم‌تر است.
+          </p>
+        </header>
+
+        <div class="tech-scroll">
+          <table class="tech-table">
+            <thead>
+              <tr>
+                <th>تکنولوژی</th>
+                <th>مناسب برای</th>
+                <th>بازده ماژول</th>
+                <th>ضریب دمایی</th>
+                <th>توضیح</th>
+              </tr>
+            </thead>
+            <tbody>
+              {techGuide.map((t) => (
+                <tr>
+                  <td><span class="tt-tech">{t.tech}</span><span class="tt-series">{t.series}</span></td>
+                  <td><span class="tt-best">{t.best}</span></td>
+                  <td><span class="tt-num">{t.eff}</span></td>
+                  <td><span class="tt-num">{t.temp}</span></td>
+                  <td><span class="tt-note">{t.note}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== گارانتی و استانداردها ===== -->
+    <section class="ae-sec alt">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">تضمین‌ها</p>
+          <h2 class="ae-h2">
+            ماژول را برای سی سال<br />
+            <em>می‌خرید، نه برای امروز.</em>
+          </h2>
+        </header>
+
+        <div class="warr-grid">
+          {warranty.map((w) => (
+            <div class="warr-card">
+              <div class="warr-val">{w.value}{w.unit && <i>{w.unit}</i>}</div>
+              <span class="warr-label">{w.label}</span>
+              <span class="warr-note">{w.note}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== چرا از نماد نیرو ===== -->
+    <section class="ae-sec">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">خرید از کانال رسمی</p>
+          <h2 class="ae-h2">
+            چرا از نماد نیرو<br />
+            <em>و نه از بازار آزاد؟</em>
+          </h2>
+        </header>
+
+        <div class="why-grid">
+          {whyUs.map((w, i) => (
+            <div class="why-card">
+              <span class="why-num">{fa(String(i + 1).padStart(2, '0'))}</span>
+              <h3>{w.title}</h3>
+              <p>{w.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== دیتاشیت‌ها ===== -->
+    <section class="ae-sec alt">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">مشخصات فنی</p>
+          <h2 class="ae-h2">
+            دیتاشیت رسمی<br />
+            <em>مستقیم از سازنده.</em>
+          </h2>
+          <p class="ae-sub">همان فایلی که مهندس طراح شما برای محاسبات لازم دارد — بدون واسطه و بدون ثبت‌نام.</p>
+        </header>
+
+        <div class="dl-list">
+          {datasheets.map((d) => (
+            <a class="dl-row" href={d.file} download>
+              <span class="dl-name">{d.series}<span>دیتاشیت فنی · PDF</span></span>
+              <span class="dl-spec">{d.tech}</span>
+              <span class="dl-spec">{d.power} W</span>
+              <span class="dl-go">دانلود ↓</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== پرسش‌های متداول ===== -->
+    <section class="ae-sec">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">پیش از تماس</p>
+          <h2 class="ae-h2">
+            سؤالی دارید؟<br />
+            <em>احتمالاً جوابش اینجاست.</em>
+          </h2>
+        </header>
+
+        <div class="faq-list">
+          {faq.map((f) => (
+            <details class="faq-item">
+              <summary class="faq-q">{f.q}</summary>
+              <p class="faq-a">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== لاک‌آپ شراکت ===== -->
+    <section class="ae-sec alt">
+      <div class="wrap">
+        <div class="pact">
+          <div class="pact-side">
+            <img src="/assets/logo.png" alt="نماد نیرو" />
+            <span class="pact-role us">نمایندهٔ رسمی در ایران</span>
+          </div>
+          <span class="pact-x">×</span>
+          <div class="pact-side">
+            <span class="pact-wordmark">AE SOLAR</span>
+            <span class="pact-role them">سازنده · {ae.origin}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== دعوت به اقدام ===== -->
+    <section class="cta-band">
+      <div class="wrap">
+        <h2>ظرفیت پروژه‌تان را بگویید</h2>
+        <p>سری مناسب اقلیم و طرح شما را پیشنهاد می‌دهیم و موجودی و قیمت روز را می‌فرستیم.</p>
+        <a class="btn btn-solid" href="/#quote">درخواست استعلام</a>
+      </div>
+    </section>
+
+  </div>
+</Base>

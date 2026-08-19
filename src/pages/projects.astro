@@ -1,0 +1,40 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import FilterBar from '../components/FilterBar.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { filters } from '../data/site';
+
+const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+---
+<Base title="پروژه‌ها | نماد نیرو" description="نمونه‌ای از پروژه‌های اجراشده و تجهیزشدهٔ نماد نیرو؛ از نیروگاه ۱۰۰ مگاواتی فولاد خوزستان تا هزاران نیروگاه پشت‌بامی خانگی.">
+  <PageHero
+    crumb="پروژه‌ها"
+    title="از کویر تا خط تولید"
+    lead="نمونه‌ای از نیروگاه‌های خورشیدی و پروژه‌هایی که در سراسر کشور اجرا، تأمین یا سرمایه‌گذاری کرده‌ایم."
+  >
+    <div class="page-stats">
+      <div class="page-stat"><b>۷۰<i>MW+</i></b><span>مجموع تأمین و اجرا</span></div>
+      <div class="page-stat"><b>۱۰۰<i>MW</i></b><span>بزرگ‌ترین پروژه</span></div>
+      <div class="page-stat"><b>۱۰۰۰<i>+</i></b><span>نیروگاه پشت‌بامی</span></div>
+    </div>
+  </PageHero>
+
+  <section class="plist-sec">
+    <div class="wrap">
+      <FilterBar items={filters.projects} label="فیلتر پروژه‌ها" />
+      <div class="plist">
+        {projects.map((p) => <ProjectCard p={p.data} />)}
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="wrap">
+      <h2>پروژهٔ بعدی می‌تواند مال شما باشد</h2>
+      <p>ظرفیت موردنظرتان را بگویید؛ برآورد اولیه را برایتان می‌فرستیم.</p>
+      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+    </div>
+  </section>
+</Base>
