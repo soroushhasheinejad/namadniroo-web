@@ -16,6 +16,7 @@ import { site } from '../data/site';
 
     <form class="quote-form" id="quoteForm" novalidate>
       <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true" />
+      <input type="hidden" name="source" id="quoteSource" />
       <div class="field">
         <label for="q-name">نام و نام خانوادگی</label>
         <input id="q-name" name="name" type="text" autocomplete="name" required />
@@ -55,6 +56,10 @@ import { site } from '../data/site';
   const form = document.getElementById('quoteForm') as HTMLFormElement | null;
   const note = document.getElementById('formNote');
   const submitBtn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+
+  // ثبت صفحه‌ای که فرم از آن ارسال شده — برای پیگیری اینکه کدام صفحه لید می‌آورد
+  const sourceField = document.getElementById('quoteSource') as HTMLInputElement | null;
+  if (sourceField) sourceField.value = location.pathname + location.search;
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();

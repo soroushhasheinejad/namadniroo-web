@@ -2,19 +2,95 @@
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { site } from '../data/site';
 
-interface Props { title: string; description?: string }
-const { title, description = 'نماد نیرو — طراحی، اجرا و بهره‌برداری نیروگاه‌های خورشیدی، تأمین تجهیزات و سرمایه‌گذاری در انرژی‌های تجدیدپذیر.' } = Astro.props;
+interface Props {
+  title: string;
+  description?: string;
+  /** تصویر معرف صفحه هنگام اشتراک‌گذاری لینک (مسیر مطلق از ریشهٔ سایت) */
+  image?: string;
+  /** نوع صفحه برای Open Graph */
+  type?: 'website' | 'article' | 'product';
+  /** داده‌های ساختاریافتهٔ اضافی مخصوص این صفحه (JSON-LD) */
+  schema?: Record<string, any> | Record<string, any>[];
+  /** صفحه از نتایج موتور جست‌وجو کنار گذاشته شود */
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = 'نماد نیرو — طراحی، اجرا و بهره‌برداری نیروگاه‌های خورشیدی، تأمین تجهیزات و سرمایه‌گذاری در انرژی‌های تجدیدپذیر.',
+  image = '/assets/banner-1.jpg',
+  type = 'website',
+  schema,
+  noindex = false,
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://namadniroo.ir');
+const ogImage = new URL(image, Astro.site ?? 'https://namadniroo.ir');
+
+/* دادهٔ ساختاریافتهٔ پایه — در همهٔ صفحات تکرار می‌شود.
+   نکته: مقادیر داخل JSON-LD باید با ارقام لاتین باشند، برخلاف UI که فارسی است. */
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': 'https://namadniroo.ir/#organization',
+  name: site.name,
+  alternateName: 'کرمان نماد نیرو',
+  url: 'https://namadniroo.ir',
+  logo: 'https://namadniroo.ir/assets/logo.png',
+  foundingDate: '2008',
+  telephone: '+983432521416',
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'کرمان',
+    addressCountry: 'IR',
+  },
+  areaServed: 'IR',
+  knowsAbout: [
+    'نیروگاه خورشیدی',
+    'انرژی تجدیدپذیر',
+    'پنل خورشیدی',
+    'اینورتر خورشیدی',
+    'پیمانکاری برق',
+  ],
+};
+
+const schemas = [organizationSchema, ...(schema ? (Array.isArray(schema) ? schema : [schema]) : [])];
 ---
 <!doctype html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <title>{title}</title>
   <meta name="description" content={description} />
+  <link rel="canonical" href={canonical.href} />
+  {noindex && <meta name="robots" content="noindex, nofollow" />}
+
   <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
   <link rel="preload" href="/fonts/DanaVF.woff2" as="font" type="font/woff2" crossorigin />
+
+  {/* Open Graph — برای واتساپ، تلگرام، لینکدین و... */}
+  <meta property="og:type" content={type} />
+  <meta property="og:site_name" content={site.name} />
+  <meta property="og:locale" content="fa_IR" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonical.href} />
+  <meta property="og:image" content={ogImage.href} />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={ogImage.href} />
+
+  <meta name="theme-color" content="#0A0A0A" />
+
+  {schemas.map((s) => (
+    <script type="application/ld+json" set:html={JSON.stringify(s)} />
+  ))}
 </head>
 <body id="top">
   <Header />

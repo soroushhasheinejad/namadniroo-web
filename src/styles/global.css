@@ -282,6 +282,20 @@ section { scroll-margin-top: 84px; }
 
 .quote-form { background: var(--bg-2); border: 1px solid var(--line); border-radius: 18px; padding: 30px; }
 .hp-field { position: absolute; inset-inline-start: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+/* متنی که فقط برای صفحه‌خوان‌ها و موتورهای جست‌وجوست و دیده نمی‌شود.
+   (پوسترهای اسلایدر متن را روی خودِ تصویر دارند، پس عنوان اصلی صفحه
+    باید جداگانه و به‌شکل متنی وجود داشته باشد.) */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 .field { margin-bottom: 16px; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .field label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 8px; }

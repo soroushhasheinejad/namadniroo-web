@@ -3,16 +3,18 @@ import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import ProjectTile from '../components/ProjectTile.astro';
+import { breadcrumbSchema, toLatinDigits } from '../utils';
 
 const invested = (await getCollection('projects'))
   .filter((p) => p.data.cat === 'invest')
   .sort((a, b) => a.data.order - b.data.order);
 
-const toLatinDigits = (s: string) => s.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
 const totalMW = invested.reduce((sum, p) => sum + (parseFloat(toLatinDigits(p.data.capacity)) || 0), 0);
 const faNum = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
+
+const pageSchema = breadcrumbSchema([{ name: 'سرمایه‌گذاری', href: '/investment.html' }]);
 ---
-<Base title="سرمایه‌گذاری | نماد نیرو" description="نماد نیرو در نیروگاه‌هایی که می‌سازد، خودش هم سرمایه‌گذار است — مشارکت در انرژی خورشیدی با سابقهٔ اجرایی اثبات‌شده.">
+<Base schema={pageSchema} title="سرمایه‌گذاری | نماد نیرو" description="نماد نیرو در نیروگاه‌هایی که می‌سازد، خودش هم سرمایه‌گذار است — مشارکت در انرژی خورشیدی با سابقهٔ اجرایی اثبات‌شده.">
   <PageHero
     crumb="سرمایه‌گذاری"
     title="ما فقط نمی‌سازیم؛ خودمان هم سرمایه‌گذاریم"

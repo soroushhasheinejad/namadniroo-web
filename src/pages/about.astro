@@ -5,8 +5,11 @@ import Stats from '../components/Stats.astro';
 import Icon from '../components/Icon.astro';
 import BrandMarquee from '../components/BrandMarquee.astro';
 import { capabilities, clients, site } from '../data/site';
+import { breadcrumbSchema } from '../utils';
+
+const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about.html' }]);
 ---
-<Base title="درباره ما | نماد نیرو" description="نماد نیرو؛ فعال از سال ۱۳۸۷ در کرمان در حوزهٔ نیروگاه‌های خورشیدی و حرارتی — پیمانکاری، تأمین تجهیزات و سرمایه‌گذاری.">
+<Base schema={pageSchema} title="درباره ما | نماد نیرو" description="نماد نیرو؛ فعال از سال ۱۳۸۷ در کرمان در حوزهٔ نیروگاه‌های خورشیدی و حرارتی — پیمانکاری، تأمین تجهیزات و سرمایه‌گذاری.">
   <PageHero
     crumb="درباره ما"
     title="از دل کویر، انرژیِ صنعت"

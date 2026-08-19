@@ -5,12 +5,15 @@ import PageHero from '../components/PageHero.astro';
 import FilterBar from '../components/FilterBar.astro';
 import ArticleCard from '../components/ArticleCard.astro';
 import { filters } from '../data/site';
+import { breadcrumbSchema } from '../utils';
 
 const articles = (await getCollection('articles'))
   .filter((a) => !a.data.draft)
   .sort((a, b) => b.data.date.localeCompare(a.data.date));
+
+const pageSchema = breadcrumbSchema([{ name: 'مجله', href: '/magazine.html' }]);
 ---
-<Base title="مجله | نماد نیرو" description="مجلهٔ انرژی نماد نیرو؛ آموزش، بازار انرژی و اخبار شرکت دربارهٔ نیروگاه خورشیدی، اینورتر، نگه‌داری و سرمایه‌گذاری.">
+<Base schema={pageSchema} title="مجله | نماد نیرو" description="مجلهٔ انرژی نماد نیرو؛ آموزش، بازار انرژی و اخبار شرکت دربارهٔ نیروگاه خورشیدی، اینورتر، نگه‌داری و سرمایه‌گذاری.">
   <PageHero
     crumb="مجله"
     title="مجلهٔ انرژی"

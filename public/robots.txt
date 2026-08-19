@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# بخش‌های مدیریتی نباید ایندکس شوند
+Disallow: /leads/
+Disallow: /admin/
+Disallow: /_lib/
+
+Sitemap: https://namadniroo.ir/sitemap-index.xml

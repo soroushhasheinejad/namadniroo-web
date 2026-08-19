@@ -4,14 +4,17 @@ import PageHero from '../components/PageHero.astro';
 import QuoteForm from '../components/QuoteForm.astro';
 import Icon from '../components/Icon.astro';
 import { site } from '../data/site';
+import { breadcrumbSchema } from '../utils';
 
 const info = [
   { icon: 'phone', title: 'تماس تلفنی', text: site.phone, href: site.phoneHref, dir: 'ltr' },
   { icon: 'pin', title: 'محل شرکت', text: site.city },
   { icon: 'clock', title: 'ساعات پاسخ‌گویی', text: 'شنبه تا چهارشنبه، ۸ تا ۱۷' },
 ];
+
+const pageSchema = breadcrumbSchema([{ name: 'تماس با ما', href: '/contact.html' }]);
 ---
-<Base title="تماس با ما | نماد نیرو" description="راه‌های تماس با نماد نیرو در کرمان — تلفن، فرم درخواست مشاوره و آدرس دفتر مرکزی.">
+<Base schema={pageSchema} title="تماس با ما | نماد نیرو" description="راه‌های تماس با نماد نیرو در کرمان — تلفن، فرم درخواست مشاوره و آدرس دفتر مرکزی.">
   <PageHero
     crumb="تماس با ما"
     title="گفت‌وگو را شروع کنید"

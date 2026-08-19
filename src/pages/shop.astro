@@ -5,10 +5,13 @@ import PageHero from '../components/PageHero.astro';
 import FilterBar from '../components/FilterBar.astro';
 import ProductCard from '../components/ProductCard.astro';
 import { filters } from '../data/site';
+import { breadcrumbSchema } from '../utils';
 
 const products = (await getCollection('products')).sort((a, b) => a.data.order - b.data.order);
+
+const pageSchema = breadcrumbSchema([{ name: 'فروشگاه', href: '/shop.html' }]);
 ---
-<Base title="فروشگاه | نماد نیرو" description="فروشگاه تجهیزات خورشیدی نماد نیرو؛ اینورتر، پنل و ذخیره‌ساز از برندهای معتبر جهانی، در دو دستهٔ محصولات خانگی و صنعتی.">
+<Base schema={pageSchema} title="فروشگاه | نماد نیرو" description="فروشگاه تجهیزات خورشیدی نماد نیرو؛ اینورتر، پنل و ذخیره‌ساز از برندهای معتبر جهانی، در دو دستهٔ محصولات خانگی و صنعتی.">
   <PageHero
     crumb="فروشگاه"
     title="تجهیزاتی که پروژه را می‌سازند"

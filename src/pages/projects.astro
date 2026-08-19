@@ -5,10 +5,13 @@ import PageHero from '../components/PageHero.astro';
 import FilterBar from '../components/FilterBar.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import { filters } from '../data/site';
+import { breadcrumbSchema } from '../utils';
 
 const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+
+const pageSchema = breadcrumbSchema([{ name: 'پروژه‌ها', href: '/projects.html' }]);
 ---
-<Base title="پروژه‌ها | نماد نیرو" description="نمونه‌ای از پروژه‌های اجراشده و تجهیزشدهٔ نماد نیرو؛ از نیروگاه ۱۰۰ مگاواتی فولاد خوزستان تا هزاران نیروگاه پشت‌بامی خانگی.">
+<Base schema={pageSchema} title="پروژه‌ها | نماد نیرو" description="نمونه‌ای از پروژه‌های اجراشده و تجهیزشدهٔ نماد نیرو؛ از نیروگاه ۱۰۰ مگاواتی فولاد خوزستان تا هزاران نیروگاه پشت‌بامی خانگی.">
   <PageHero
     crumb="پروژه‌ها"
     title="از کویر تا خط تولید"

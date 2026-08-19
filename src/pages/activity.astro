@@ -3,8 +3,11 @@ import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import Icon from '../components/Icon.astro';
 import { areas } from '../data/site';
+import { breadcrumbSchema } from '../utils';
+
+const pageSchema = breadcrumbSchema([{ name: 'حوزه‌های فعالیت', href: '/activity.html' }]);
 ---
-<Base title="حوزه‌های فعالیت | نماد نیرو" description="سه حوزهٔ فعالیت نماد نیرو: پیمانکاری و احداث نیروگاه، بازرگانی و تأمین تجهیزات خورشیدی، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر.">
+<Base schema={pageSchema} title="حوزه‌های فعالیت | نماد نیرو" description="سه حوزهٔ فعالیت نماد نیرو: پیمانکاری و احداث نیروگاه، بازرگانی و تأمین تجهیزات خورشیدی، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر.">
   <PageHero
     crumb="حوزه‌های فعالیت"
     title="سه حوزه، یک شریک انرژی"

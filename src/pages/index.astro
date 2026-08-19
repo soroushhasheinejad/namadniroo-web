@@ -24,8 +24,42 @@ const articles = (await getCollection('articles'))
   .filter((a) => !a.data.draft)
   .sort((a, b) => b.data.date.localeCompare(a.data.date))
   .slice(0, 3);
+
+const homeSchema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'نماد نیرو',
+    url: 'https://namadniroo.ir',
+    inLanguage: 'fa-IR',
+    publisher: { '@id': 'https://namadniroo.ir/#organization' },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    '@id': 'https://namadniroo.ir/#localbusiness',
+    name: 'شرکت کرمان نماد نیرو',
+    url: 'https://namadniroo.ir',
+    image: 'https://namadniroo.ir/assets/logo.png',
+    telephone: '+983432521416',
+    priceRange: '$$',
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'کرمان',
+      addressRegion: 'کرمان',
+      addressCountry: 'IR',
+    },
+  },
+];
 ---
-<Base title="نماد نیرو | راه‌کارهای جامع انرژی پایدار">
+<Base
+  title="نماد نیرو | راه‌کارهای جامع انرژی پایدار"
+  description="نماد نیرو از سال ۱۳۸۷ در کرمان: احداث نیروگاه خورشیدی، تأمین پنل و اینورتر از برندهای معتبر جهانی، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر."
+  schema={homeSchema}
+>
+  <h1 class="sr-only">
+    نماد نیرو — احداث نیروگاه خورشیدی، تأمین تجهیزات و سرمایه‌گذاری در انرژی تجدیدپذیر
+  </h1>
   <HeroSlider />
   <Stats />
   <PromoSlider />

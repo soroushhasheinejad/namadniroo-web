@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import ProductCard from '../../components/ProductCard.astro';
 import { categoryLabel } from '../../data/site';
+import { breadcrumbSchema } from '../../utils';
 
 export async function getStaticPaths() {
   const products = await getCollection('products');
@@ -19,8 +20,34 @@ const related = all
   .filter((x: any) => x.id !== product.id && x.data.cat === p.cat)
   .sort((a: any, b: any) => a.data.order - b.data.order)
   .slice(0, 4);
+
+// نام برند بدون &nbsp; که در بعضی رکوردها برای جلوگیری از شکست خط آمده
+const brandPlain = p.brand.replace(/&nbsp;/g, ' ').trim();
+const description = `${p.name} — ${brandPlain} — ${p.spec} ${p.specUnit}. استعلام قیمت، موجودی و مشاوره فنی از نماد نیرو.`;
+
+const pageSchema = [
+  breadcrumbSchema([
+    { name: 'فروشگاه', href: '/shop.html' },
+    { name: p.name, href: `/shop/${product.id}.html` },
+  ]),
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: p.name,
+    description,
+    brand: { '@type': 'Brand', name: brandPlain },
+    category: categoryLabel[p.cat],
+    ...(p.image ? { image: new URL(p.image, 'https://namadniroo.ir').href } : {}),
+  },
+];
 ---
-<Base title={`${p.name} | فروشگاه نماد نیرو`} description={`${p.name} — ${p.brand} — ${p.spec} ${p.specUnit}`}>
+<Base
+  title={`${p.name} | فروشگاه نماد نیرو`}
+  description={description}
+  image={p.image}
+  type="product"
+  schema={pageSchema}
+>
   <div class="article-head">
     <div class="wrap">
       <p class="breadcrumb">

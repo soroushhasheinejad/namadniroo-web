@@ -3,10 +3,17 @@ import Base from '../layouts/Base.astro';
 import ModuleAnatomy from '../components/ModuleAnatomy.astro';
 import { fa } from '../utils';
 import { ae, aeStats, series, whyUs, techGuide, warranty, datasheets, faq } from '../data/aesolar';
+import { breadcrumbSchema, faqSchema } from '../utils';
+
+const pageSchema = [
+  breadcrumbSchema([{ name: 'AE Solar', href: '/ae-solar.html' }]),
+  faqSchema(faq),
+];
 ---
 <Base
   title="AE Solar | نمایندگی رسمی در ایران — نماد نیرو"
   description="نماد نیرو، نمایندهٔ رسمی AE Solar آلمان در ایران. تأمین ماژول‌های خورشیدی سری Aurora، Meteor، Comet و Eclipse با گارانتی معتبر سازنده."
+  schema={pageSchema}
 >
   <div class="ae-page">
 
