@@ -5,7 +5,7 @@ import Stats from '../components/Stats.astro';
 import Icon from '../components/Icon.astro';
 import BrandMarquee from '../components/BrandMarquee.astro';
 import Timeline from '../components/Timeline.astro';
-import { capabilities, clients, site } from '../data/site';
+import { capabilities, clients } from '../data/site';
 import { breadcrumbSchema } from '../utils';
 
 const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about.html' }]);
@@ -18,13 +18,12 @@ const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about.
   />
 
   <section class="about-sec">
-    <div class="wrap about-intro">
+    <div class="wrap about-intro is-solo">
       <div>
         <p class="lead-lg">ما نیروگاه می‌سازیم، تجهیزش می‌کنیم و در آن سرمایه‌گذاری می‌کنیم — همه زیر یک سقف.</p>
         <p>نماد نیرو کار خود را در سال ۱۳۸۷ در حوزهٔ تولید و توزیع برق صنعتی آغاز کرد و به‌مرور به یکی از فعال‌ترین شرکت‌های انرژی خورشیدی در کرمان و مرکز ایران تبدیل شد.</p>
         <p>امروز در سه حوزهٔ طراحی مهندسی و احداث نیروگاه، بازرگانی و تأمین تجهیزات، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر فعالیت می‌کنیم؛ از یک کیلووات روی پشت‌بام تا نیروگاه‌های مگاواتی در دشت.</p>
       </div>
-      <div class="about-visual"><b>{site.city} · از {site.since}</b></div>
     </div>
   </section>
 

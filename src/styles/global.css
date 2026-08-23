@@ -373,10 +373,8 @@ section { scroll-margin-top: 84px; }
   position: relative; overflow: hidden;
   padding: 96px 0 64px; border-bottom: 1px solid var(--line);
   background-color: #0b0b0b;
-  background-image:
-    repeating-linear-gradient(118deg, rgba(95,131,155,.10) 0 1px, transparent 1px 30px),
-    repeating-linear-gradient(28deg, rgba(95,131,155,.10) 0 1px, transparent 1px 30px),
-    radial-gradient(120% 130% at 85% 0%, #16303f 0%, #0a0a0a 60%);
+  /* بدون بافت شطرنجی؛ فقط یک درخشش ملایم با رنگ برند */
+  background-image: radial-gradient(100% 130% at 85% 0%, rgba(22,48,63,.8) 0%, transparent 62%);
 }
 .page-hero .wrap { position: relative; z-index: 1; }
 .breadcrumb { color: var(--faint); font-size: 14px; margin: 0 0 14px; }
@@ -486,6 +484,9 @@ section { scroll-margin-top: 84px; }
 .about-sec { padding: 74px 0; }
 .about-sec.alt { background: var(--bg-1); border-block: 1px solid var(--line); }
 .about-intro { display: grid; grid-template-columns: 1.1fr 1fr; gap: 52px; align-items: center; }
+/* وقتی کنارش تصویری نیست: تک‌ستونه، با عرض محدود تا خواندن متن راحت بماند */
+.about-intro.is-solo { grid-template-columns: 1fr; }
+.about-intro.is-solo > div { max-width: 78ch; }
 .about-intro .lead-lg { margin: 0 0 18px; font-size: clamp(19px, 2.3vw, 25px); font-weight: 700; line-height: 1.75; }
 .about-intro p { margin: 0 0 14px; color: var(--muted); font-size: 16.5px; }
 .about-visual {
@@ -564,9 +565,8 @@ section { scroll-margin-top: 84px; }
   padding: 74px 24px 26px;
   border-bottom: 1px solid var(--line);
   background-color: #0b0b0b;
-  background-image:
-    repeating-linear-gradient(118deg, rgba(95,131,155,.08) 0 1px, transparent 1px 30px),
-    radial-gradient(120% 130% at 85% 0%, #16303f 0%, #0a0a0a 60%);
+  /* هم‌شکل با هدر بقیهٔ صفحات */
+  background-image: radial-gradient(100% 130% at 85% 0%, rgba(22,48,63,.8) 0%, transparent 62%);
 }
 .article-title { margin: 12px 0 10px; font-weight: 800; font-size: clamp(24px, 3.4vw, 40px); line-height: 1.4; max-width: 26ch; }
 .article-meta { margin: 0; color: var(--faint); font-family: var(--mono); font-size: 13px; }
