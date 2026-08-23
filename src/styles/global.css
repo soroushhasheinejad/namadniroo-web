@@ -580,6 +580,119 @@ section { scroll-margin-top: 84px; }
 .article-body a { color: var(--yellow); }
 .article-body img { border-radius: var(--r); margin: 18px 0; }
 
+/* ============================================================
+   مسیر شرکت (Timeline) — صفحهٔ «درباره ما»
+   ============================================================ */
+.tl-sec {
+  padding: 78px 0 86px;
+  background: var(--bg-1);
+  border-block: 1px solid var(--line);
+}
+
+.tl { position: relative; margin-top: 46px; }
+.tl-items { list-style: none; margin: 0; padding: 0; }
+
+/* ریل عمودی وسط */
+.tl-rail {
+  position: absolute; top: 6px; bottom: 6px; left: 50%;
+  width: 2px; margin-left: -1px;
+  background: var(--line);
+  border-radius: 2px;
+}
+.tl-fill {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, var(--yellow), rgba(255,196,26,.25));
+  transform: scaleY(0); transform-origin: top;
+  transition: transform .12s linear;
+  border-radius: 2px;
+}
+
+.tl-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 62px;
+  padding-block: 16px;
+}
+/* نقطه‌های فرد سمت راست، زوج سمت چپ (در RTL ستون ۱ سمت راست است) */
+.tl-item > .tl-card { grid-column: 1; }
+.tl-item:nth-child(even) > .tl-card { grid-column: 2; }
+
+/* مربع زرد روی ریل */
+.tl-dot {
+  position: absolute; top: 30px; left: 50%;
+  width: 13px; height: 13px; margin-left: -6.5px;
+  background: var(--yellow); border-radius: 3px;
+  box-shadow: 0 0 0 5px var(--bg-1);
+}
+
+.tl-card {
+  position: relative;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 20px 22px;
+  transition: border-color .25s;
+}
+.tl-card:hover { border-color: var(--line-2); }
+
+/* انیمیشن ورود — فقط افزودنی است.
+   کارت‌ها به‌صورت پیش‌فرض دیده می‌شوند؛ اگر جاوااسکریپت اجرا نشود
+   یا IntersectionObserver پشتیبانی نشود، محتوا کامل نمایش داده می‌شود. */
+.tl-item.is-in > .tl-dot { animation: tlDotIn .45s var(--ease) both; }
+.tl-item:nth-child(odd).is-in  > .tl-card { animation: tlCardInOdd .55s var(--ease) both; }
+.tl-item:nth-child(even).is-in > .tl-card { animation: tlCardInEven .55s var(--ease) both; }
+
+@keyframes tlDotIn {
+  from { opacity: 0; transform: scale(.4); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes tlCardInOdd {
+  from { opacity: 0; transform: translateY(18px) translateX(-14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tlCardInEven {
+  from { opacity: 0; transform: translateY(18px) translateX(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tlCardInMobile {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.tl-year {
+  display: block;
+  font-family: var(--mono); font-weight: 800; font-size: 20px;
+  color: var(--yellow); letter-spacing: .5px;
+}
+.tl-title { margin: 6px 0 0; font-size: 17px; font-weight: 700; line-height: 1.6; }
+.tl-list { margin: 10px 0 0; padding-inline-start: 18px; }
+.tl-list li { margin: 5px 0; color: var(--muted); font-size: 14.5px; line-height: 1.85; }
+.tl-list li::marker { color: var(--cerulean-3); }
+
+/* ---------- موبایل و تبلت: تک‌ستونه، ریل کنار ---------- */
+@media (max-width: 860px) {
+  .tl-item { grid-template-columns: 1fr; column-gap: 0; padding-block: 10px; }
+  .tl-item > .tl-card,
+  .tl-item:nth-child(even) > .tl-card { grid-column: 1; }
+
+  /* ریل نسبت به .tl جای می‌گیرد ولی نقطه نسبت به .tl-item؛
+     و .tl-items یک گاتر دارد. برای هم‌راستا شدنشان، آفست نقطه
+     با همان اندازهٔ گاتر جبران می‌شود. */
+  .tl { --tl-gutter: 34px; }
+  .tl-items { padding-inline-start: var(--tl-gutter); }
+  .tl-rail { left: auto; inset-inline-start: 5px; margin-left: 0; }
+  .tl-dot  {
+    left: auto; margin-left: 0; top: 26px;
+    /* ۶px مرکز ریل − گاتر − نصف عرض نقطه */
+    inset-inline-start: calc(6px - var(--tl-gutter) - 6.5px);
+  }
+
+  /* در موبایل همه از یک سمت وارد می‌شوند */
+  .tl-item:nth-child(odd).is-in  > .tl-card,
+  .tl-item:nth-child(even).is-in > .tl-card { animation-name: tlCardInMobile; }
+}
+
 /* عکس محصول — height:auto لازم است چون کامپوننت <Image> اتریبیوت‌های
    width/height را روی تگ می‌گذارد و بدون آن ارتفاع ذاتی اعمال می‌شود */
 .product-img { max-width: 78%; max-height: 78%; width: auto; height: auto; object-fit: contain; }

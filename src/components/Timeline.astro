@@ -1,0 +1,84 @@
+---
+import { timeline } from '../data/site';
+---
+<section class="tl-sec" aria-labelledby="tl-heading">
+  <div class="wrap">
+    <header class="about-head">
+      <p class="eyebrow">مسیر نماد نیرو</p>
+      <h2 id="tl-heading">از یک پیمان برق تا نیروگاه‌های مگاواتی</h2>
+    </header>
+
+    <div class="tl">
+      {/* ریل عمودی: خط کم‌رنگ ثابت + لایهٔ زردی که با اسکرول پر می‌شود.
+          بیرون از <ol> است، چون تنها فرزند مجاز فهرست، <li> است — و اگر
+          داخل آن باشد شمارش nth-child هم یکی جابه‌جا می‌شود. */}
+      <div class="tl-rail" aria-hidden="true"><span class="tl-fill"></span></div>
+
+      <ol class="tl-items">
+      {timeline.map((t) => (
+        <li class="tl-item">
+          <span class="tl-dot" aria-hidden="true"></span>
+          <div class="tl-card">
+            <span class="tl-year">{t.year}</span>
+            <h3 class="tl-title">{t.title}</h3>
+            {t.items.length > 0 && (
+              <ul class="tl-list">
+                {t.items.map((i) => <li>{i}</li>)}
+              </ul>
+            )}
+          </div>
+        </li>
+      ))}
+      </ol>
+    </div>
+  </div>
+</section>
+
+<script>
+  const list = document.querySelector<HTMLElement>('.tl');
+  const fill = document.querySelector<HTMLElement>('.tl-fill');
+  const items = document.querySelectorAll<HTMLElement>('.tl-item');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (list && fill && !reduced) {
+    // ۱) انیمیشن ورود هر نقطه.
+    //    نکته: کارت‌ها به‌صورت پیش‌فرض *دیده می‌شوند*؛ این کلاس فقط انیمیشن
+    //    ورود را اجرا می‌کند. اگر جاوااسکریپت یا IntersectionObserver در
+    //    دسترس نباشد، محتوا همچنان کامل نمایش داده می‌شود.
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add('is-in');
+              io.unobserve(e.target);
+            }
+          });
+        },
+        { rootMargin: '0px 0px -12% 0px', threshold: 0.15 },
+      );
+      items.forEach((el) => io.observe(el));
+    }
+
+    // ۲) پر شدن خط عمودی متناسب با پیشرفت اسکرول
+    let ticking = false;
+    const update = () => {
+      const r = list.getBoundingClientRect();
+      const progress = (window.innerHeight * 0.62 - r.top) / r.height;
+      fill.style.transform = `scaleY(${Math.min(1, Math.max(0, progress))})`;
+      ticking = false;
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    addEventListener('scroll', onScroll, { passive: true });
+    addEventListener('resize', onScroll);
+    update();
+  } else if (fill) {
+    // احترام به prefers-reduced-motion: خط کامل، بدون حرکت
+    fill.style.transform = 'scaleY(1)';
+  }
+</script>
