@@ -5,6 +5,7 @@ import Stats from '../components/Stats.astro';
 import Icon from '../components/Icon.astro';
 import BrandMarquee from '../components/BrandMarquee.astro';
 import Timeline from '../components/Timeline.astro';
+import PortfolioDownload from '../components/PortfolioDownload.astro';
 import { capabilities, clients } from '../data/site';
 import { breadcrumbSchema } from '../utils';
 
@@ -26,6 +27,8 @@ const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about.
       </div>
     </div>
   </section>
+
+  <PortfolioDownload />
 
   <Stats />
 
@@ -75,10 +78,7 @@ const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about.
     <div class="wrap">
       <h2>بیایید پروژهٔ بعدی را با هم بسازیم</h2>
       <p>از مشاورهٔ اولیه تا بهره‌برداری، کنار شما هستیم.</p>
-      <div class="cta-actions">
-        <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
-        <a class="btn btn-ghost" href="/downloads/portfolio.pdf" download>دانلود پورتفوی کامل</a>
-      </div>
+      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
     </div>
   </section>
 </Base>

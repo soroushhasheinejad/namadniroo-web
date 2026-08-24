@@ -1,0 +1,31 @@
+---
+import Icon from './Icon.astro';
+import { portfolio } from '../data/site';
+
+interface Props {
+  /** پس‌زمینهٔ روشن‌تر، برای وقتی روی بخش تیره می‌نشیند */
+  alt?: boolean;
+}
+const { alt = false } = Astro.props;
+---
+<section class:list={['pf-sec', alt && 'alt']}>
+  <div class="wrap">
+    <div class="pf-card">
+      <span class="pf-icon" aria-hidden="true"><Icon name="contract" /></span>
+
+      <div class="pf-copy">
+        <p class="eyebrow">کارنامهٔ کامل</p>
+        <h2 class="pf-title">پرتفوی پروژه‌های نماد نیرو</h2>
+        <p class="pf-desc">
+          جزئیات فنی، ظرفیت و تصاویر پروژه‌های اجراشده و تجهیزشده — در یک فایل،
+          بدون نیاز به ثبت‌نام.
+        </p>
+      </div>
+
+      <a class="btn btn-solid pf-btn" href={portfolio.file} download>
+        دانلود پرتفوی
+        <span class="pf-meta">PDF · {portfolio.size}</span>
+      </a>
+    </div>
+  </div>
+</section>

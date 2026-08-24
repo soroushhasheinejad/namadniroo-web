@@ -4,6 +4,7 @@ import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import FilterBar from '../components/FilterBar.astro';
 import ProjectCard from '../components/ProjectCard.astro';
+import PortfolioDownload from '../components/PortfolioDownload.astro';
 import { filters } from '../data/site';
 import { breadcrumbSchema } from '../utils';
 
@@ -32,6 +33,8 @@ const pageSchema = breadcrumbSchema([{ name: 'پروژه‌ها', href: '/projec
       </div>
     </div>
   </section>
+
+  <PortfolioDownload alt={true} />
 
   <section class="cta-band">
     <div class="wrap">

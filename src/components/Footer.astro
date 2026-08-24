@@ -1,5 +1,5 @@
 ---
-import { site } from '../data/site';
+import { site, portfolio } from '../data/site';
 ---
 <footer class="site-footer">
   <div class="wrap footer-grid">
@@ -22,6 +22,7 @@ import { site } from '../data/site';
       <a href="/projects.html">پروژه‌ها</a>
       <a href="/shop.html">فروشگاه</a>
       <a href="/magazine.html">مجله</a>
+      <a href={portfolio.file} download>دانلود پرتفوی <span class="foot-meta">PDF · {portfolio.size}</span></a>
     </nav>
     <nav class="footer-col" aria-label="ارتباط">
       <h4>ارتباط</h4>

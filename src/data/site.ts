@@ -15,6 +15,13 @@ export const site = {
   since: '۱۳۸۷',
 };
 
+/* پرتفوی شرکت — حجم را کنار لینک نشان می‌دهیم چون فایل سنگین است
+   و کاربر موبایل باید پیش از شروع دانلود بداند. */
+export const portfolio = {
+  file: '/downloads/portfolio.pdf',
+  size: '۲۴ مگابایت',
+};
+
 export const nav = [
   { href: '/activity.html', label: 'حوزه‌های فعالیت' },
   { href: '/projects.html', label: 'پروژه‌ها' },

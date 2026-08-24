@@ -581,6 +581,51 @@ section { scroll-margin-top: 84px; }
 .article-body img { border-radius: var(--r); margin: 18px 0; }
 
 /* ============================================================
+   دانلود پرتفوی شرکت
+   ============================================================ */
+.pf-sec { padding: 56px 0; }
+.pf-sec.alt { background: var(--bg-1); border-block: 1px solid var(--line); }
+/* وقتی بلافاصله بعد از یک بخش متنی می‌آید، فاصلهٔ دو بخش روی هم جمع نشود */
+.about-sec + .pf-sec:not(.alt) { padding-top: 0; }
+
+.pf-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 26px;
+  padding: 28px 30px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  transition: border-color .25s;
+}
+.pf-card:hover { border-color: var(--line-2); }
+
+.pf-icon {
+  width: 54px; height: 54px; display: grid; place-items: center;
+  border: 1.5px solid rgba(255,196,26,.45); border-radius: 14px;
+  color: var(--yellow); flex: none;
+}
+.pf-icon svg { width: 26px; height: 26px; }
+
+.pf-title { margin: 4px 0 6px; font-size: 20px; font-weight: 800; }
+.pf-desc { margin: 0; color: var(--muted); font-size: 14.5px; max-width: 60ch; }
+
+.pf-btn { flex-direction: column; gap: 2px; text-align: center; white-space: nowrap; }
+.pf-meta { font-family: var(--mono); font-size: 12px; font-weight: 600; opacity: .75; }
+/* حجم فایل در فوتر */
+.foot-meta { font-family: var(--mono); font-size: 11.5px; color: var(--faint); margin-inline-start: 6px; }
+
+@media (max-width: 860px) {
+  .pf-card { grid-template-columns: auto 1fr; gap: 18px; padding: 24px; }
+  .pf-btn { grid-column: 1 / -1; width: 100%; }
+}
+@media (max-width: 560px) {
+  .pf-card { grid-template-columns: 1fr; }
+  .pf-icon { display: none; }
+}
+
+/* ============================================================
    مسیر شرکت (Timeline) — صفحهٔ «درباره ما»
    ============================================================ */
 .tl-sec {
