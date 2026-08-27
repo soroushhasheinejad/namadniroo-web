@@ -69,10 +69,11 @@ import { site } from '../data/site';
     if (note) note.textContent = 'در حال ارسال...';
 
     try {
-      const res = await fetch('/send-quote.php', {
+      const payload = Object.fromEntries(new FormData(form).entries());
+      const res = await fetch('/api/quote', {
         method: 'POST',
-        headers: { Accept: 'application/json' },
-        body: new FormData(form),
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success) {

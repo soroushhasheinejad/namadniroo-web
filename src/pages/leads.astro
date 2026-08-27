@@ -1,0 +1,152 @@
+---
+import { timingSafeEqual } from 'node:crypto';
+import { readLeads } from '../lib/leads';
+
+export const prerender = false;
+
+/* ---------- احراز هویت ----------
+   میزبان جدید پنل «محافظت از پوشه» ندارد، پس رمز را خودِ صفحه بررسی می‌کند.
+   نام کاربری و رمز از متغیرهای محیطی خوانده می‌شوند و هرگز داخل کد یا مخزن
+   قرار نمی‌گیرند. اگر تعریف نشده باشند، دسترسی بسته می‌ماند — نه باز. */
+const USER = process.env.LEADS_USER;
+const PASS = process.env.LEADS_PASS;
+
+const deny = (msg: string) =>
+  new Response(msg, {
+    status: 401,
+    headers: {
+      'WWW-Authenticate': 'Basic realm="Namad Niroo leads", charset="UTF-8"',
+      'Content-Type': 'text/plain; charset=utf-8',
+    },
+  });
+
+/** مقایسهٔ مقاوم در برابر حملهٔ زمان‌سنجی */
+function same(a: string, b: string): boolean {
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
+}
+
+if (!USER || !PASS) {
+  return new Response(
+    'پنل هنوز پیکربندی نشده است: متغیرهای LEADS_USER و LEADS_PASS تعریف نشده‌اند.',
+    { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
+  );
+}
+
+const header = Astro.request.headers.get('authorization') ?? '';
+if (!header.startsWith('Basic ')) return deny('نیازمند ورود');
+
+const [user, pass] = Buffer.from(header.slice(6), 'base64').toString('utf8').split(':');
+if (!same(user ?? '', USER) || !same(pass ?? '', PASS)) return deny('نام کاربری یا رمز نادرست است');
+
+/* ---------- داده ---------- */
+const leads = await readLeads();
+
+/* ---------- خروجی CSV ---------- */
+if (Astro.url.searchParams.get('export') === 'csv') {
+  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = [
+    ['تاریخ ثبت', 'نام', 'تلفن', 'ظرفیت', 'حوزه', 'صفحهٔ مبدأ', 'ایمیل ارسال شد'],
+    ...leads.map((l) => [l.createdAt, l.name, l.phone, l.capacity, l.area, l.source, l.emailed ? 'بله' : 'خیر']),
+  ];
+  // BOM تا اکسل فارسی را درست باز کند
+  const csv = '﻿' + rows.map((r) => r.map(esc).join(',')).join('\n');
+  return new Response(csv, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="namadniroo-leads-${new Date().toISOString().slice(0, 10)}.csv"`,
+    },
+  });
+}
+
+const weekAgo = Date.now() - 7 * 864e5;
+const recent = leads.filter((l) => Date.parse(l.createdAt) >= weekAgo).length;
+const notEmailed = leads.filter((l) => !l.emailed).length;
+
+const showDate = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? iso
+    : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+---
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>درخواست‌های ثبت‌شده | نماد نیرو</title>
+  <style>
+    :root {
+      --bg:#0A0A0A; --bg-2:#191919; --line:rgba(255,255,255,.10);
+      --ink:#F4F3F1; --muted:#B4B4B4; --faint:#8A8A8A; --yellow:#FFC41A;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:28px 20px; background:var(--bg); color:var(--ink);
+           font-family:Tahoma, system-ui, sans-serif; font-size:14px; line-height:1.7; }
+    .wrap { max-width:1100px; margin:0 auto; }
+    h1 { font-size:22px; margin:0 0 6px; }
+    .sub { color:var(--muted); margin:0 0 24px; }
+    .cards { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:24px; }
+    .card { background:var(--bg-2); border:1px solid var(--line); border-radius:12px;
+            padding:16px 20px; min-width:150px; }
+    .card b { display:block; font-size:26px; color:var(--yellow); }
+    .card span { color:var(--muted); font-size:13px; }
+    .btn { display:inline-block; background:var(--yellow); color:#101010;
+           padding:9px 18px; border-radius:8px; text-decoration:none; font-weight:700; }
+    .table-scroll { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { padding:11px 12px; text-align:right; border-bottom:1px solid var(--line); }
+    th { color:var(--muted); font-size:13px; white-space:nowrap; }
+    tr:hover td { background:rgba(255,255,255,.03); }
+    .tel { direction:ltr; text-align:right; font-family:monospace; }
+    .empty { background:var(--bg-2); border:1px solid var(--line); border-radius:12px;
+             padding:30px; text-align:center; color:var(--muted); }
+    .pill { font-size:12px; padding:2px 9px; border-radius:99px;
+            border:1px solid var(--line); color:var(--muted); }
+    .pill.warn { color:var(--yellow); border-color:rgba(255,196,26,.45); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>درخواست‌های ثبت‌شده</h1>
+    <p class="sub">همهٔ درخواست‌هایی که از فرم مشاورهٔ سایت ارسال شده‌اند.</p>
+
+    <div class="cards">
+      <div class="card"><b>{leads.length}</b><span>کل درخواست‌ها</span></div>
+      <div class="card"><b>{recent}</b><span>۷ روز اخیر</span></div>
+      {notEmailed > 0 && <div class="card"><b>{notEmailed}</b><span>ایمیلشان ارسال نشده</span></div>}
+    </div>
+
+    {leads.length > 0 ? (
+      <>
+        <a class="btn" href="?export=csv">دانلود خروجی CSV</a>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>تاریخ</th><th>نام</th><th>تلفن</th><th>ظرفیت</th><th>حوزه</th><th>مبدأ</th><th>ایمیل</th></tr>
+            </thead>
+            <tbody>
+              {leads.map((l) => (
+                <tr>
+                  <td>{showDate(l.createdAt)}</td>
+                  <td>{l.name}</td>
+                  <td class="tel">{l.phone}</td>
+                  <td>{l.capacity || '—'}</td>
+                  <td>{l.area || '—'}</td>
+                  <td>{l.source || '—'}</td>
+                  <td>{l.emailed ? <span class="pill">ارسال شد</span> : <span class="pill warn">ارسال نشد</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    ) : (
+      <div class="empty">هنوز درخواستی ثبت نشده است.</div>
+    )}
+  </div>
+</body>
+</html>

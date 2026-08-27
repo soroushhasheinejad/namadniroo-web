@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 
 import sitemap from '@astrojs/sitemap';
+import node from '@astrojs/node';
 
 export default defineConfig({
   site: 'https://namadniroo.ir',
@@ -11,10 +12,29 @@ export default defineConfig({
 
   compressHTML: true,
 
+  /* همهٔ صفحات همچنان در زمان بیلد ساخته و به‌صورت استاتیک سرو می‌شوند.
+     فقط مسیرهایی که صریحاً `prerender = false` دارند (یعنی API فرم و پنل
+     لیدها) روی سرور اجرا می‌شوند. */
+  adapter: node({ mode: 'standalone' }),
+
+  /* ریدایرکت آدرس‌های قدیمی وردپرس.
+     قبلاً این‌ها در .htaccess بودند؛ چون میزبان جدید آپاچی نیست و آن فایل
+     خوانده نمی‌شود، به تنظیمات خود Astro منتقل شدند تا با هر میزبانی کار کنند. */
+  redirects: {
+    '/contact-us': '/contact.html',
+    '/about-us': '/about.html',
+    '/cart': '/shop.html',
+    '/checkout': '/shop.html',
+    '/my-account': '/contact.html',
+    '/wishlist': '/shop.html',
+    // ریدایرکت‌های الگودار (مثل /product/هرچیزی) در src/pages/ تعریف شده‌اند،
+    // چون این تنظیمات فقط آدرس‌های ثابت را می‌پذیرد.
+  },
+
   integrations: [
     sitemap({
       // صفحهٔ ۴۰۴ نباید در نقشهٔ سایت بیاید
-      filter: (page) => !page.includes('/404'),
+      filter: (page) => !page.includes('/404') && !page.includes('/leads'),
       changefreq: 'weekly',
       lastmod: new Date(),
 

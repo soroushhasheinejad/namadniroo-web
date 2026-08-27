@@ -5,10 +5,16 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs"
   },
   "dependencies": {
+    "@astrojs/node": "^9.5.5",
     "@astrojs/sitemap": "^3.7.3",
-    "astro": "^5.18.2"
+    "astro": "^5.18.2",
+    "nodemailer": "^9.0.6"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.1"
   }
 }
