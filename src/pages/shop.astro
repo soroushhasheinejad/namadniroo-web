@@ -9,7 +9,7 @@ import { breadcrumbSchema } from '../utils';
 
 const products = (await getCollection('products')).sort((a, b) => a.data.order - b.data.order);
 
-const pageSchema = breadcrumbSchema([{ name: 'فروشگاه', href: '/shop.html' }]);
+const pageSchema = breadcrumbSchema([{ name: 'فروشگاه', href: '/shop' }]);
 ---
 <Base schema={pageSchema} title="فروشگاه | نماد نیرو" description="فروشگاه تجهیزات خورشیدی نماد نیرو؛ اینورتر، پنل و ذخیره‌ساز از برندهای معتبر جهانی، در دو دستهٔ محصولات خانگی و صنعتی.">
   <PageHero

@@ -12,7 +12,7 @@ const invested = (await getCollection('projects'))
 const totalMW = invested.reduce((sum, p) => sum + (parseFloat(toLatinDigits(p.data.capacity)) || 0), 0);
 const faNum = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
 
-const pageSchema = breadcrumbSchema([{ name: 'سرمایه‌گذاری', href: '/investment.html' }]);
+const pageSchema = breadcrumbSchema([{ name: 'سرمایه‌گذاری', href: '/investment' }]);
 ---
 <Base schema={pageSchema} title="سرمایه‌گذاری | نماد نیرو" description="نماد نیرو در نیروگاه‌هایی که می‌سازد، خودش هم سرمایه‌گذار است — مشارکت در انرژی خورشیدی با سابقهٔ اجرایی اثبات‌شده.">
   <PageHero

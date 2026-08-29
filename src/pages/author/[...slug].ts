@@ -5,4 +5,4 @@ import type { APIRoute } from 'astro';
 // ریدایرکت نسبی است تا روی دامنهٔ آزمایشی هم به همان میزبان بماند.
 export const prerender = false;
 
-export const GET: APIRoute = ({ redirect }) => redirect('/about.html', 301);
+export const GET: APIRoute = ({ redirect }) => redirect('/about', 301);

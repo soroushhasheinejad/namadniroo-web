@@ -25,9 +25,9 @@ const published = jalaliToISO(d.date);
 
 const pageSchema = [
   breadcrumbSchema([
-    { name: 'مجله', href: '/magazine.html' },
-    { name: categoryLabel[d.category], href: '/magazine.html' },
-    { name: d.title, href: `/magazine/${article.id}.html` },
+    { name: 'مجله', href: '/magazine' },
+    { name: categoryLabel[d.category], href: '/magazine' },
+    { name: d.title, href: `/magazine/${article.id}` },
   ]),
   {
     '@context': 'https://schema.org',
@@ -37,7 +37,7 @@ const pageSchema = [
     ...(published ? { datePublished: published } : {}),
     author: { '@type': 'Organization', name: 'نماد نیرو' },
     publisher: { '@id': 'https://namadniroo.ir/#organization' },
-    mainEntityOfPage: `https://namadniroo.ir/magazine/${article.id}.html`,
+    mainEntityOfPage: `https://namadniroo.ir/magazine/${article.id}`,
     ...(d.cover ? { image: new URL(d.cover, 'https://namadniroo.ir').href } : {}),
   },
 ];
@@ -52,7 +52,7 @@ const pageSchema = [
   <article class="article">
     <div class="wrap article-head">
       <p class="breadcrumb">
-        <a href="/">خانه</a><span>/</span><a href="/magazine.html">مجله</a><span>/</span>{categoryLabel[d.category]}
+        <a href="/">خانه</a><span>/</span><a href="/magazine">مجله</a><span>/</span>{categoryLabel[d.category]}
       </p>
       <span class="mag-tag">{categoryLabel[d.category]}</span>
       <h1 class="article-title">{d.title}</h1>

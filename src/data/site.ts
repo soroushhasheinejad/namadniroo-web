@@ -23,14 +23,14 @@ export const portfolio = {
 };
 
 export const nav = [
-  { href: '/activity.html', label: 'حوزه‌های فعالیت' },
-  { href: '/projects.html', label: 'پروژه‌ها' },
-  { href: '/shop.html', label: 'فروشگاه' },
-  { href: '/ae-solar.html', label: 'AE Solar' },
-  { href: '/investment.html', label: 'سرمایه‌گذاری' },
-  { href: '/magazine.html', label: 'مجله' },
-  { href: '/about.html', label: 'درباره ما' },
-  { href: '/contact.html', label: 'تماس با ما' },
+  { href: '/activity', label: 'حوزه‌های فعالیت' },
+  { href: '/projects', label: 'پروژه‌ها' },
+  { href: '/shop', label: 'فروشگاه' },
+  { href: '/ae-solar', label: 'AE Solar' },
+  { href: '/investment', label: 'سرمایه‌گذاری' },
+  { href: '/magazine', label: 'مجله' },
+  { href: '/about', label: 'درباره ما' },
+  { href: '/contact', label: 'تماس با ما' },
 ];
 
 /* اسلایدر صفحهٔ اصلی — پوسترها متن روی خودشان دارند */
@@ -42,7 +42,7 @@ export const heroSlides = [
 
 export const promoSlides = [
   { img: banner1, href: '/#quote', alt: 'ارائه‌دهندهٔ راه‌کارهای جامع انرژی پایدار' },
-  { img: banner2, href: '/shop.html', alt: 'فروشگاه محصولات نماد نیرو' },
+  { img: banner2, href: '/shop', alt: 'فروشگاه محصولات نماد نیرو' },
 ];
 
 export const stats = [
@@ -66,7 +66,7 @@ export const areas = [
     title: 'تأمین تجهیزات استاندارد خورشیدی',
     desc: 'واردات و توزیع اینورتر و پنل خورشیدی از برندهای معتبر جهانی، از مقیاس خانگی تا مگاواتی، همراه با گارانتی و پشتیبانی فنی.',
     items: ['اینورترهای Fronius، Sungrow، Sunways و Deye', 'پنل‌های خورشیدی مونوکریستال نیم‌سلولی', 'سازه، کابل و تجهیزات جانبی', 'گارانتی و خدمات پس از فروش', 'مشاورهٔ انتخاب تجهیزات متناسب با پروژه'],
-    cta: { href: '/shop.html', label: 'مشاهدهٔ فروشگاه' },
+    cta: { href: '/shop', label: 'مشاهدهٔ فروشگاه' },
     proof: { label: 'تأمین: بیش از', value: '۷۰ مگاوات', tail: 'تجهیزات' },
   },
   {
@@ -74,7 +74,7 @@ export const areas = [
     title: 'احداث، راه‌اندازی و بهره‌برداری',
     desc: 'از نصب سازه و آرایه تا سنکرون‌سازی با شبکه و نگه‌داری بلندمدت؛ اجرای نیروگاه‌های خورشیدی و مولدهای مقیاس کوچک با تیم و تجهیزات خودمان.',
     items: ['احداث نیروگاه خورشیدی و مولد مقیاس‌کوچک (DG)', 'نصب، سیم‌کشی و راه‌اندازی', 'تست، سنکرون و تحویل به شبکه', 'بهره‌برداری و نگه‌داری (O&M)', 'سامانه‌های پایش و کنترل SCADA و DCS'],
-    cta: { href: '/projects.html', label: 'مشاهدهٔ پروژه‌ها' },
+    cta: { href: '/projects', label: 'مشاهدهٔ پروژه‌ها' },
     proof: { label: 'اجراشده: بیش از', value: '۷۰ مگاوات', tail: 'نیروگاه' },
   },
 ];

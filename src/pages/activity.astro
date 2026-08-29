@@ -6,7 +6,7 @@ import { getImage } from 'astro:assets';
 import { areas } from '../data/site';
 import { breadcrumbSchema } from '../utils';
 
-const pageSchema = breadcrumbSchema([{ name: 'حوزه‌های فعالیت', href: '/activity.html' }]);
+const pageSchema = breadcrumbSchema([{ name: 'حوزه‌های فعالیت', href: '/activity' }]);
 
 // تصاویر این بخش پس‌زمینهٔ CSS هستند، پس با getImage بهینه می‌شوند
 const blocks = await Promise.all(

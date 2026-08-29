@@ -14,6 +14,6 @@ const { p, id, showCat = true } = Astro.props;
   <div class="product-body">
     <h3 class="product-name">{p.name}</h3>
     <p class="product-spec"><b>{p.spec}</b> {p.specUnit}</p>
-    <div class="product-foot"><a class="product-link" href={`/shop/${id}.html`}>مشاهدهٔ محصول ←</a></div>
+    <div class="product-foot"><a class="product-link" href={`/shop/${id}`}>مشاهدهٔ محصول ←</a></div>
   </div>
 </article>

@@ -66,7 +66,7 @@ const homeSchema = [
 
   <section class="shop">
     <div class="wrap">
-      <SectionHead eyebrow="فروشگاه تجهیزات" title="اینورترها و پنل‌های خورشیدی" moreHref="/shop.html" />
+      <SectionHead eyebrow="فروشگاه تجهیزات" title="اینورترها و پنل‌های خورشیدی" moreHref="/shop" />
       <div class="products">
         {products.map((p) => <ProductCard p={p.data} id={p.id} showCat={false} />)}
       </div>
@@ -75,7 +75,7 @@ const homeSchema = [
 
   <section class="projects">
     <div class="wrap">
-      <SectionHead eyebrow="نمونه‌کارها" title="از کویر تا خط تولید" moreHref="/projects.html" moreLabel="همهٔ پروژه‌ها" />
+      <SectionHead eyebrow="نمونه‌کارها" title="از کویر تا خط تولید" moreHref="/projects" moreLabel="همهٔ پروژه‌ها" />
       <div class="proj-grid">
         {projects.map((p, i) => <ProjectTile p={p.data} large={i === 0} />)}
       </div>
@@ -84,7 +84,7 @@ const homeSchema = [
 
   <section class="magazine">
     <div class="wrap">
-      <SectionHead eyebrow="مجلهٔ انرژی" title="دانش، بازار و اخبار" moreHref="/magazine.html" moreLabel="همهٔ مقاله‌ها" />
+      <SectionHead eyebrow="مجلهٔ انرژی" title="دانش، بازار و اخبار" moreHref="/magazine" moreLabel="همهٔ مقاله‌ها" />
       <div class="mag-grid">
         {articles.map((a) => <ArticleCard a={a} />)}
       </div>

@@ -1,8 +1,9 @@
 ---
 import { nav, site } from '../data/site';
 const path = Astro.url.pathname;
-const isActive = (href: string) =>
-  href === path || href.replace('.html', '') === path.replace('.html', '');
+// اسلش انتهایی را نادیده می‌گیریم تا /shop و /shop/ هر دو «فعال» شمرده شوند
+const norm = (p: string) => (p.length > 1 ? p.replace(/\/+$/, '') : p);
+const isActive = (href: string) => norm(href) === norm(path);
 ---
 <header class="site-header">
   <div class="wrap header-inner">

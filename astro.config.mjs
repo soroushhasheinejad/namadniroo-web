@@ -7,8 +7,11 @@ import node from '@astrojs/node';
 export default defineConfig({
   site: 'https://namadniroo.ir',
 
-  // /projects.html style URLs — portable to any host
-  build: { format: 'file' },
+  /* آدرس‌های تمیز و بدون پسوند: /projects به‌جای /projects.html
+     این همان شکلی است که سایت وردپرسی فعلی دارد، پس لینک‌های ایندکس‌شده
+     در گوگل بعد از انتقال بدون ریدایرکت هم درست کار می‌کنند. */
+  build: { format: 'directory' },
+  trailingSlash: 'never',
 
   compressHTML: true,
 
@@ -21,12 +24,12 @@ export default defineConfig({
      قبلاً این‌ها در .htaccess بودند؛ چون میزبان جدید آپاچی نیست و آن فایل
      خوانده نمی‌شود، به تنظیمات خود Astro منتقل شدند تا با هر میزبانی کار کنند. */
   redirects: {
-    '/contact-us': '/contact.html',
-    '/about-us': '/about.html',
-    '/cart': '/shop.html',
-    '/checkout': '/shop.html',
-    '/my-account': '/contact.html',
-    '/wishlist': '/shop.html',
+    '/contact-us': '/contact',
+    '/about-us': '/about',
+    '/cart': '/shop',
+    '/checkout': '/shop',
+    '/my-account': '/contact',
+    '/wishlist': '/shop',
     // ریدایرکت‌های الگودار (مثل /product/هرچیزی) در src/pages/ تعریف شده‌اند،
     // چون این تنظیمات فقط آدرس‌های ثابت را می‌پذیرد.
   },
@@ -38,16 +41,12 @@ export default defineConfig({
       changefreq: 'weekly',
       lastmod: new Date(),
 
-      // این افزونه از build.format:'file' خبر ندارد و آدرس‌ها را بدون پسوند
-      // می‌سازد. اگر اصلاح نشود، نقشهٔ سایت به آدرس‌هایی اشاره می‌کند که
-      // خودشان ۳۰۱ می‌خورند — و گوگل باید برای هر صفحه یک ریدایرکت را دنبال کند.
-      // اینجا آدرس‌ها را دقیقاً هم‌شکل تگ canonical می‌کنیم.
+      // افزونه آدرس‌ها را با اسلش انتهایی می‌سازد؛ اینجا حذفش می‌کنیم تا
+      // دقیقاً هم‌شکل تگ canonical باشند و گوگل مجبور به دنبال‌کردن ریدایرکت نشود.
       serialize(item) {
         const url = new URL(item.url);
-        if (url.pathname === '/' || url.pathname === '') {
-          url.pathname = '/';
-        } else if (!url.pathname.endsWith('.html')) {
-          url.pathname = url.pathname.replace(/\/+$/, '') + '.html';
+        if (url.pathname !== '/') {
+          url.pathname = url.pathname.replace(/\/+$/, '');
         }
         item.url = url.href;
         return item;

@@ -28,8 +28,8 @@ const description = `${p.name} — ${brandPlain} — ${p.spec} ${p.specUnit}. ا
 
 const pageSchema = [
   breadcrumbSchema([
-    { name: 'فروشگاه', href: '/shop.html' },
-    { name: p.name, href: `/shop/${product.id}.html` },
+    { name: 'فروشگاه', href: '/shop' },
+    { name: p.name, href: `/shop/${product.id}` },
   ]),
   {
     '@context': 'https://schema.org',
@@ -52,7 +52,7 @@ const pageSchema = [
   <div class="article-head">
     <div class="wrap">
       <p class="breadcrumb">
-        <a href="/">خانه</a><span>/</span><a href="/shop.html">فروشگاه</a><span>/</span>{categoryLabel[p.cat]}
+        <a href="/">خانه</a><span>/</span><a href="/shop">فروشگاه</a><span>/</span>{categoryLabel[p.cat]}
       </p>
       <span class="mag-tag">{categoryLabel[p.cat]}</span>
       <h1 class="article-title">{p.name}</h1>

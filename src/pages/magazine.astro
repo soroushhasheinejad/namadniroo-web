@@ -11,7 +11,7 @@ const articles = (await getCollection('articles'))
   .filter((a) => !a.data.draft)
   .sort((a, b) => b.data.date.localeCompare(a.data.date));
 
-const pageSchema = breadcrumbSchema([{ name: 'مجله', href: '/magazine.html' }]);
+const pageSchema = breadcrumbSchema([{ name: 'مجله', href: '/magazine' }]);
 ---
 <Base schema={pageSchema} title="مجله | نماد نیرو" description="مجلهٔ انرژی نماد نیرو؛ آموزش، بازار انرژی و اخبار شرکت دربارهٔ نیروگاه خورشیدی، اینورتر، نگه‌داری و سرمایه‌گذاری.">
   <PageHero
