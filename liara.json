@@ -1,4 +1,5 @@
 {
+  "app": "namadniroo",
   "platform": "node",
   "port": 3000,
   "node": {
