@@ -1,0 +1,26 @@
+{
+  "platform": "node",
+  "port": 3000,
+  "node": {
+    "version": "22",
+    "mirror": true
+  },
+  "disks": [
+    {
+      "name": "leads",
+      "mountTo": "/data"
+    }
+  ],
+  "envs": {
+    "HOST": "0.0.0.0",
+    "PORT": "3000",
+    "LEADS_DIR": "/data"
+  },
+  "healthCheck": {
+    "command": "CMD curl --fail http://localhost:3000/ || exit 1",
+    "interval": 30,
+    "timeout": 15,
+    "retries": 3,
+    "startPeriod": 10
+  }
+}
