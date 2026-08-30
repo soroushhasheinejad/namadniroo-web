@@ -19,7 +19,7 @@ export const site = {
    و کاربر موبایل باید پیش از شروع دانلود بداند. */
 export const portfolio = {
   file: '/downloads/portfolio.pdf',
-  size: '۲۴ مگابایت',
+  size: '۸ مگابایت',
 };
 
 export const nav = [

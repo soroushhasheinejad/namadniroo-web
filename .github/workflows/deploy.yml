@@ -1,0 +1,46 @@
+name: Deploy to Liara
+
+# با هر push روی main، سایت روی لیارا منتشر می‌شود.
+# دلیل استفاده از گیت‌هاب به‌جای اجرای liara deploy روی سیستم شخصی:
+# آپلود از ایران کند است و اتصال وسط کار قطع می‌شود؛ رانر گیت‌هاب
+# اینترنت سریع دارد و این محدودیت را ندارد.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # ساخت محلی روی رانر، فقط برای اینکه اگر کد خطا دارد
+      # پیش از فرستادن به لیارا مشخص شود.
+      - name: Install & build (sanity check)
+        run: |
+          npm ci
+          npm run build
+
+      # توکن در Settings → Secrets and variables → Actions تعریف می‌شود
+      # و هرگز داخل مخزن قرار نمی‌گیرد.
+      - name: Deploy
+        env:
+          LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+        run: |
+          npm install -g @liara/cli
+          liara deploy \
+            --app namadniroo \
+            --platform node \
+            --api-token "$LIARA_TOKEN" \
+            --build-location iran \
+            --no-app-logs \
+            --message "deploy ${GITHUB_SHA::7} from GitHub Actions"
