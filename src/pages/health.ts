@@ -1,37 +1,53 @@
 import type { APIRoute } from 'astro';
+import { sql } from 'drizzle-orm';
 import { existsSync } from 'node:fs';
+import { getDb } from '../server/db/client';
+import { mediaDir } from '../server/media/store';
 
 export const prerender = false;
 
 /**
  * بررسی سلامت اپ برای میزبان.
  *
- * قبلاً healthCheck لیارا صفحهٔ اصلی را صدا می‌زد؛ آن صفحه استاتیک است و
- * حتی وقتی ذخیره‌سازی خراب باشد سالم پاسخ می‌دهد. این مسیر چیزی را بررسی
- * می‌کند که واقعاً می‌تواند خراب شود: دسترسی به محل ذخیرهٔ لیدها.
- *
- * وقتی دیتابیس اضافه شد، پینگ دیتابیس هم به همین‌جا افزوده می‌شود.
+ * قبلاً healthCheck لیارا صفحهٔ اصلی را صدا می‌زد؛ آن صفحه استاتیک بود و
+ * حتی وقتی دیتابیس از کار می‌افتاد سالم پاسخ می‌داد. این مسیر دو چیزی را
+ * بررسی می‌کند که واقعاً می‌توانند خراب شوند: اتصال دیتابیس و دسترسی به
+ * محل ذخیرهٔ تصاویر.
  */
 export const GET: APIRoute = async () => {
-  const leadsDir = process.env.LEADS_DIR;
+  const checks: Record<string, string> = {};
+  let healthy = true;
 
-  /* اگر LEADS_DIR تعریف شده ولی وجود ندارد، یعنی دیسک پایدار وصل نشده و
-     هر لیدی که ثبت شود با انتشار بعدی از بین می‌رود — این خرابی است، نه
-     هشدار، چون بی‌سروصدا داده از دست می‌رود. */
-  const storageOk = !leadsDir || existsSync(leadsDir);
+  try {
+    const db = await getDb();
+    await db.execute(sql`select 1`);
+    checks.database = 'ok';
+  } catch (err) {
+    healthy = false;
+    checks.database = err instanceof Error ? err.message.slice(0, 200) : 'اتصال برقرار نشد';
+  }
 
-  const body = {
-    status: storageOk ? 'ok' : 'degraded',
-    storage: storageOk ? 'ok' : `مسیر ${leadsDir} در دسترس نیست`,
-    uptime: Math.round(process.uptime()),
-    time: new Date().toISOString(),
-  };
+  /* اگر پوشهٔ رسانه در دسترس نباشد یعنی دیسک پایدار وصل نشده و هر تصویری
+     که آپلود شود با انتشار بعدی از بین می‌رود — این خرابی است نه هشدار،
+     چون بی‌سروصدا داده از دست می‌رود. */
+  const dir = mediaDir();
+  if (existsSync(dir)) {
+    checks.media = 'ok';
+  } else {
+    healthy = false;
+    checks.media = `مسیر ${dir} در دسترس نیست`;
+  }
 
-  return new Response(JSON.stringify(body), {
-    status: storageOk ? 200 : 503,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store',
+  return new Response(
+    JSON.stringify({
+      status: healthy ? 'ok' : 'degraded',
+      checks,
+      uptime: Math.round(process.uptime()),
+      time: new Date().toISOString(),
+    }),
+    {
+      status: healthy ? 200 : 503,
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
     },
-  });
+  );
 };

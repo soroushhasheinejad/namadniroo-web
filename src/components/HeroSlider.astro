@@ -1,15 +1,14 @@
 ---
 import Icon from './Icon.astro';
-import { heroSlides } from '../data/site';
-import { heroImages } from '../lib/sliderImages';
+import DbImage from './DbImage.astro';
+import { heroSlides } from '../server/repos/slides';
 
 /* پوسترها تگ <img> واقعی هستند، نه background در CSS.
    دلیلش کارایی است: مرورگر پیش از پردازش CSS، HTML را اسکن می‌کند و تصویری
    که در تگ img باشد را همان لحظه دانلود می‌کند. وقتی تصویر در
    background-image بود، مرورگر مجبور بود اول CSS را بگیرد و پردازش کند و
    تازه بعد سراغ تصویر برود — و این تصویر بزرگ‌ترین عنصر صفحه (LCP) است. */
-const images = await heroImages();
-const slides = heroSlides.map((s, i) => ({ ...s, img: images[i] }));
+const slides = await heroSlides();
 ---
 <section class="hero" id="activity" data-slider="hero" aria-roledescription="اسلایدر" aria-label="حوزه‌های فعالیت">
   <div class="hero-viewport">
@@ -19,17 +18,9 @@ const slides = heroSlides.map((s, i) => ({ ...s, img: images[i] }));
           {/* اسلاید اول با اولویت بالا و بلافاصله؛ بقیه تنبل، تا در اولین
               بازدید فقط یک پوستر دانلود شود نه هر سه. اسکریپت پایین بعد از
               آرام‌شدن صفحه بقیه را از پیش می‌گیرد. */}
-          <img
-            src={s.img.src}
-            srcset={s.img.srcset}
-            sizes="100vw"
-            width={s.img.width}
-            height={s.img.height}
-            alt=""
-            loading={i === 0 ? 'eager' : 'lazy'}
-            fetchpriority={i === 0 ? 'high' : 'low'}
-            decoding={i === 0 ? 'sync' : 'async'}
-          />
+          {s.image && (
+            <DbImage image={s.image} sizes="100vw" priority={i === 0} decorative />
+          )}
         </article>
       ))}
     </div>
@@ -37,9 +28,9 @@ const slides = heroSlides.map((s, i) => ({ ...s, img: images[i] }));
   </div>
 
   <div class="hero-rail" role="tablist" aria-label="انتخاب حوزه فعالیت">
-    {heroSlides.map((s, i) => (
+    {slides.map((s, i) => (
       <button class:list={['hero-tab', i === 0 && 'is-active']} role="tab" aria-selected={i === 0} data-tab={i}>
-        <span class="tab-icon"><Icon name={s.icon} /></span>
+        <span class="tab-icon"><Icon name={s.icon as never} /></span>
         <span class="tab-label">{s.label}</span>
       </button>
     ))}
@@ -100,6 +91,7 @@ const slides = heroSlides.map((s, i) => ({ ...s, img: images[i] }));
       x0 = null;
     }, { passive: true });
 
-    show(0); play();
+    show(0);
+    play();
   }
 </script>

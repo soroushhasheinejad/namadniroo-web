@@ -1,6 +1,7 @@
 import { and, count, desc, eq, gte, ilike, or, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { leads, type Lead, type LeadStatus, type NewLead } from '../db/schema';
+import { normalizePhone } from '../../lib/phone';
 
 /**
  * دسترسی به لیدها.
@@ -40,12 +41,19 @@ function buildFilter(query: LeadQuery) {
   }
 
   if (query.q?.trim()) {
-    const term = `%${query.q.trim()}%`;
-    /* شماره ممکن است به هر شکلی جست‌وجو شود، پس هم شکل واردشده و هم شکل
-       یکتا بررسی می‌شوند. */
-    clauses.push(
-      or(ilike(leads.name, term), ilike(leads.phone, term), ilike(leads.phoneNormalized, term)),
-    );
+    const raw = query.q.trim();
+    const term = `%${raw}%`;
+    const matches = [ilike(leads.name, term), ilike(leads.phone, term)];
+
+    /* شماره‌ها به همان شکلی ذخیره می‌شوند که کاربر تایپ کرده — که اغلب با
+       ارقام فارسی است. پس جست‌وجوی «۰۹۱۲…» با تایپ لاتین هیچ‌وقت نتیجه
+       نمی‌داد. اگر عبارت جست‌وجو شمارهٔ معتبری باشد، شکل یکتای آن هم
+       بررسی می‌شود و هر دو نگارش پیدا می‌شوند. */
+    const normalized = normalizePhone(raw);
+    if (normalized) matches.push(eq(leads.phoneNormalized, normalized));
+    else matches.push(ilike(leads.phoneNormalized, term));
+
+    clauses.push(or(...matches));
   }
 
   return clauses.length ? and(...clauses) : undefined;

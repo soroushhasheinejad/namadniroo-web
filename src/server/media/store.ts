@@ -5,7 +5,7 @@ import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { media, type Media } from '../db/schema';
-import { TAGS, invalidate } from '../cache';
+import { TAGS, cached, invalidate } from '../cache';
 
 /**
  * ذخیره و بهینه‌سازی تصاویر.
@@ -133,6 +133,7 @@ export async function ingestImage(
       key,
       url: variantUrl(key, largest),
       mime: 'image/webp',
+      originalName: options.filename,
       width,
       height,
       bytes: buffer.byteLength,
@@ -162,6 +163,20 @@ export async function readVariant(key: string, width: number): Promise<Buffer | 
 export async function listMedia(): Promise<Media[]> {
   const db = await getDb();
   return db.select().from(media).orderBy(media.id);
+}
+
+/**
+ * تصاویر را بر اساس نام اصلی فایل برمی‌گرداند.
+ *
+ * تنظیمات سایت (اسلایدر، بنرها، حوزه‌ها) با نام فایل به تصویر ارجاع
+ * می‌دهند نه با شناسه، تا ویراستار در پنل نامی ببیند که می‌شناسد.
+ */
+export function mediaByName(): Promise<Map<string, Media>> {
+  return cached('media:byName', [TAGS.media], async () => {
+    const db = await getDb();
+    const rows = await db.select().from(media);
+    return new Map(rows.filter((m) => m.originalName).map((m) => [m.originalName!, m]));
+  });
 }
 
 export async function updateAlt(id: number, alt: string): Promise<void> {

@@ -8,25 +8,27 @@ import ProductCard from '../components/ProductCard.astro';
 import ProjectTile from '../components/ProjectTile.astro';
 import ArticleCard from '../components/ArticleCard.astro';
 import QuoteForm from '../components/QuoteForm.astro';
-import { heroImages } from '../lib/sliderImages';
 import { listArticles, listFeaturedProducts, listFeaturedProjects } from '../server/repos/content';
+import { heroSlides } from '../server/repos/slides';
+import { buildSrcset } from '../server/media/store';
 
-/* پوستر اسلاید اول، بزرگ‌ترین عنصر قابل مشاهدهٔ صفحه (LCP) است. آدرسش را
-   به Base می‌دهیم تا در <head> با preload اعلام شود و دانلودش هم‌زمان با
-   خواندن سرصفحه شروع شود، نه بعد از رسیدن به تگ img.
-   HeroSlider همین تابع را صدا می‌زند و نتیجه کش شده است، پس تصویر دوباره
-   ساخته نمی‌شود و آدرس‌ها قطعاً یکی هستند. */
-const [heroLcp] = await heroImages();
 
 export const prerender = false;
 
 /* سه بخش صفحه به هم وابسته نیستند، پس با هم خوانده می‌شوند نه پشت سر هم —
    وگرنه زمان رندر می‌شد مجموع سه کوئری به‌جای کندترینشان. */
-const [products, projects, articles] = await Promise.all([
+const [products, projects, articles, slides] = await Promise.all([
   listFeaturedProducts(4),
   listFeaturedProjects(3),
   listArticles().then((all) => all.slice(0, 3)),
+  heroSlides(),
 ]);
+
+/* پوستر اسلاید اول، بزرگ‌ترین عنصر قابل مشاهدهٔ صفحه (LCP) است. آدرسش را
+   به Base می‌دهیم تا در <head> با preload اعلام شود و دانلودش هم‌زمان با
+   خواندن سرصفحه شروع شود، نه بعد از رسیدن به تگ img.
+   HeroSlider همین داده را از کش می‌گیرد، پس کوئری دوباره‌ای زده نمی‌شود. */
+const lcp = slides[0]?.image ?? null;
 
 const homeSchema = [
   {
@@ -59,7 +61,7 @@ const homeSchema = [
   title="نماد نیرو | راه‌کارهای جامع انرژی پایدار"
   description="نماد نیرو از سال ۱۳۸۷ در کرمان: احداث نیروگاه خورشیدی، تأمین پنل و اینورتر از برندهای معتبر جهانی، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر."
   schema={homeSchema}
-  preloadImage={{ src: heroLcp.src, srcset: heroLcp.srcset, sizes: '100vw' }}
+  preloadImage={lcp ? { src: lcp.url, srcset: buildSrcset(lcp.key, lcp.width), sizes: '100vw' } : undefined}
 >
   <h1 class="sr-only">
     نماد نیرو — احداث نیروگاه خورشیدی، تأمین تجهیزات و سرمایه‌گذاری در انرژی تجدیدپذیر

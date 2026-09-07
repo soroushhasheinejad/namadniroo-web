@@ -1,13 +1,12 @@
 ---
 import Icon from './Icon.astro';
-import { promoSlides } from '../data/site';
-import { promoImages } from '../lib/sliderImages';
+import DbImage from './DbImage.astro';
+import { promoSlides } from '../server/repos/slides';
 
 /* بنرها هم مثل اسلایدر اصلی تگ <img> واقعی‌اند نه background.
    این بخش پایین‌تر از خط تا (fold) است، پس هر دو بنر تنبل بارگذاری می‌شوند
    و تا کاربر به آن‌ها نرسد دانلود نمی‌شوند. */
-const images = await promoImages();
-const slides = promoSlides.map((s, i) => ({ ...s, optimized: images[i] }));
+const slides = await promoSlides();
 ---
 <section class="promo" data-slider="promo" aria-roledescription="اسلایدر" aria-label="بنرهای معرفی">
   <div class="wrap">
@@ -20,16 +19,9 @@ const slides = promoSlides.map((s, i) => ({ ...s, optimized: images[i] }));
             href={s.href}
             aria-label={s.alt}
           >
-            <img
-              src={s.optimized.src}
-              srcset={s.optimized.srcset}
-              sizes="(max-width: 1200px) 100vw, 1200px"
-              width={s.optimized.width}
-              height={s.optimized.height}
-              alt=""
-              loading="lazy"
-              decoding="async"
-            />
+            {s.image && (
+              <DbImage image={s.image} sizes="(max-width: 1200px) 100vw, 1200px" decorative />
+            )}
           </a>
         ))}
       </div>
@@ -38,7 +30,7 @@ const slides = promoSlides.map((s, i) => ({ ...s, optimized: images[i] }));
       <button class="promo-arrow promo-next" aria-label="بنر بعدی"><Icon name="arrowNext" class="ico" /></button>
 
       <div class="promo-dots" role="tablist" aria-label="انتخاب بنر">
-        {promoSlides.map((_, i) => (
+        {slides.map((_, i) => (
           <button class:list={['promo-dot', i === 0 && 'is-active']} data-dot={i} aria-label={`بنر ${i + 1}`} />
         ))}
       </div>

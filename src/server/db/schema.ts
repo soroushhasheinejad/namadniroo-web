@@ -62,6 +62,14 @@ export const media = pgTable('media', {
   /** آدرس قابل نمایش */
   url: text('url').notNull(),
   mime: text('mime').notNull(),
+  /**
+   * نام فایل هنگام آپلود.
+   *
+   * `key` از محتوای فایل ساخته می‌شود، پس با آن نمی‌شود تصویری را از روی
+   * نامش پیدا کرد. این ستون همان کار را می‌کند: تنظیمات سایت (اسلایدر،
+   * بنرها، حوزه‌ها) با نام فایل به تصویر ارجاع می‌دهند، نه با شناسه.
+   */
+  originalName: text('original_name'),
   width: integer('width'),
   height: integer('height'),
   bytes: integer('bytes').notNull().default(0),

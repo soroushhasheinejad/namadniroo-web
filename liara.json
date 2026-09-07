@@ -11,20 +11,20 @@
   },
   "disks": [
     {
-      "name": "leads",
-      "mountTo": "/data"
+      "name": "media",
+      "mountTo": "/media"
     }
   ],
   "envs": {
     "HOST": "0.0.0.0",
     "PORT": "3000",
-    "LEADS_DIR": "/data"
+    "MEDIA_DIR": "/media"
   },
   "healthCheck": {
     "command": "CMD curl --fail http://localhost:3000/health || exit 1",
     "interval": 30,
     "timeout": 15,
     "retries": 3,
-    "startPeriod": 10
+    "startPeriod": 20
   }
 }

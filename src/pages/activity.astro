@@ -2,26 +2,15 @@
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import Icon from '../components/Icon.astro';
-import { getImage } from 'astro:assets';
-import { areas } from '../data/site';
+import DbImage from '../components/DbImage.astro';
 import { breadcrumbSchema } from '../utils';
+import { areaBlocks } from '../server/repos/slides';
 
 const pageSchema = breadcrumbSchema([{ name: 'حوزه‌های فعالیت', href: '/activity' }]);
 
-/* تصاویر این بخش تگ img هستند نه background در CSS، تا مرورگر بتواند
-   آن‌هایی را که هنوز دیده نشده‌اند به تعویق بیندازد.
-   این تصاویر در عمل حدود ۵۶۰ پیکسل عرض نمایش داده می‌شوند؛ ۱۰۰۰ پیکسل
-   برای نمایشگرهای رتینا هم کافی است. */
-const blocks = await Promise.all(
-  areas.map(async (a) => {
-    const optimized = await getImage({ src: a.image, format: 'webp', width: 1000, quality: 72 });
-    return {
-      ...a,
-      optimized,
-      height: Math.round((1000 * a.image.height) / a.image.width),
-    };
-  }),
-);
+export const prerender = false;
+
+const blocks = await areaBlocks();
 ---
 <Base schema={pageSchema} title="حوزه‌های فعالیت | نماد نیرو" description="سه حوزهٔ فعالیت نماد نیرو: طراحی مهندسی نیروگاه، بازرگانی و تأمین تجهیزات خورشیدی، و اجرا و بهره‌برداری پروژه‌های تجدیدپذیر.">
   <PageHero
@@ -34,15 +23,10 @@ const blocks = await Promise.all(
     <section class:list={['area-block', a.reverse && 'is-reverse']} id={a.id}>
       <div class="wrap area-inner">
         <div class="area-visual">
-          <img
-            src={a.optimized.src}
-            width={1000}
-            height={a.height}
-            alt=""
-            loading={i === 0 ? 'eager' : 'lazy'}
-            decoding="async"
-          />
-          <span class="area-badge"><Icon name={a.icon} /></span>
+          {a.image && (
+            <DbImage image={a.image} sizes="(max-width: 900px) 92vw, 560px" priority={i === 0} decorative />
+          )}
+          <span class="area-badge"><Icon name={a.icon as never} /></span>
         </div>
         <div class="area-copy">
           <p class="eyebrow">{a.eyebrow}</p>
