@@ -15,6 +15,12 @@ interface Props {
   schema?: Record<string, any> | Record<string, any>[];
   /** صفحه از نتایج موتور جست‌وجو کنار گذاشته شود */
   noindex?: boolean;
+  /**
+   * بزرگ‌ترین تصویر بالای صفحه، برای اعلام زودهنگام به مرورگر.
+   * بدون این، مرورگر تصویر را فقط وقتی پیدا می‌کند که به تگ img در بدنه
+   * برسد؛ با این، دانلود هم‌زمان با خواندن <head> شروع می‌شود.
+   */
+  preloadImage?: { src: string; srcset?: string; sizes?: string };
 }
 
 const {
@@ -24,6 +30,7 @@ const {
   type = 'website',
   schema,
   noindex = false,
+  preloadImage,
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://namadniroo.ir');
@@ -71,6 +78,17 @@ const schemas = [organizationSchema, ...(schema ? (Array.isArray(schema) ? schem
 
   <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
   <link rel="preload" href="/fonts/DanaVF.woff2" as="font" type="font/woff2" crossorigin />
+
+  {preloadImage && (
+    <link
+      rel="preload"
+      as="image"
+      href={preloadImage.src}
+      imagesrcset={preloadImage.srcset}
+      imagesizes={preloadImage.sizes}
+      fetchpriority="high"
+    />
+  )}
 
   {/* Open Graph — برای واتساپ، تلگرام، لینکدین و... */}
   <meta property="og:type" content={type} />

@@ -117,12 +117,14 @@ a { color: inherit; text-decoration: none; }
 .hero-slide {
   position: relative; flex: 0 0 100%; height: 100%;
   background-color: #0c0c0c;
-  background-image: var(--img);
-  background-size: cover; background-position: center; background-repeat: no-repeat;
 }
-/* روی موبایل نسخهٔ کوچک‌تر پوستر بارگذاری می‌شود */
-@media (max-width: 768px) {
-  .hero-slide { background-image: var(--img-sm, var(--img)); }
+/* پوستر یک تگ img است (تا مرورگر زودتر پیدایش کند) ولی دقیقاً مثل
+   background-size:cover رفتار می‌کند. انتخاب نسخهٔ موبایل یا دسکتاپ با
+   srcset/sizes انجام می‌شود، نه با media query در CSS. */
+.hero-slide img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: center;
 }
 
 /* progress bar (bottom of the poster) */
@@ -180,14 +182,20 @@ a { color: inherit; text-decoration: none; }
   direction: rtl; text-align: start;
   aspect-ratio: 1600 / 400; min-height: 220px;
   background-color: #0e0e0e;
+  /* این لایه‌ها پس‌زمینهٔ اسلایدهای بدون تصویر است و تا لودشدن بنر هم دیده
+     می‌شود؛ خود بنر تگ img است و رویش می‌نشیند. */
   background-image:
-    var(--img),
     repeating-linear-gradient(118deg, rgba(95,131,155,.13) 0 1px, transparent 1px 26px),
     repeating-linear-gradient(28deg, rgba(95,131,155,.13) 0 1px, transparent 1px 26px),
     radial-gradient(120% 160% at 85% 0%, #16303f 0%, #0b0b0b 60%);
-  background-size: cover, auto, auto, cover;
-  background-position: center; background-repeat: no-repeat, repeat, repeat, no-repeat;
+  background-size: auto, auto, cover;
+  background-position: center; background-repeat: repeat, repeat, no-repeat;
   display: flex; align-items: center;
+}
+.promo-slide img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: center;
 }
 /* fallback text — hidden once the real (pre-composed) banner image loads */
 .promo-slide.has-img .promo-text { display: none; }
@@ -252,15 +260,16 @@ section { scroll-margin-top: 84px; }
 .proj-lg { grid-row: span 2; }
 .proj-img {
   position: absolute; inset: 0; background-color: #14181c;
+  /* الگوی پس‌زمینه برای پروژه‌های بدون عکس، و تا لودشدن عکس */
   background-image:
-    var(--img),
     repeating-linear-gradient(118deg, rgba(95,131,155,.14) 0 1px, transparent 1px 24px),
     repeating-linear-gradient(28deg, rgba(95,131,155,.14) 0 1px, transparent 1px 24px),
     radial-gradient(120% 120% at 70% 0%, #1b3644 0%, #10151a 65%);
-  background-size: cover, auto, auto, cover;
-  background-position: center; background-repeat: no-repeat, repeat, repeat, no-repeat;
+  background-size: auto, auto, cover;
+  background-position: center; background-repeat: repeat, repeat, no-repeat;
   transition: transform .5s var(--ease);
 }
+.proj-img img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .proj-card:hover .proj-img { transform: scale(1.06); }
 .proj-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,.82) 6%, rgba(0,0,0,0) 55%); }
 .proj-meta { position: absolute; z-index: 2; inset-inline: 0; bottom: 0; padding: 20px; }
@@ -392,14 +401,15 @@ section { scroll-margin-top: 84px; }
 .area-visual {
   position: relative; aspect-ratio: 4/3; border-radius: var(--r); overflow: hidden;
   border: 1px solid var(--line); background-color: #12181d;
+  /* الگوی پس‌زمینه تا وقتی عکس لود شود */
   background-image:
-    var(--img),
     repeating-linear-gradient(118deg, rgba(95,131,155,.14) 0 1px, transparent 1px 24px),
     repeating-linear-gradient(28deg, rgba(95,131,155,.14) 0 1px, transparent 1px 24px),
     radial-gradient(120% 120% at 70% 0%, #1b3644 0%, #10151a 65%);
-  background-size: cover, auto, auto, cover;
-  background-position: center; background-repeat: no-repeat, repeat, repeat, no-repeat;
+  background-size: auto, auto, cover;
+  background-position: center; background-repeat: repeat, repeat, no-repeat;
 }
+.area-visual img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .area-badge {
   position: absolute; inset-inline-start: 20px; inset-block-start: 20px;
   width: 56px; height: 56px; display: grid; place-items: center;

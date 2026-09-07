@@ -5,7 +5,10 @@ import path from 'node:path';
 export interface Lead {
   createdAt: string;
   name: string;
+  /** همان چیزی که کاربر تایپ کرده */
   phone: string;
+  /** شکل یکتا (`+989…`) برای تشخیص تکراری و جست‌وجو — رکوردهای قدیمی ندارند */
+  phoneNormalized?: string;
   capacity?: string;
   area?: string;
   source?: string;

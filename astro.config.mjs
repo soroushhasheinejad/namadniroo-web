@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 
 import sitemap from '@astrojs/sitemap';
 import node from '@astrojs/node';
+import pruneUnusedAssets from './src/integrations/prune-unused-assets';
 
 export default defineConfig({
   site: 'https://namadniroo.ir',
@@ -36,8 +37,9 @@ export default defineConfig({
 
   integrations: [
     sitemap({
-      // صفحهٔ ۴۰۴ نباید در نقشهٔ سایت بیاید
-      filter: (page) => !page.includes('/404') && !page.includes('/leads'),
+      // صفحهٔ ۴۰۴ و مسیرهای غیرمحتوایی نباید در نقشهٔ سایت بیایند
+      filter: (page) =>
+        !page.includes('/404') && !page.includes('/leads') && !page.includes('/health'),
       changefreq: 'weekly',
       lastmod: new Date(),
 
@@ -52,5 +54,9 @@ export default defineConfig({
         return item;
       },
     }),
+
+    /* نسخهٔ اصلی تصاویری که فقط شکل بهینه‌شدهٔ آن‌ها استفاده می‌شود از خروجی
+       پاک می‌شود — بدون این کار حدود ۳٫۵ مگابایت JPG بی‌مصرف دیپلوی می‌شد. */
+    pruneUnusedAssets(),
   ],
 });

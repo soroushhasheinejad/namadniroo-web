@@ -1,13 +1,27 @@
 import type { APIRoute } from 'astro';
 import nodemailer from 'nodemailer';
 import { saveLead } from '../../lib/leads';
+import { normalizePhone } from '../../lib/phone';
+import { clientIp, rateLimit } from '../../lib/rateLimit';
 
 // این مسیر باید روی سرور اجرا شود، نه در زمان بیلد
 export const prerender = false;
 
+/* سقف ارسال از یک آدرس. عدد دست‌ودل‌بازانه انتخاب شده تا کاربر واقعی — که
+   ممکن است یک بار اشتباه کند و دوباره بفرستد — هرگز به آن نخورد، ولی ارسال
+   خودکار پشت‌سرهم متوقف شود. */
+const MAX_PER_IP = 5;
+const WINDOW_MS = 10 * 60 * 1000;
+
+/* سقف حجم بدنه. بدون این، یک درخواست بزرگ می‌تواند حافظه را اشغال کند. */
+const MAX_BODY_BYTES = 8 * 1024;
+
+/* سقف طول هر فیلد، تا رکوردهای بی‌قواره ذخیره نشوند. */
+const MAX_FIELD = 200;
+
 /** حذف شکست خط تا کسی نتواند هدر ایمیل تزریق کند */
 const clean = (v: unknown): string =>
-  String(v ?? '').replace(/[\r\n]+/g, ' ').trim();
+  String(v ?? '').replace(/[\r\n]+/g, ' ').trim().slice(0, MAX_FIELD);
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -53,7 +67,28 @@ async function sendMail(lead: {
   }
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, clientAddress }) => {
+  const ip = clientIp(request, clientAddress);
+  const limit = rateLimit(`quote:${ip}`, MAX_PER_IP, WINDOW_MS);
+  if (!limit.ok) {
+    return new Response(
+      JSON.stringify({ success: false, message: 'درخواست‌های زیاد؛ کمی بعد دوباره تلاش کنید.' }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Retry-After': String(limit.retryAfter),
+        },
+      },
+    );
+  }
+
+  // بدنهٔ بیش از حد بزرگ اصلاً پارس نمی‌شود
+  const declared = Number(request.headers.get('content-length') ?? 0);
+  if (declared > MAX_BODY_BYTES) {
+    return json({ success: false, message: 'حجم درخواست بیش از حد است' }, 413);
+  }
+
   /* بدنه به‌صورت JSON فرستاده می‌شود، نه فرم.
      دلیلش امنیت است: مرورگر اجازه نمی‌دهد سایت دیگری بدون CORS برای ما
      JSON بفرستد، پس این مسیر ذاتاً در برابر CSRF امن است — و برخلاف حالت
@@ -78,10 +113,19 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ success: false, message: 'نام و شمارهٔ تماس الزامی است' }, 422);
   }
 
+  /* شمارهٔ واردشده دست‌نخورده ذخیره می‌شود (کاربر باید همان چیزی را که نوشته
+     در پنل ببیند) ولی شکل یکتای آن هم کنارش می‌آید تا بعداً تشخیص تکراری و
+     جست‌وجو ممکن باشد. شمارهٔ نامعتبر همین‌جا رد می‌شود تا لید بی‌مصرف ثبت
+     نشود. */
+  const phoneNormalized = normalizePhone(phone);
+  if (!phoneNormalized) {
+    return json({ success: false, message: 'شمارهٔ تماس معتبر نیست' }, 422);
+  }
+
   // ۱) اول ذخیره، بعد ایمیل — تا خرابی سرویس ایمیل باعث گم‌شدن لید نشود
   let stored = false;
   try {
-    await saveLead({ createdAt: new Date().toISOString(), name, phone, capacity, area, source, emailed: false });
+    await saveLead({ createdAt: new Date().toISOString(), name, phone, phoneNormalized, capacity, area, source, emailed: false });
     stored = true;
   } catch (err) {
     console.error('[namadniroo] lead save failed:', err);
@@ -92,7 +136,7 @@ export const POST: APIRoute = async ({ request }) => {
   // اگر ذخیره نشده ولی ایمیل رفته، رکورد را با وضعیت درست ثبت می‌کنیم
   if (!stored && emailed) {
     try {
-      await saveLead({ createdAt: new Date().toISOString(), name, phone, capacity, area, source, emailed: true });
+      await saveLead({ createdAt: new Date().toISOString(), name, phone, phoneNormalized, capacity, area, source, emailed: true });
       stored = true;
     } catch { /* از قبل لاگ شده */ }
   }

@@ -2,6 +2,9 @@
   "app": "namadniroo",
   "platform": "node",
   "port": 3000,
+  "build": {
+    "location": "iran"
+  },
   "node": {
     "version": "22",
     "mirror": true
@@ -18,7 +21,7 @@
     "LEADS_DIR": "/data"
   },
   "healthCheck": {
-    "command": "CMD curl --fail http://localhost:3000/ || exit 1",
+    "command": "CMD curl --fail http://localhost:3000/health || exit 1",
     "interval": 30,
     "timeout": 15,
     "retries": 3,

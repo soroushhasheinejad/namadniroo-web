@@ -8,14 +8,19 @@ import { breadcrumbSchema } from '../utils';
 
 const pageSchema = breadcrumbSchema([{ name: 'حوزه‌های فعالیت', href: '/activity' }]);
 
-// تصاویر این بخش پس‌زمینهٔ CSS هستند، پس با getImage بهینه می‌شوند
+/* تصاویر این بخش تگ img هستند نه background در CSS، تا مرورگر بتواند
+   آن‌هایی را که هنوز دیده نشده‌اند به تعویق بیندازد.
+   این تصاویر در عمل حدود ۵۶۰ پیکسل عرض نمایش داده می‌شوند؛ ۱۰۰۰ پیکسل
+   برای نمایشگرهای رتینا هم کافی است. */
 const blocks = await Promise.all(
-  areas.map(async (a) => ({
-    ...a,
-    // این تصاویر پس‌زمینهٔ تزئینی پشت متن‌اند و در عمل حدود ۵۶۰ پیکسل عرض
-    // نمایش داده می‌شوند؛ ۱۰۰۰ پیکسل برای نمایشگرهای رتینا هم کافی است.
-    optimized: await getImage({ src: a.image, format: 'webp', width: 1000, quality: 72 }),
-  })),
+  areas.map(async (a) => {
+    const optimized = await getImage({ src: a.image, format: 'webp', width: 1000, quality: 72 });
+    return {
+      ...a,
+      optimized,
+      height: Math.round((1000 * a.image.height) / a.image.width),
+    };
+  }),
 );
 ---
 <Base schema={pageSchema} title="حوزه‌های فعالیت | نماد نیرو" description="سه حوزهٔ فعالیت نماد نیرو: طراحی مهندسی نیروگاه، بازرگانی و تأمین تجهیزات خورشیدی، و اجرا و بهره‌برداری پروژه‌های تجدیدپذیر.">
@@ -25,10 +30,18 @@ const blocks = await Promise.all(
     lead="از طراحی و مهندسی تا تأمین تجهیزات و اجرا و بهره‌برداری نیروگاه؛ نماد نیرو در تمام مسیر همراه شماست."
   />
 
-  {blocks.map((a) => (
+  {blocks.map((a, i) => (
     <section class:list={['area-block', a.reverse && 'is-reverse']} id={a.id}>
       <div class="wrap area-inner">
-        <div class="area-visual" style={`--img:url('${a.optimized.src}')`}>
+        <div class="area-visual">
+          <img
+            src={a.optimized.src}
+            width={1000}
+            height={a.height}
+            alt=""
+            loading={i === 0 ? 'eager' : 'lazy'}
+            decoding="async"
+          />
           <span class="area-badge"><Icon name={a.icon} /></span>
         </div>
         <div class="area-copy">

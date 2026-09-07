@@ -1,30 +1,36 @@
 ---
 import Icon from './Icon.astro';
 import { heroSlides } from '../data/site';
-import { getImage } from 'astro:assets';
+import { heroImages } from '../lib/sliderImages';
 
-/* این پوسترها پس‌زمینهٔ CSS هستند (نه تگ img)، بنابراین به‌جای کامپوننت
-   <Image> از getImage استفاده می‌کنیم تا همان مزیت WebP و تغییر اندازه را
-   بگیریم بدون این‌که چیدمان اسلایدر عوض شود.
-   دو اندازه می‌سازیم تا موبایل نسخهٔ ۲۵۶۰ پیکسلی را دانلود نکند. */
-const slides = await Promise.all(
-  heroSlides.map(async (s) => ({
-    ...s,
-    lg: await getImage({ src: s.img, format: 'webp', width: 1920, quality: 80 }),
-    sm: await getImage({ src: s.img, format: 'webp', width: 900, quality: 78 }),
-  })),
-);
+/* پوسترها تگ <img> واقعی هستند، نه background در CSS.
+   دلیلش کارایی است: مرورگر پیش از پردازش CSS، HTML را اسکن می‌کند و تصویری
+   که در تگ img باشد را همان لحظه دانلود می‌کند. وقتی تصویر در
+   background-image بود، مرورگر مجبور بود اول CSS را بگیرد و پردازش کند و
+   تازه بعد سراغ تصویر برود — و این تصویر بزرگ‌ترین عنصر صفحه (LCP) است. */
+const images = await heroImages();
+const slides = heroSlides.map((s, i) => ({ ...s, img: images[i] }));
 ---
 <section class="hero" id="activity" data-slider="hero" aria-roledescription="اسلایدر" aria-label="حوزه‌های فعالیت">
   <div class="hero-viewport">
     <div class="hero-slides">
       {slides.map((s, i) => (
-        <article
-          class:list={['hero-slide', i === 0 && 'is-active']}
-          data-slide={i}
-          style={`--img:url('${s.lg.src}');--img-sm:url('${s.sm.src}')`}
-          aria-label={s.label}
-        />
+        <article class:list={['hero-slide', i === 0 && 'is-active']} data-slide={i} aria-label={s.label}>
+          {/* اسلاید اول با اولویت بالا و بلافاصله؛ بقیه تنبل، تا در اولین
+              بازدید فقط یک پوستر دانلود شود نه هر سه. اسکریپت پایین بعد از
+              آرام‌شدن صفحه بقیه را از پیش می‌گیرد. */}
+          <img
+            src={s.img.src}
+            srcset={s.img.srcset}
+            sizes="100vw"
+            width={s.img.width}
+            height={s.img.height}
+            alt=""
+            loading={i === 0 ? 'eager' : 'lazy'}
+            fetchpriority={i === 0 ? 'high' : 'low'}
+            decoding={i === 0 ? 'sync' : 'async'}
+          />
+        </article>
       ))}
     </div>
     <div class="hero-progress" aria-hidden="true"><span></span></div>
@@ -49,6 +55,21 @@ const slides = await Promise.all(
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const DELAY = 6000;
     let cur = 0, timer: ReturnType<typeof setInterval> | null = null;
+
+    /* پوسترهای دوم و سوم با loading="lazy" رندر شده‌اند تا در اولین لود با
+       پوستر اصلی بر سر پهنای باند رقابت نکنند. اما اسلایدر خودکار می‌چرخد،
+       پس نباید موقع چرخش تصویر خالی دیده شود: به‌محض این‌که صفحه لود شد و
+       مرورگر بی‌کار شد، آن‌ها را از پیش می‌گیریم. */
+    const warmRest = () => {
+      hero.querySelectorAll<HTMLImageElement>('.hero-slide img[loading="lazy"]')
+        .forEach((img) => { img.loading = 'eager'; });
+    };
+    const whenIdle = () =>
+      'requestIdleCallback' in window
+        ? requestIdleCallback(warmRest, { timeout: 3000 })
+        : setTimeout(warmRest, 1200);
+    if (document.readyState === 'complete') whenIdle();
+    else addEventListener('load', whenIdle, { once: true });
 
     const show = (i: number) => {
       cur = (i + slides.length) % slides.length;

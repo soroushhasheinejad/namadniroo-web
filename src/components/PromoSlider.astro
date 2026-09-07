@@ -1,15 +1,13 @@
 ---
 import Icon from './Icon.astro';
 import { promoSlides } from '../data/site';
-import { getImage } from 'astro:assets';
+import { promoImages } from '../lib/sliderImages';
 
-// بنرها هم پس‌زمینهٔ CSS هستند — همان روش اسلایدر اصلی
-const slides = await Promise.all(
-  promoSlides.map(async (s) => ({
-    ...s,
-    optimized: await getImage({ src: s.img, format: 'webp', width: 1600, quality: 80 }),
-  })),
-);
+/* بنرها هم مثل اسلایدر اصلی تگ <img> واقعی‌اند نه background.
+   این بخش پایین‌تر از خط تا (fold) است، پس هر دو بنر تنبل بارگذاری می‌شوند
+   و تا کاربر به آن‌ها نرسد دانلود نمی‌شوند. */
+const images = await promoImages();
+const slides = promoSlides.map((s, i) => ({ ...s, optimized: images[i] }));
 ---
 <section class="promo" data-slider="promo" aria-roledescription="اسلایدر" aria-label="بنرهای معرفی">
   <div class="wrap">
@@ -21,8 +19,18 @@ const slides = await Promise.all(
             data-slide={i}
             href={s.href}
             aria-label={s.alt}
-            style={`--img:url('${s.optimized.src}')`}
-          />
+          >
+            <img
+              src={s.optimized.src}
+              srcset={s.optimized.srcset}
+              sizes="(max-width: 1200px) 100vw, 1200px"
+              width={s.optimized.width}
+              height={s.optimized.height}
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+          </a>
         ))}
       </div>
 

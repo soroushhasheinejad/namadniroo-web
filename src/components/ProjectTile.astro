@@ -4,13 +4,21 @@ import { getImage } from 'astro:assets';
 interface Props { p: any; large?: boolean }
 const { p, large = false } = Astro.props;
 
-// تصویر پروژه پس‌زمینهٔ CSS است، پس با getImage بهینه می‌شود
+/* تصویر پروژه تگ img است نه background در CSS. این کارت‌ها پایین صفحه‌اند و
+   با background هرچند دیده نمی‌شدند، مرورگر بی‌درنگ دانلودشان می‌کرد؛ حالا
+   تا کاربر به آن‌ها نرسد بارگذاری نمی‌شوند. */
+const width = large ? 900 : 600;
 const optimized = p.image
-  ? await getImage({ src: p.image, format: 'webp', width: large ? 900 : 600, quality: 80 })
+  ? await getImage({ src: p.image, format: 'webp', width, quality: 80 })
   : null;
+const height = p.image ? Math.round((width * p.image.height) / p.image.width) : undefined;
 ---
 <article class:list={['proj-card', large && 'proj-lg']}>
-  <div class="proj-img" style={optimized ? `--img:url('${optimized.src}')` : undefined}></div>
+  <div class="proj-img">
+    {optimized && (
+      <img src={optimized.src} width={width} height={height} alt="" loading="lazy" decoding="async" />
+    )}
+  </div>
   <div class="proj-meta">
     <span class="proj-cap">{p.capacity} مگاوات · {p.tag}</span>
     <h3 class="proj-name">{p.name}</h3>
