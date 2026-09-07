@@ -25,9 +25,20 @@ export const GET: APIRoute = async () => {
   const checks: Record<string, string> = {};
   let healthy = true;
 
+  /* بررسی دیتابیس می‌تواند پشت قفل منتظر بماند (هنگام انتشار، کانتینر قدیمی
+     هنوز فایل را باز دارد). بدون مهلت، خودِ بررسی سلامت معطل می‌ماند و
+     میزبان آن را شکست حساب می‌کند. */
+  const withTimeout = <T>(work: Promise<T>, ms: number): Promise<T> =>
+    Promise.race([
+      work,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('پاسخ در زمان مقرر نرسید')), ms),
+      ),
+    ]);
+
   try {
-    const db = await getDb();
-    await db.get(sql`select 1`);
+    const db = await withTimeout(getDb(), 10_000);
+    await withTimeout(db.get(sql`select 1`), 5_000);
     checks.database = 'ok';
   } catch (err) {
     healthy = false;

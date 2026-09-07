@@ -40,7 +40,11 @@ async function connect(): Promise<Database> {
      روشن شود، وگرنه ارجاع‌های تعریف‌شده در اسکیما رعایت نمی‌شوند. */
   await client.execute('PRAGMA journal_mode = WAL');
   await client.execute('PRAGMA foreign_keys = ON');
-  await client.execute('PRAGMA busy_timeout = 5000');
+  /* هنگام انتشار نسخهٔ تازه، کانتینر قدیمی و جدید مدتی هم‌زمان بالا هستند و
+     هر دو همین فایل را باز می‌کنند. با مهلت کوتاه، کانتینر تازه سر قفل
+     شکست می‌خورد و ناسالم اعلام می‌شود؛ مهلت بلندتر باعث می‌شود چند ثانیه
+     صبر کند تا قدیمی کنار برود. */
+  await client.execute('PRAGMA busy_timeout = 30000');
 
   return drizzle(client, { schema });
 }
