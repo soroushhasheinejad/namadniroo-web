@@ -1,0 +1,179 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { allLeads, listLeads, updateLead } from '../../server/repos/leads';
+import { fa } from '../../utils';
+import { displayPhone } from '../../lib/phone';
+import type { LeadStatus } from '../../server/db/schema';
+
+export const prerender = false;
+
+const STATUSES: { key: LeadStatus | 'all'; label: string }[] = [
+  { key: 'all', label: 'همه' },
+  { key: 'new', label: 'جدید' },
+  { key: 'contacted', label: 'تماس گرفته شده' },
+  { key: 'won', label: 'برنده' },
+  { key: 'lost', label: 'بازنده' },
+];
+
+let saved = false;
+
+/* تغییر وضعیت و یادداشت با فرم معمولی انجام می‌شود، بدون جاوااسکریپت.
+   پنل داخلی است و ساده‌ترین راهی که همیشه کار می‌کند بهترین است. */
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const id = Number(form.get('id'));
+  if (id) {
+    await updateLead(id, {
+      status: String(form.get('status') ?? 'new') as LeadStatus,
+      notes: String(form.get('notes') ?? '').slice(0, 2000) || null,
+    });
+    saved = true;
+  }
+}
+
+const params = Astro.url.searchParams;
+const status = (params.get('status') ?? 'all') as LeadStatus | 'all';
+const q = params.get('q') ?? '';
+const page = Number(params.get('page') ?? 1) || 1;
+
+/* خروجی CSV همان فیلتر فعلی را دنبال می‌کند، پس آنچه روی صفحه دیده می‌شود
+   همان چیزی است که دانلود می‌شود. */
+if (params.get('export') === 'csv') {
+  const rows = await allLeads({ status, q });
+  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv =
+    '﻿' + // تا اکسل فارسی را درست باز کند
+    [
+      ['تاریخ ثبت', 'نام', 'تلفن', 'تلفن یکتا', 'ظرفیت', 'حوزه', 'مبدأ', 'وضعیت', 'یادداشت'],
+      ...rows.map((l) => [
+        l.createdAt.toISOString(),
+        l.name,
+        l.phone,
+        l.phoneNormalized,
+        l.capacity,
+        l.area,
+        l.source,
+        l.status,
+        l.notes,
+      ]),
+    ]
+      .map((r) => r.map(esc).join(','))
+      .join('\n');
+
+  return new Response(csv, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="namadniroo-leads-${new Date().toISOString().slice(0, 10)}.csv"`,
+    },
+  });
+}
+
+const result = await listLeads({ status, q, page });
+
+/** حفظ فیلترهای فعلی هنگام ساخت لینک صفحه */
+const pageLink = (n: number) => {
+  const next = new URLSearchParams(params);
+  next.set('page', String(n));
+  return `?${next}`;
+};
+
+const exportLink = () => {
+  const next = new URLSearchParams(params);
+  next.set('export', 'csv');
+  next.delete('page');
+  return `?${next}`;
+};
+
+const statusLabel = Object.fromEntries(STATUSES.map((s) => [s.key, s.label]));
+---
+<Admin
+  title="درخواست‌ها"
+  lead={`${fa(result.total)} درخواست ثبت‌شده. وضعیت هر کدام را به‌روز کنید تا پیگیری از دست نرود.`}
+>
+  <a slot="actions" class="a-btn" href={exportLink()}>دانلود CSV</a>
+
+  {saved && <p class="a-msg a-msg-ok">تغییرات ذخیره شد.</p>}
+
+  <form class="a-filters" method="GET">
+    <input
+      class="a-input"
+      type="search"
+      name="q"
+      value={q}
+      placeholder="جست‌وجو در نام یا شمارهٔ تماس"
+      aria-label="جست‌وجو"
+    />
+    <select class="a-select" name="status" aria-label="فیلتر وضعیت">
+      {STATUSES.map((s) => (
+        <option value={s.key} selected={s.key === status}>{s.label}</option>
+      ))}
+    </select>
+    <button class="a-btn" type="submit">اعمال</button>
+    {(q || status !== 'all') && <a class="a-btn a-btn-sm" href="/admin/leads">حذف فیلترها</a>}
+  </form>
+
+  {result.rows.length === 0 ? (
+    <div class="a-card"><p class="a-empty">درخواستی با این فیلتر پیدا نشد.</p></div>
+  ) : (
+    result.rows.map((l) => (
+      <div class="a-card">
+        <div class="a-row">
+          <div>
+            <h2 style="margin-bottom:6px">{l.name}</h2>
+            <p style="margin:0">
+              <a href={`tel:${l.phoneNormalized ?? l.phone}`} dir="ltr">
+                {l.phoneNormalized ? displayPhone(l.phoneNormalized) : l.phone}
+              </a>
+            </p>
+            <p class="a-hint" style="margin-top:8px">
+              {l.createdAt.toLocaleString('fa-IR')}
+              {l.area && <> · حوزه: {l.area}</>}
+              {l.capacity && <> · ظرفیت: {l.capacity}</>}
+            </p>
+            {l.source && <p class="a-hint" dir="ltr" style="margin-top:2px">مبدأ: {l.source}</p>}
+            {(l.utmSource || l.utmCampaign) && (
+              <p class="a-hint" dir="ltr" style="margin-top:2px">
+                کمپین: {[l.utmSource, l.utmMedium, l.utmCampaign].filter(Boolean).join(' / ')}
+              </p>
+            )}
+          </div>
+
+          <form method="POST">
+            <input type="hidden" name="id" value={l.id} />
+            <div class="a-field">
+              <label for={`status-${l.id}`}>وضعیت</label>
+              <select class="a-select" id={`status-${l.id}`} name="status">
+                {STATUSES.filter((s) => s.key !== 'all').map((s) => (
+                  <option value={s.key} selected={s.key === l.status}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+            <div class="a-field">
+              <label for={`notes-${l.id}`}>یادداشت پیگیری</label>
+              <textarea
+                class="a-textarea"
+                id={`notes-${l.id}`}
+                name="notes"
+                style="min-height:70px"
+                placeholder="نتیجهٔ تماس، قرار بعدی، …">{l.notes ?? ''}</textarea>
+            </div>
+            <button class="a-btn a-btn-primary a-btn-sm" type="submit">ذخیره</button>
+            <span class={`a-badge a-badge-${l.status}`} style="margin-inline-start:8px">
+              {statusLabel[l.status]}
+            </span>
+          </form>
+        </div>
+      </div>
+    ))
+  )}
+
+  {result.pages > 1 && (
+    <nav class="a-pages" aria-label="صفحه‌بندی">
+      {Array.from({ length: result.pages }, (_, i) => i + 1).map((n) =>
+        n === result.page
+          ? <span class="is-current">{fa(n)}</span>
+          : <a href={pageLink(n)}>{fa(n)}</a>,
+      )}
+    </nav>
+  )}
+</Admin>

@@ -1,0 +1,114 @@
+---
+import '../styles/admin.css';
+import type { SessionUser } from '../server/auth/session';
+
+/**
+ * قالب مشترک صفحات پنل.
+ *
+ * ورود اجباری در middleware بررسی می‌شود — یعنی پیش از آن‌که درخواست به
+ * صفحه برسد؛ اینجا فقط سطح دسترسی نقش کنترل می‌شود.
+ */
+interface Props {
+  title: string;
+  lead?: string;
+  /** نقش‌هایی که به این صفحه دسترسی دارند؛ نبودنش یعنی همه */
+  roles?: SessionUser['role'][];
+}
+
+const { title, lead, roles } = Astro.props;
+
+// middleware تضمین می‌کند اینجا همیشه کاربری وجود دارد
+const user = Astro.locals.user!;
+const allowed = !roles || roles.includes(user.role);
+
+const path = Astro.url.pathname;
+const on = (href: string) => (href === '/admin' ? path === href : path.startsWith(href));
+
+const contentLinks = [
+  { href: '/admin/products', label: 'محصولات' },
+  { href: '/admin/projects', label: 'پروژه‌ها' },
+  { href: '/admin/articles', label: 'مقالات' },
+  { href: '/admin/media', label: 'تصاویر' },
+  { href: '/admin/settings', label: 'متن‌های سایت' },
+];
+
+const seoLinks = [
+  { href: '/admin/seo', label: 'سلامت سئو' },
+  { href: '/admin/redirects', label: 'ریدایرکت‌ها' },
+];
+---
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title} | پنل نماد نیرو</title>
+  {/* پنل هرگز نباید در نتایج جست‌وجو بیاید */}
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
+  <link rel="preload" href="/fonts/DanaVF.woff2" as="font" type="font/woff2" crossorigin />
+</head>
+<body class="admin">
+  <div class="a-shell">
+    <aside class="a-side">
+      <div class="a-brand">
+        <img src="/assets/logo.png" alt="نماد نیرو" width="112" height="24" />
+      </div>
+
+      <nav class="a-nav">
+        <a href="/admin" class:list={[on('/admin') && 'is-active']}>داشبورد</a>
+        <a href="/admin/leads" class:list={[on('/admin/leads') && 'is-active']}>درخواست‌ها</a>
+
+        {user.role !== 'sales' && (
+          <>
+            <span class="a-group">محتوا</span>
+            {contentLinks.map((l) => (
+              <a href={l.href} class:list={[on(l.href) && 'is-active']}>{l.label}</a>
+            ))}
+
+            <span class="a-group">سئو</span>
+            {seoLinks.map((l) => (
+              <a href={l.href} class:list={[on(l.href) && 'is-active']}>{l.label}</a>
+            ))}
+          </>
+        )}
+
+        <span class="a-group">سایت</span>
+        <a href="/" target="_blank" rel="noopener">مشاهدهٔ سایت ↗</a>
+      </nav>
+
+      <div class="a-side-foot">
+        <span class="a-user">
+          <b>{user.name}</b>
+          {user.role === 'admin' ? 'مدیر' : user.role === 'editor' ? 'ویراستار' : 'فروش'}
+        </span>
+        <form method="POST" action="/admin/logout" style="margin-top:10px">
+          <button class="a-btn a-btn-sm" type="submit">خروج</button>
+        </form>
+      </div>
+    </aside>
+
+    <main class="a-main">
+      <header class="a-head">
+        <div>
+          <h1>{allowed ? title : 'دسترسی ندارید'}</h1>
+          {allowed && lead && <p>{lead}</p>}
+        </div>
+        {allowed && <slot name="actions" />}
+      </header>
+
+      {allowed ? (
+        <slot />
+      ) : (
+        <div class="a-card">
+          <p class="a-msg a-msg-warn" style="margin:0">
+            این بخش برای نقش شما در دسترس نیست. اگر فکر می‌کنید اشتباهی رخ داده، با مدیر سایت
+            تماس بگیرید.
+          </p>
+          <div class="a-actions"><a class="a-btn" href="/admin">بازگشت به داشبورد</a></div>
+        </div>
+      )}
+    </main>
+  </div>
+</body>
+</html>

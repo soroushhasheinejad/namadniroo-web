@@ -1,0 +1,153 @@
+---
+import { eq } from 'drizzle-orm';
+import Admin from '../../../layouts/Admin.astro';
+import MediaPicker from '../../../components/admin/MediaPicker.astro';
+import { getDb } from '../../../server/db/client';
+import { projects } from '../../../server/db/schema';
+import { deleteContent, saveContent, slugify } from '../../../server/services/content';
+import { listMedia } from '../../../server/media/store';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const raw = Astro.params.id!;
+const isNew = raw === 'new';
+const id = isNew ? null : Number(raw);
+
+const db = await getDb();
+let error: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+
+  if (form.get('_action') === 'delete' && id) {
+    await deleteContent(user.id, 'projects', id);
+    return Astro.redirect('/admin/projects');
+  }
+
+  const name = String(form.get('name') ?? '').trim();
+  const slug = slugify(String(form.get('slug') ?? '') || name);
+
+  if (!name) error = 'نام کارفرما الزامی است.';
+  else {
+    const mediaId = Number(form.get('imageMediaId'));
+    const values = {
+      slug,
+      name,
+      capacity: String(form.get('capacity') ?? '').trim(),
+      unit: String(form.get('unit') ?? 'MW').trim(),
+      tag: String(form.get('tag') ?? '').trim(),
+      cat: String(form.get('cat') ?? 'build'),
+      note: String(form.get('note') ?? '').trim() || null,
+      imageMediaId: mediaId > 0 ? mediaId : null,
+      sortOrder: Number(form.get('sortOrder')) || 999,
+      featured: form.get('featured') === '1',
+      published: form.get('published') === '1',
+    };
+
+    try {
+      const savedId = await saveContent({ userId: user.id, entity: 'projects', id: id ?? undefined, values });
+      return Astro.redirect(`/admin/projects/${savedId}?saved=1`);
+    } catch (err) {
+      error = err instanceof Error && /unique|duplicate/i.test(err.message)
+        ? 'این نشانی قبلاً برای پروژهٔ دیگری استفاده شده است.'
+        : 'ذخیره ناموفق بود.';
+      console.error('[admin/projects]', err);
+    }
+  }
+}
+
+const [row] = id ? await db.select().from(projects).where(eq(projects.id, id)).limit(1) : [];
+if (!isNew && !row) return Astro.rewrite('/404');
+
+const media = await listMedia();
+const saved = Astro.url.searchParams.get('saved') === '1';
+const p = row ?? null;
+---
+<Admin
+  title={isNew ? 'پروژهٔ تازه' : p!.name}
+  lead="پروژه‌های «منتخب» در صفحهٔ اصلی هم نمایش داده می‌شوند."
+  roles={['admin', 'editor']}
+>
+  {saved && <p class="a-msg a-msg-ok">تغییرات ذخیره شد.</p>}
+  {error && <p class="a-msg a-msg-err">{error}</p>}
+
+  <form method="POST">
+    <div class="a-card">
+      <h2>اطلاعات پروژه</h2>
+
+      <div class="a-row">
+        <div class="a-field">
+          <label for="name">نام کارفرما</label>
+          <input class="a-input" id="name" name="name" value={p?.name ?? ''} required />
+        </div>
+        <div class="a-field">
+          <label for="slug">شناسه</label>
+          <input class="a-input" id="slug" name="slug" value={p?.slug ?? ''} dir="ltr"
+                 placeholder="از روی نام ساخته می‌شود" />
+          <p class="a-hint">فقط برای شناسایی داخلی؛ پروژه‌ها صفحهٔ اختصاصی ندارند.</p>
+        </div>
+      </div>
+
+      <div class="a-row-3">
+        <div class="a-field">
+          <label for="capacity">ظرفیت</label>
+          <input class="a-input" id="capacity" name="capacity" value={p?.capacity ?? ''} placeholder="۱۰۰" />
+        </div>
+        <div class="a-field">
+          <label for="unit">واحد</label>
+          <input class="a-input" id="unit" name="unit" value={p?.unit ?? 'MW'} dir="ltr" />
+        </div>
+        <div class="a-field">
+          <label for="sortOrder">ترتیب نمایش</label>
+          <input class="a-input" id="sortOrder" name="sortOrder" type="number" value={p?.sortOrder ?? 999} />
+        </div>
+      </div>
+
+      <div class="a-row">
+        <div class="a-field">
+          <label for="tag">نوع همکاری</label>
+          <input class="a-input" id="tag" name="tag" value={p?.tag ?? ''} placeholder="تأمین پنل / احداث / سرمایه‌گذاری" />
+        </div>
+        <div class="a-field">
+          <label for="cat">دسته</label>
+          <select class="a-select" id="cat" name="cat">
+            <option value="supply" selected={p?.cat === 'supply'}>تأمین تجهیزات</option>
+            <option value="build" selected={p?.cat === 'build'}>احداث و اجرا</option>
+            <option value="invest" selected={p?.cat === 'invest'}>سرمایه‌گذاری</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="a-field">
+        <label for="note">توضیح کوتاه</label>
+        <input class="a-input" id="note" name="note" value={p?.note ?? ''}
+               placeholder="مثلاً: ۲۰ مگاوات تحویل‌شده" />
+      </div>
+
+      <div class="a-row">
+        <label class="a-check"><input type="checkbox" name="published" value="1" checked={p?.published ?? true} /> منتشر شود</label>
+        <label class="a-check"><input type="checkbox" name="featured" value="1" checked={p?.featured ?? false} /> در صفحهٔ اصلی نمایش داده شود</label>
+      </div>
+    </div>
+
+    <MediaPicker media={media} selectedId={p?.imageMediaId ?? null} name="imageMediaId" label="تصویر پروژه" />
+
+    <div class="a-actions">
+      <button class="a-btn a-btn-primary" type="submit">ذخیره</button>
+      <a class="a-btn" href="/admin/projects">بازگشت</a>
+    </div>
+  </form>
+
+  {!isNew && (
+    <form method="POST" class="a-card" style="margin-top:26px">
+      <h2>حذف پروژه</h2>
+      <p class="a-hint">برای برداشتن موقت از سایت، به‌جای حذف تیک «منتشر شود» را بردارید.</p>
+      <input type="hidden" name="_action" value="delete" />
+      <div class="a-actions">
+        <button class="a-btn a-btn-danger" type="submit"
+                onclick="return confirm('این پروژه برای همیشه حذف شود؟')">حذف پروژه</button>
+      </div>
+    </form>
+  )}
+</Admin>

@@ -1,0 +1,113 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { leadStats, listLeads } from '../../server/repos/leads';
+import { outboxStatus } from '../../server/services/outbox';
+import { listArticles, listProducts, listProjects } from '../../server/repos/content';
+import { fa } from '../../utils';
+import { displayPhone } from '../../lib/phone';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+const denied = Astro.url.searchParams.get('denied') === '1';
+
+/* همهٔ بخش‌های داشبورد مستقل‌اند، پس با هم خوانده می‌شوند. اگر پشت سر هم
+   بودند، زمان باز شدن صفحه مجموع همه می‌شد. */
+const [stats, recent, outbox, products, projects, articles] = user
+  ? await Promise.all([
+      leadStats(),
+      listLeads({ perPage: 8 }),
+      outboxStatus(),
+      listProducts(),
+      listProjects(),
+      listArticles(),
+    ])
+  : [null, null, null, [], [], []];
+
+const statusLabel: Record<string, string> = {
+  new: 'جدید',
+  contacted: 'تماس گرفته شده',
+  won: 'برنده',
+  lost: 'بازنده',
+};
+---
+<Admin title="داشبورد" lead={`خوش آمدید${user ? '، ' + user.name : ''}.`}>
+  {denied && <p class="a-msg a-msg-warn">دسترسی شما به آن بخش مجاز نیست.</p>}
+
+  {stats && (
+    <>
+      <div class="a-stats">
+        <div class="a-stat"><b>{fa(stats.today)}</b><span>درخواست امروز</span></div>
+        <div class="a-stat"><b>{fa(stats.week)}</b><span>درخواست هفتهٔ اخیر</span></div>
+        <div class="a-stat"><b>{fa(stats.total)}</b><span>کل درخواست‌ها</span></div>
+        <div class="a-stat"><b>{fa(stats.byStatus.new ?? 0)}</b><span>در انتظار پیگیری</span></div>
+      </div>
+
+      {outbox && outbox.failed > 0 && (
+        <p class="a-msg a-msg-err">
+          {fa(outbox.failed)} ایمیل بعد از چند تلاش ارسال نشد. تنظیمات SMTP را بررسی کنید —
+          درخواست‌ها ذخیره شده‌اند و از دست نرفته‌اند.
+        </p>
+      )}
+      {outbox && outbox.pending > 0 && (
+        <p class="a-msg a-msg-warn">{fa(outbox.pending)} ایمیل در صف ارسال است.</p>
+      )}
+
+      <div class="a-card">
+        <h2>آخرین درخواست‌ها</h2>
+        {recent && recent.rows.length > 0 ? (
+          <div class="a-table-wrap">
+            <table class="a-table">
+              <thead>
+                <tr><th>نام</th><th>تلفن</th><th>حوزه</th><th>وضعیت</th><th>تاریخ</th></tr>
+              </thead>
+              <tbody>
+                {recent.rows.map((l) => (
+                  <tr>
+                    <td><a href={`/admin/leads?q=${encodeURIComponent(l.phone)}`}>{l.name}</a></td>
+                    <td class="a-num" dir="ltr">
+                      {l.phoneNormalized ? displayPhone(l.phoneNormalized) : l.phone}
+                    </td>
+                    <td>{l.area || '—'}</td>
+                    <td><span class={`a-badge a-badge-${l.status}`}>{statusLabel[l.status]}</span></td>
+                    <td class="a-num">{l.createdAt.toLocaleDateString('fa-IR')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p class="a-empty">هنوز درخواستی ثبت نشده است.</p>
+        )}
+        <div class="a-actions"><a class="a-btn" href="/admin/leads">همهٔ درخواست‌ها</a></div>
+      </div>
+
+      {stats.bySource.length > 0 && (
+        <div class="a-card">
+          <h2>درخواست‌ها بر اساس صفحهٔ مبدأ</h2>
+          <div class="a-table-wrap">
+            <table class="a-table">
+              <thead><tr><th>صفحه</th><th>تعداد</th></tr></thead>
+              <tbody>
+                {stats.bySource.map((s) => (
+                  <tr><td dir="ltr">{s.source}</td><td class="a-num">{fa(s.count)}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
+  )}
+
+  {user?.role !== 'sales' && (
+    <div class="a-card">
+      <h2>محتوا</h2>
+      <div class="a-stats" style="margin:0">
+        <div class="a-stat"><b>{fa(products.length)}</b><span>محصول منتشرشده</span></div>
+        <div class="a-stat"><b>{fa(projects.length)}</b><span>پروژهٔ منتشرشده</span></div>
+        <div class="a-stat"><b>{fa(articles.length)}</b><span>مقالهٔ منتشرشده</span></div>
+      </div>
+    </div>
+  )}
+</Admin>

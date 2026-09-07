@@ -1,0 +1,127 @@
+---
+/**
+ * فیلدهای سئوی مشترک بین محصول، پروژه و مقاله.
+ *
+ * پیش‌نمایش زنده نشان می‌دهد صفحه در نتایج گوگل چطور دیده می‌شود. بدون آن،
+ * ویراستار نمی‌داند عنوانش بریده می‌شود یا توضیحش خالی مانده — و همان دو
+ * چیزند که بیشترین اثر را روی نرخ کلیک دارند.
+ */
+interface Props {
+  /** نشانی عمومی صفحه برای نمایش در پیش‌نمایش؛ نبودنش یعنی صفحهٔ اختصاصی ندارد */
+  path?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  canonicalOverride?: string | null;
+  noindex?: boolean;
+  /** عنوان خود رکورد — وقتی عنوان سئو خالی است همین نشان داده می‌شود */
+  fallbackTitle: string;
+}
+
+const {
+  path = null,
+  seoTitle = '',
+  seoDescription = '',
+  canonicalOverride = '',
+  noindex = false,
+  fallbackTitle,
+} = Astro.props;
+
+/* این دو عدد سقف قطعی نیستند — گوگل بر اساس پهنای پیکسلی می‌بُرد، نه تعداد
+   نویسه. ولی به‌عنوان راهنما به‌خوبی کار می‌کنند. */
+const TITLE_MAX = 60;
+const DESC_MAX = 155;
+---
+<div class="a-card">
+  <h2>سئو</h2>
+  <p class="a-hint" style="margin-bottom:14px">
+    اگر خالی بمانند، از عنوان و متن خود صفحه ساخته می‌شوند.
+  </p>
+
+  <div class="a-field">
+    <label for="seoTitle">عنوان در نتایج جست‌وجو</label>
+    <input
+      class="a-input"
+      id="seoTitle"
+      name="seoTitle"
+      value={seoTitle ?? ''}
+      maxlength="120"
+      data-seo="title"
+      data-max={TITLE_MAX}
+      placeholder={fallbackTitle}
+    />
+    <p class="a-hint"><span class="a-counter" data-counter="title">۰</span> از حدود ۶۰ نویسه</p>
+  </div>
+
+  <div class="a-field">
+    <label for="seoDescription">توضیح در نتایج جست‌وجو</label>
+    <textarea
+      class="a-textarea"
+      id="seoDescription"
+      name="seoDescription"
+      maxlength="320"
+      style="min-height:80px"
+      data-seo="desc"
+      data-max={DESC_MAX}
+      placeholder="یک تا دو جملهٔ گویا که کاربر را به کلیک ترغیب کند.">{seoDescription ?? ''}</textarea>
+    <p class="a-hint"><span class="a-counter" data-counter="desc">۰</span> از حدود ۱۵۵ نویسه</p>
+  </div>
+
+  <div class="a-field">
+    <label>پیش‌نمایش نتیجهٔ گوگل</label>
+    <div class="a-serp">
+      <div class="u">namadniroo.ir{path ?? ''}</div>
+      <div class="t" data-preview="title">{seoTitle || fallbackTitle}</div>
+      <div class="d" data-preview="desc">{seoDescription || 'توضیحی وارد نشده است.'}</div>
+    </div>
+  </div>
+
+  <div class="a-row">
+    <div class="a-field">
+      <label for="canonicalOverride">نشانی canonical دستی</label>
+      <input
+        class="a-input"
+        id="canonicalOverride"
+        name="canonicalOverride"
+        value={canonicalOverride ?? ''}
+        dir="ltr"
+        placeholder="خالی بگذارید"
+      />
+      <p class="a-hint">فقط وقتی لازم است که همین مطلب نشانی اصلی دیگری دارد.</p>
+    </div>
+
+    <div class="a-field">
+      <label>ایندکس</label>
+      <label class="a-check" style="margin-top:9px">
+        <input type="checkbox" name="noindex" value="1" checked={noindex} />
+        از نتایج جست‌وجو کنار گذاشته شود
+      </label>
+      <p class="a-hint">صفحه‌های `noindex` در نقشهٔ سایت هم نمی‌آیند.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* شمارندهٔ نویسه و پیش‌نمایش زنده. بدون این، ویراستار باید حدس بزند
+     عنوانش بریده می‌شود یا نه. */
+  const faDigits = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
+
+  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-seo]').forEach((field) => {
+    const which = field.dataset.seo!;
+    const max = Number(field.dataset.max);
+    const counter = document.querySelector<HTMLElement>(`[data-counter="${which}"]`);
+    const preview = document.querySelector<HTMLElement>(`[data-preview="${which}"]`);
+    const fallback = preview?.textContent ?? '';
+
+    const sync = () => {
+      const value = field.value.trim();
+      if (counter) {
+        counter.textContent = faDigits(value.length);
+        counter.classList.toggle('is-over', value.length > max);
+      }
+      if (preview) preview.textContent = value || fallback;
+    };
+
+    field.addEventListener('input', sync);
+    sync();
+  });
+</script>

@@ -1,0 +1,236 @@
+/* ============================================================
+   پنل مدیریت نماد نیرو
+   از پالت و فونت خود سایت استفاده می‌کند تا پنل غریبه نباشد، ولی
+   چیدمانش کاربردی است نه تبلیغاتی: تراکم بالاتر، فاصله‌های کمتر.
+   ============================================================ */
+
+@font-face {
+  font-family: "Dana";
+  src: url("/fonts/DanaVF.woff2") format("woff2"),
+       url("/fonts/DanaVF.woff") format("woff");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --a-bg:      #0C0C0D;
+  --a-panel:   #151517;
+  --a-panel-2: #1C1C1F;
+  --a-line:    rgba(255,255,255,.09);
+  --a-line-2:  rgba(255,255,255,.16);
+  --a-ink:     #F2F1EF;
+  --a-muted:   #A3A3A6;
+  --a-faint:   #77777B;
+  --a-yellow:  #FFC41A;
+  --a-blue:    #2E7FB8;
+  --a-green:   #3FA96B;
+  --a-red:     #D4544C;
+  --a-r:       10px;
+  --a-font:    "Dana", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body.admin {
+  margin: 0;
+  background: var(--a-bg);
+  color: var(--a-ink);
+  font-family: var(--a-font);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+a { color: inherit; }
+
+/* ---------- چیدمان ---------- */
+
+.a-shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+
+.a-side {
+  background: var(--a-panel);
+  border-inline-start: 1px solid var(--a-line);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.a-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 18px 14px; border-bottom: 1px solid var(--a-line);
+}
+.a-brand img { width: 112px; height: auto; }
+.a-nav { padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; }
+.a-nav a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 8px;
+  color: var(--a-muted); text-decoration: none;
+  font-size: 14px; transition: background .15s, color .15s;
+}
+.a-nav a:hover { background: rgba(255,255,255,.04); color: var(--a-ink); }
+.a-nav a.is-active { background: rgba(255,196,26,.12); color: var(--a-yellow); font-weight: 600; }
+.a-nav .a-group {
+  padding: 14px 12px 6px; font-size: 11.5px; letter-spacing: .04em;
+  color: var(--a-faint); text-transform: uppercase;
+}
+.a-side-foot { margin-top: auto; padding: 14px; border-top: 1px solid var(--a-line); font-size: 13px; }
+.a-side-foot .a-user { color: var(--a-muted); }
+.a-side-foot .a-user b { display: block; color: var(--a-ink); font-weight: 600; }
+
+.a-main { padding: 26px 30px 60px; max-width: 1180px; }
+
+.a-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 22px; flex-wrap: wrap;
+}
+.a-head h1 { margin: 0; font-size: 23px; font-weight: 700; }
+.a-head p { margin: 4px 0 0; color: var(--a-muted); font-size: 13.5px; max-width: 62ch; }
+
+/* ---------- کارت و جدول ---------- */
+
+.a-card {
+  background: var(--a-panel); border: 1px solid var(--a-line);
+  border-radius: var(--a-r); padding: 18px; margin-bottom: 18px;
+}
+.a-card > h2 { margin: 0 0 14px; font-size: 16px; font-weight: 700; }
+.a-card > h2 + p { margin-top: -10px; }
+
+.a-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.a-table th {
+  text-align: start; padding: 9px 10px; color: var(--a-faint);
+  font-weight: 600; font-size: 12.5px; border-bottom: 1px solid var(--a-line);
+  white-space: nowrap;
+}
+.a-table td { padding: 11px 10px; border-bottom: 1px solid var(--a-line); vertical-align: middle; }
+.a-table tr:last-child td { border-bottom: 0; }
+.a-table tbody tr:hover { background: rgba(255,255,255,.02); }
+.a-table .a-num { font-variant-numeric: tabular-nums; }
+.a-table-wrap { overflow-x: auto; }
+
+.a-thumb {
+  width: 44px; height: 44px; border-radius: 7px; object-fit: cover;
+  background: var(--a-panel-2); border: 1px solid var(--a-line);
+}
+
+/* ---------- فرم ---------- */
+
+.a-field { margin-bottom: 15px; }
+.a-field > label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+.a-field .a-hint { margin: 5px 0 0; color: var(--a-faint); font-size: 12.5px; }
+
+.a-input, .a-select, .a-textarea {
+  width: 100%; padding: 9px 11px;
+  background: var(--a-bg); color: var(--a-ink);
+  border: 1px solid var(--a-line-2); border-radius: 8px;
+  font-family: var(--a-font); font-size: 14px; line-height: 1.6;
+}
+.a-input:focus, .a-select:focus, .a-textarea:focus {
+  outline: 2px solid var(--a-yellow); outline-offset: 1px; border-color: transparent;
+}
+.a-textarea { min-height: 150px; resize: vertical; }
+.a-textarea.is-tall { min-height: 380px; font-family: ui-monospace, "SF Mono", monospace; font-size: 13px; }
+
+.a-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.a-row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+
+.a-check { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.a-check input { width: 16px; height: 16px; accent-color: var(--a-yellow); }
+
+/* ---------- دکمه ---------- */
+
+.a-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 16px; border-radius: 8px; border: 1px solid var(--a-line-2);
+  background: transparent; color: var(--a-ink);
+  font-family: var(--a-font); font-size: 14px; font-weight: 600;
+  cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s;
+}
+.a-btn:hover { background: rgba(255,255,255,.05); border-color: var(--a-line-2); }
+.a-btn-primary { background: var(--a-yellow); border-color: var(--a-yellow); color: #101010; }
+.a-btn-primary:hover { background: #FFD147; border-color: #FFD147; }
+.a-btn-danger { color: var(--a-red); border-color: rgba(212,84,76,.4); }
+.a-btn-danger:hover { background: rgba(212,84,76,.12); }
+.a-btn-sm { padding: 5px 11px; font-size: 13px; }
+.a-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+
+/* ---------- نشان و پیام ---------- */
+
+.a-badge {
+  display: inline-block; padding: 2px 9px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.a-badge-new     { background: rgba(46,127,184,.18); color: #7FBEE8; }
+.a-badge-contacted { background: rgba(255,196,26,.16); color: var(--a-yellow); }
+.a-badge-won     { background: rgba(63,169,107,.18); color: #6FD79B; }
+.a-badge-lost    { background: rgba(255,255,255,.07); color: var(--a-faint); }
+.a-badge-draft   { background: rgba(255,255,255,.07); color: var(--a-faint); }
+.a-badge-live    { background: rgba(63,169,107,.18); color: #6FD79B; }
+
+.a-msg { padding: 11px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13.5px; }
+.a-msg-ok   { background: rgba(63,169,107,.14); color: #8FE0B4; border: 1px solid rgba(63,169,107,.3); }
+.a-msg-err  { background: rgba(212,84,76,.14); color: #F09A94; border: 1px solid rgba(212,84,76,.32); }
+.a-msg-warn { background: rgba(255,196,26,.12); color: #FFD97A; border: 1px solid rgba(255,196,26,.28); }
+
+.a-empty { padding: 40px 20px; text-align: center; color: var(--a-faint); }
+
+/* ---------- آمار ---------- */
+
+.a-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.a-stat { background: var(--a-panel); border: 1px solid var(--a-line); border-radius: var(--a-r); padding: 16px 18px; }
+.a-stat b { display: block; font-size: 26px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.a-stat span { color: var(--a-muted); font-size: 13px; }
+
+/* ---------- فیلتر و صفحه‌بندی ---------- */
+
+.a-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+.a-filters .a-input, .a-filters .a-select { width: auto; min-width: 180px; }
+
+.a-pages { display: flex; gap: 6px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+.a-pages a, .a-pages span {
+  min-width: 34px; padding: 6px 10px; border-radius: 7px; text-align: center;
+  border: 1px solid var(--a-line); color: var(--a-muted);
+  text-decoration: none; font-size: 13px; font-variant-numeric: tabular-nums;
+}
+.a-pages a:hover { border-color: var(--a-line-2); color: var(--a-ink); }
+.a-pages .is-current { background: var(--a-yellow); border-color: var(--a-yellow); color: #101010; font-weight: 700; }
+
+/* ---------- ورود ---------- */
+
+.a-login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+.a-login {
+  width: 100%; max-width: 380px; background: var(--a-panel);
+  border: 1px solid var(--a-line); border-radius: 14px; padding: 30px 28px;
+}
+.a-login img { width: 130px; margin: 0 auto 22px; display: block; }
+.a-login h1 { margin: 0 0 20px; font-size: 18px; text-align: center; font-weight: 700; }
+
+/* ---------- پیش‌نمایش گوگل ---------- */
+
+.a-serp {
+  background: #fff; border-radius: 8px; padding: 14px 16px;
+  font-family: Arial, var(--a-font); direction: rtl;
+}
+.a-serp .u { color: #202124; font-size: 12.5px; direction: ltr; text-align: left; }
+.a-serp .t { color: #1a0dab; font-size: 19px; line-height: 1.35; margin: 3px 0; }
+.a-serp .d { color: #4d5156; font-size: 13.5px; line-height: 1.6; }
+
+.a-counter { font-size: 12px; color: var(--a-faint); font-variant-numeric: tabular-nums; }
+.a-counter.is-over { color: var(--a-red); font-weight: 600; }
+
+/* ---------- کتابخانهٔ رسانه ---------- */
+
+.a-media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.a-media-item { background: var(--a-panel-2); border: 1px solid var(--a-line); border-radius: 9px; overflow: hidden; }
+.a-media-item img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: #000; }
+.a-media-meta { padding: 9px 10px; font-size: 12px; color: var(--a-muted); }
+.a-media-meta b { display: block; color: var(--a-ink); font-weight: 600; font-size: 12.5px; }
+.a-media-item.no-alt { border-color: rgba(212,84,76,.45); }
+
+/* ---------- موبایل ---------- */
+
+@media (max-width: 860px) {
+  .a-shell { grid-template-columns: 1fr; }
+  .a-side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .a-nav { flex-direction: row; flex-wrap: wrap; }
+  .a-nav .a-group { display: none; }
+  .a-side-foot { margin: 0; border-top: 0; }
+  .a-main { padding: 18px 16px 50px; }
+  .a-row, .a-row-3 { grid-template-columns: 1fr; }
+}

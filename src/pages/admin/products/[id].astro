@@ -1,0 +1,192 @@
+---
+import { eq } from 'drizzle-orm';
+import Admin from '../../../layouts/Admin.astro';
+import SeoFields from '../../../components/admin/SeoFields.astro';
+import MediaPicker from '../../../components/admin/MediaPicker.astro';
+import { getDb } from '../../../server/db/client';
+import { products } from '../../../server/db/schema';
+import { deleteContent, saveContent, slugify } from '../../../server/services/content';
+import { listMedia } from '../../../server/media/store';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const raw = Astro.params.id!;
+const isNew = raw === 'new';
+const id = isNew ? null : Number(raw);
+
+const db = await getDb();
+let error: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+
+  if (form.get('_action') === 'delete' && id) {
+    await deleteContent(user.id, 'products', id);
+    return Astro.redirect('/admin/products?deleted=1');
+  }
+
+  const name = String(form.get('name') ?? '').trim();
+  const slug = slugify(String(form.get('slug') ?? '') || name);
+
+  if (!name) error = 'نام محصول الزامی است.';
+  else if (!slug) error = 'نشانی (slug) معتبر نیست.';
+  else {
+    const mediaId = Number(form.get('imageMediaId'));
+    const values = {
+      slug,
+      name,
+      brand: String(form.get('brand') ?? '').trim(),
+      spec: String(form.get('spec') ?? '').trim(),
+      specUnit: String(form.get('specUnit') ?? '').trim(),
+      cat: String(form.get('cat') ?? 'home'),
+      kind: String(form.get('kind') ?? 'inverter'),
+      body: String(form.get('body') ?? '').trim() || null,
+      imageMediaId: mediaId > 0 ? mediaId : null,
+      sortOrder: Number(form.get('sortOrder')) || 999,
+      featured: form.get('featured') === '1',
+      published: form.get('published') === '1',
+      seoTitle: String(form.get('seoTitle') ?? '').trim() || null,
+      seoDescription: String(form.get('seoDescription') ?? '').trim() || null,
+      canonicalOverride: String(form.get('canonicalOverride') ?? '').trim() || null,
+      noindex: form.get('noindex') === '1',
+    };
+
+    try {
+      const savedId = await saveContent({ userId: user.id, entity: 'products', id: id ?? undefined, values });
+      return Astro.redirect(`/admin/products/${savedId}?saved=1`);
+    } catch (err) {
+      // معمول‌ترین علت: نشانی تکراری
+      error = err instanceof Error && /unique|duplicate/i.test(err.message)
+        ? 'این نشانی قبلاً برای محصول دیگری استفاده شده است.'
+        : 'ذخیره ناموفق بود.';
+      console.error('[admin/products]', err);
+    }
+  }
+}
+
+const [row] = id ? await db.select().from(products).where(eq(products.id, id)).limit(1) : [];
+if (!isNew && !row) return Astro.rewrite('/404');
+
+const media = await listMedia();
+const saved = Astro.url.searchParams.get('saved') === '1';
+const p = row ?? null;
+---
+<Admin
+  title={isNew ? 'محصول تازه' : p!.name}
+  lead={isNew ? 'محصول جدید به فروشگاه اضافه کنید.' : 'ویرایش اطلاعات محصول و تنظیمات سئوی آن.'}
+  roles={['admin', 'editor']}
+>
+  {!isNew && (
+    <a slot="actions" class="a-btn" href={`/shop/${p!.slug}`} target="_blank" rel="noopener">
+      مشاهده در سایت ↗
+    </a>
+  )}
+
+  {saved && <p class="a-msg a-msg-ok">تغییرات ذخیره شد و در سایت اعمال شده است.</p>}
+  {error && <p class="a-msg a-msg-err">{error}</p>}
+
+  <form method="POST">
+    <div class="a-card">
+      <h2>اطلاعات محصول</h2>
+
+      <div class="a-field">
+        <label for="name">نام</label>
+        <input class="a-input" id="name" name="name" value={p?.name ?? ''} required />
+      </div>
+
+      <div class="a-row">
+        <div class="a-field">
+          <label for="slug">نشانی صفحه</label>
+          <input class="a-input" id="slug" name="slug" value={p?.slug ?? ''} dir="ltr"
+                 placeholder="از روی نام ساخته می‌شود" />
+          <p class="a-hint">
+            namadniroo.ir/shop/<b>{p?.slug ?? '…'}</b> —
+            با تغییر آن، ریدایرکت ۳۰۱ از نشانی قبلی خودکار ساخته می‌شود.
+          </p>
+        </div>
+        <div class="a-field">
+          <label for="brand">برند</label>
+          <input class="a-input" id="brand" name="brand" value={p?.brand ?? ''} dir="ltr" />
+        </div>
+      </div>
+
+      <div class="a-row-3">
+        <div class="a-field">
+          <label for="spec">مشخصهٔ اصلی</label>
+          <input class="a-input" id="spec" name="spec" value={p?.spec ?? ''} placeholder="۳ – ۸٫۲" />
+        </div>
+        <div class="a-field">
+          <label for="specUnit">واحد و توضیح</label>
+          <input class="a-input" id="specUnit" name="specUnit" value={p?.specUnit ?? ''} placeholder="kW · تک‌فاز" />
+        </div>
+        <div class="a-field">
+          <label for="sortOrder">ترتیب نمایش</label>
+          <input class="a-input" id="sortOrder" name="sortOrder" type="number" value={p?.sortOrder ?? 999} />
+          <p class="a-hint">عدد کوچک‌تر جلوتر.</p>
+        </div>
+      </div>
+
+      <div class="a-row">
+        <div class="a-field">
+          <label for="cat">دسته</label>
+          <select class="a-select" id="cat" name="cat">
+            <option value="home" selected={p?.cat === 'home'}>خانگی</option>
+            <option value="industrial" selected={p?.cat === 'industrial'}>صنعتی</option>
+          </select>
+        </div>
+        <div class="a-field">
+          <label for="kind">نوع</label>
+          <select class="a-select" id="kind" name="kind">
+            <option value="inverter" selected={p?.kind === 'inverter'}>اینورتر</option>
+            <option value="panel" selected={p?.kind === 'panel'}>پنل</option>
+            <option value="storage" selected={p?.kind === 'storage'}>ذخیره‌ساز</option>
+            <option value="accessory" selected={p?.kind === 'accessory'}>جانبی</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="a-field">
+        <label for="body">توضیح محصول</label>
+        <textarea class="a-textarea" id="body" name="body"
+                  placeholder="اگر خالی بماند، متن پیش‌فرض نمایش داده می‌شود.">{p?.body ?? ''}</textarea>
+      </div>
+
+      <div class="a-row">
+        <label class="a-check"><input type="checkbox" name="published" value="1" checked={p?.published ?? true} /> منتشر شود</label>
+        <label class="a-check"><input type="checkbox" name="featured" value="1" checked={p?.featured ?? false} /> در صفحهٔ اصلی نمایش داده شود</label>
+      </div>
+    </div>
+
+    <MediaPicker media={media} selectedId={p?.imageMediaId ?? null} name="imageMediaId" label="تصویر محصول" />
+
+    <SeoFields
+      path={p ? `/shop/${p.slug}` : '/shop/…'}
+      seoTitle={p?.seoTitle}
+      seoDescription={p?.seoDescription}
+      canonicalOverride={p?.canonicalOverride}
+      noindex={p?.noindex}
+      fallbackTitle={p ? `${p.name} | فروشگاه نماد نیرو` : 'نام محصول | فروشگاه نماد نیرو'}
+    />
+
+    <div class="a-actions">
+      <button class="a-btn a-btn-primary" type="submit">ذخیره</button>
+      <a class="a-btn" href="/admin/products">بازگشت</a>
+    </div>
+  </form>
+
+  {!isNew && (
+    <form method="POST" class="a-card" style="margin-top:26px">
+      <h2>حذف محصول</h2>
+      <p class="a-hint">
+        این کار برگشت‌پذیر نیست. اگر فقط می‌خواهید موقتاً از سایت برداشته شود،
+        به‌جای حذف تیک «منتشر شود» را بردارید.
+      </p>
+      <input type="hidden" name="_action" value="delete" />
+      <div class="a-actions">
+        <button class="a-btn a-btn-danger" type="submit"
+                onclick="return confirm('این محصول برای همیشه حذف شود؟')">حذف محصول</button>
+      </div>
+    </form>
+  )}
+</Admin>

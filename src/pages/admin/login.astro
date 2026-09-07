@@ -1,0 +1,76 @@
+---
+import '../../styles/admin.css';
+import { login, setSessionCookie } from '../../server/auth/session';
+import { clientIp, rateLimit } from '../../lib/rateLimit';
+
+export const prerender = false;
+
+/* ورود ناموفق پشت‌سرهم محدود می‌شود. بدون این، حدس‌زدن رمز فقط به زمان
+   نیاز دارد. سقف نسبتاً سخاوتمندانه است تا کسی که واقعاً رمزش را اشتباه
+   تایپ کرده گیر نیفتد. */
+const MAX_ATTEMPTS = 8;
+const WINDOW_MS = 15 * 60 * 1000;
+
+let error: string | null = null;
+const next = Astro.url.searchParams.get('next') ?? '/admin';
+
+// اگر از قبل وارد شده، دوباره فرم ورود نبیند
+if (Astro.locals.user) return Astro.redirect(next);
+
+if (Astro.request.method === 'POST') {
+  const ip = clientIp(Astro.request, Astro.clientAddress);
+
+  if (!rateLimit(`login:${ip}`, MAX_ATTEMPTS, WINDOW_MS).ok) {
+    error = 'تلاش‌های ناموفق زیاد. چند دقیقه بعد دوباره امتحان کنید.';
+  } else {
+    const form = await Astro.request.formData();
+    const email = String(form.get('email') ?? '');
+    const password = String(form.get('password') ?? '');
+
+    const session = await login(email, password);
+    if (session) {
+      setSessionCookie(Astro, session.sessionId);
+
+      /* فقط به نشانی داخل همین سایت برمی‌گردیم؛ وگرنه لینک ورود را می‌شد
+         طوری ساخت که بعد از ورود کاربر را به سایت دیگری بفرستد. */
+      const target = next.startsWith('/') && !next.startsWith('//') ? next : '/admin';
+      return Astro.redirect(target);
+    }
+
+    // پیام عمداً کلی است تا نشود فهمید کدام ایمیل ثبت شده است
+    error = 'ایمیل یا رمز عبور نادرست است.';
+  }
+}
+---
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ورود | پنل نماد نیرو</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
+</head>
+<body class="admin">
+  <div class="a-login-wrap">
+    <form class="a-login" method="POST">
+      <img src="/assets/logo.png" alt="نماد نیرو" width="130" height="28" />
+      <h1>ورود به پنل مدیریت</h1>
+
+      {error && <p class="a-msg a-msg-err">{error}</p>}
+
+      <div class="a-field">
+        <label for="email">ایمیل</label>
+        <input class="a-input" id="email" name="email" type="email" required autocomplete="username" dir="ltr" />
+      </div>
+
+      <div class="a-field">
+        <label for="password">رمز عبور</label>
+        <input class="a-input" id="password" name="password" type="password" required autocomplete="current-password" dir="ltr" />
+      </div>
+
+      <button class="a-btn a-btn-primary" type="submit" style="width:100%;justify-content:center">ورود</button>
+    </form>
+  </div>
+</body>
+</html>

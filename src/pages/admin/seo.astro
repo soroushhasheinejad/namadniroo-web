@@ -1,0 +1,85 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { auditSeo, summarize } from '../../server/services/seoAudit';
+import { listArticles, listProducts } from '../../server/repos/content';
+import { fa } from '../../utils';
+
+export const prerender = false;
+
+const [findings, products, articles] = await Promise.all([
+  auditSeo(),
+  listProducts(),
+  listArticles(),
+]);
+
+const summary = summarize(findings, products.length + articles.length + 9);
+---
+<Admin
+  title="سلامت سئو"
+  lead="بررسی خودکار محتوای سایت. هر مورد توضیح می‌دهد چرا اهمیت دارد و کجا باید اصلاح شود."
+  roles={['admin', 'editor']}
+>
+  <a slot="actions" class="a-btn" href="/sitemap.xml" target="_blank" rel="noopener">نقشهٔ سایت ↗</a>
+
+  <div class="a-stats">
+    <div class="a-stat"><b>{fa(summary.publishedPages)}</b><span>صفحهٔ قابل ایندکس</span></div>
+    <div class="a-stat">
+      <b style={summary.errors > 0 ? 'color:var(--a-red)' : 'color:var(--a-green)'}>{fa(summary.errors)}</b>
+      <span>خطا</span>
+    </div>
+    <div class="a-stat">
+      <b style={summary.warnings > 0 ? 'color:var(--a-yellow)' : ''}>{fa(summary.warnings)}</b>
+      <span>هشدار</span>
+    </div>
+  </div>
+
+  {findings.length === 0 ? (
+    <div class="a-card">
+      <p class="a-empty">هیچ مشکلی پیدا نشد. همهٔ صفحات عنوان، توضیح و تصویر سالم دارند.</p>
+    </div>
+  ) : (
+    findings.map((f) => (
+      <div class="a-card">
+        <h2>
+          <span class={`a-badge ${f.severity === 'error' ? 'a-badge-lost' : 'a-badge-contacted'}`}
+                style={f.severity === 'error' ? 'background:rgba(212,84,76,.18);color:#F09A94' : ''}>
+            {f.severity === 'error' ? 'خطا' : 'هشدار'}
+          </span>
+          <span style="margin-inline-start:8px">{f.title}</span>
+          <span class="a-counter" style="margin-inline-start:8px">({fa(f.items.length)} مورد)</span>
+        </h2>
+        <p class="a-hint" style="margin-bottom:12px">{f.why}</p>
+
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <tbody>
+              {f.items.slice(0, 25).map((item) => (
+                <tr>
+                  <td><a href={item.href}>{item.label}</a></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {f.items.length > 25 && (
+          <p class="a-hint" style="margin-top:10px">و {fa(f.items.length - 25)} مورد دیگر.</p>
+        )}
+      </div>
+    ))
+  )}
+
+  <div class="a-card">
+    <h2>آنچه خودکار انجام می‌شود</h2>
+    <p class="a-hint">
+      این موارد نیازی به کار دستی ندارند و همیشه درست‌اند:
+    </p>
+    <ul class="a-hint" style="margin:8px 0 0;padding-inline-start:18px;line-height:2">
+      <li>نشانی canonical هر صفحه</li>
+      <li>دادهٔ ساختاریافته: شرکت، کسب‌وکار محلی، محصول، مقاله و مسیر راهنما</li>
+      <li>نقشهٔ سایت با تاریخ واقعی آخرین ویرایش هر صفحه</li>
+      <li>تگ‌های اشتراک‌گذاری در واتساپ، تلگرام و لینکدین</li>
+      <li>ریدایرکت ۳۰۱ هنگام تغییر نشانی یک مطلب</li>
+      <li>ابعاد تصاویر، تا چیدمان صفحه هنگام لود نپرد</li>
+    </ul>
+  </div>
+</Admin>

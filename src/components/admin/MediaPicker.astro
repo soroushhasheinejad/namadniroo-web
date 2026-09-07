@@ -1,0 +1,69 @@
+---
+import type { Media } from '../../server/db/schema';
+
+/**
+ * انتخاب تصویر از کتابخانه.
+ *
+ * فهرست کشویی به‌جای شبکهٔ تصاویر انتخاب شده تا در فرم جا بگیرد، ولی
+ * تصویر انتخاب‌شده بلافاصله کنارش دیده می‌شود — انتخاب تصویر بدون دیدنش
+ * در عمل یعنی انتخاب اشتباه.
+ */
+interface Props {
+  media: Media[];
+  selectedId: number | null;
+  name: string;
+  label: string;
+}
+
+const { media, selectedId, name, label } = Astro.props;
+const selected = media.find((m) => m.id === selectedId) ?? null;
+---
+<div class="a-card">
+  <h2>{label}</h2>
+
+  <div class="a-row">
+    <div class="a-field">
+      <label for={name}>انتخاب از کتابخانه</label>
+      <select class="a-select" id={name} name={name} data-media-picker>
+        <option value="0">بدون تصویر</option>
+        {media.map((m) => (
+          <option value={m.id} selected={m.id === selectedId} data-url={m.url}>
+            {m.alt || m.key}
+            {!m.alt && ' — بدون متن جایگزین'}
+          </option>
+        ))}
+      </select>
+      <p class="a-hint">
+        تصویر تازه را از <a href="/admin/media">بخش تصاویر</a> آپلود کنید.
+      </p>
+    </div>
+
+    <div class="a-field">
+      <label>پیش‌نمایش</label>
+      <img
+        data-media-preview
+        src={selected?.url ?? ''}
+        alt=""
+        style={`width:100%;max-width:230px;aspect-ratio:4/3;object-fit:cover;border-radius:8px;background:#000;border:1px solid rgba(255,255,255,.09);${selected ? '' : 'display:none'}`}
+      />
+      {!selected && <p class="a-hint" data-media-empty>تصویری انتخاب نشده است.</p>}
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLSelectElement>('[data-media-picker]').forEach((select) => {
+    const card = select.closest('.a-card')!;
+    const preview = card.querySelector<HTMLImageElement>('[data-media-preview]');
+    const empty = card.querySelector<HTMLElement>('[data-media-empty]');
+
+    select.addEventListener('change', () => {
+      const url = select.selectedOptions[0]?.dataset.url;
+      if (preview) {
+        preview.src = url ?? '';
+        preview.style.display = url ? '' : 'none';
+      }
+      if (empty) empty.hidden = Boolean(url);
+    });
+  });
+</script>

@@ -1,0 +1,58 @@
+---
+import { asc } from 'drizzle-orm';
+import Admin from '../../../layouts/Admin.astro';
+import { getDb } from '../../../server/db/client';
+import { products } from '../../../server/db/schema';
+import { fa } from '../../../utils';
+
+export const prerender = false;
+
+/* فهرست پنل مستقیم از دیتابیس می‌خواند نه از repo عمومی، چون آن یکی فقط
+   رکوردهای منتشرشده را می‌دهد و ویراستار باید پیش‌نویس‌ها را هم ببیند. */
+const db = await getDb();
+const rows = await db
+  .select()
+  .from(products)
+  .orderBy(asc(products.sortOrder), asc(products.id));
+---
+<Admin
+  title="محصولات"
+  lead="افزودن، ویرایش و ترتیب محصولات فروشگاه. تغییرات بلافاصله در سایت دیده می‌شوند."
+  roles={['admin', 'editor']}
+>
+  <a slot="actions" class="a-btn a-btn-primary" href="/admin/products/new">محصول تازه</a>
+
+  <div class="a-card">
+    <div class="a-table-wrap">
+      <table class="a-table">
+        <thead>
+          <tr>
+            <th>نام</th><th>برند</th><th>مشخصه</th><th>دسته</th>
+            <th>ترتیب</th><th>وضعیت</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((p) => (
+            <tr>
+              <td><a href={`/admin/products/${p.id}`}>{p.name}</a></td>
+              <td dir="ltr" set:html={p.brand} />
+              <td>{p.spec} {p.specUnit}</td>
+              <td>{p.cat === 'home' ? 'خانگی' : 'صنعتی'}</td>
+              <td class="a-num">{fa(p.sortOrder)}</td>
+              <td>
+                <span class={`a-badge ${p.published ? 'a-badge-live' : 'a-badge-draft'}`}>
+                  {p.published ? 'منتشرشده' : 'پیش‌نویس'}
+                </span>
+                {p.featured && <span class="a-badge a-badge-contacted" style="margin-inline-start:5px">منتخب</span>}
+              </td>
+              <td>
+                <a class="a-btn a-btn-sm" href={`/shop/${p.slug}`} target="_blank" rel="noopener">مشاهده ↗</a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {rows.length === 0 && <p class="a-empty">هنوز محصولی ثبت نشده است.</p>}
+  </div>
+</Admin>

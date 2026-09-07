@@ -1,0 +1,125 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { deleteMedia, ingestImage, listMedia, updateAlt, variantWidths } from '../../server/media/store';
+import { fa } from '../../utils';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+let message: { kind: 'ok' | 'err'; text: string } | null = null;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('_action') ?? 'upload');
+
+  try {
+    if (action === 'upload') {
+      const file = form.get('file');
+      const alt = String(form.get('alt') ?? '').trim();
+
+      if (!(file instanceof File) || file.size === 0) {
+        message = { kind: 'err', text: 'فایلی انتخاب نشده است.' };
+      } else if (!alt) {
+        /* متن جایگزین اجباری است: هم برای کسی که با صفحه‌خوان سایت را
+           می‌بیند و هم برای گوگل که محتوای تصویر را از آن می‌فهمد. */
+        message = { kind: 'err', text: 'متن جایگزین را بنویسید؛ برای سئو و دسترس‌پذیری لازم است.' };
+      } else {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const { duplicate } = await ingestImage(buffer, {
+          filename: file.name,
+          mime: file.type,
+          alt,
+          uploadedBy: user.id,
+        });
+        message = {
+          kind: 'ok',
+          text: duplicate ? 'این تصویر از قبل موجود بود؛ متن جایگزینش به‌روز شد.' : 'تصویر اضافه شد.',
+        };
+      }
+    } else if (action === 'alt') {
+      await updateAlt(Number(form.get('id')), String(form.get('alt') ?? '').trim());
+      message = { kind: 'ok', text: 'متن جایگزین ذخیره شد.' };
+    } else if (action === 'delete') {
+      await deleteMedia(Number(form.get('id')));
+      message = { kind: 'ok', text: 'تصویر حذف شد.' };
+    }
+  } catch (err) {
+    message = { kind: 'err', text: err instanceof Error ? err.message : 'عملیات ناموفق بود.' };
+  }
+}
+
+const media = await listMedia();
+const missingAlt = media.filter((m) => !m.alt).length;
+
+const kb = (bytes: number) => fa(Math.max(Math.round(bytes / 1024), 1));
+---
+<Admin
+  title="تصاویر"
+  lead="تصاویر هنگام آپلود خودکار به WebP و چند اندازه تبدیل می‌شوند؛ لازم نیست از قبل بهینه‌شان کنید."
+  roles={['admin', 'editor']}
+>
+  {message && <p class={`a-msg a-msg-${message.kind === 'ok' ? 'ok' : 'err'}`}>{message.text}</p>}
+
+  {missingAlt > 0 && (
+    <p class="a-msg a-msg-warn">
+      {fa(missingAlt)} تصویر متن جایگزین ندارد. این تصاویر با حاشیهٔ قرمز مشخص شده‌اند.
+    </p>
+  )}
+
+  <form class="a-card" method="POST" enctype="multipart/form-data">
+    <h2>افزودن تصویر</h2>
+    <div class="a-row">
+      <div class="a-field">
+        <label for="file">فایل تصویر</label>
+        <input class="a-input" id="file" name="file" type="file" accept="image/*" required />
+        <p class="a-hint">JPG، PNG یا WebP — تا ۱۲ مگابایت.</p>
+      </div>
+      <div class="a-field">
+        <label for="alt">متن جایگزین</label>
+        <input class="a-input" id="alt" name="alt" required
+               placeholder="مثلاً: نیروگاه خورشیدی کبوترخان کرمان" />
+        <p class="a-hint">آنچه در تصویر دیده می‌شود را کوتاه توصیف کنید.</p>
+      </div>
+    </div>
+    <div class="a-actions"><button class="a-btn a-btn-primary" type="submit">آپلود</button></div>
+  </form>
+
+  <div class="a-card">
+    <h2>کتابخانه ({fa(media.length)} تصویر)</h2>
+
+    {media.length === 0 ? (
+      <p class="a-empty">هنوز تصویری آپلود نشده است.</p>
+    ) : (
+      <div class="a-media-grid">
+        {media.map((m) => (
+          <div class:list={['a-media-item', !m.alt && 'no-alt']}>
+            <img src={m.url} alt={m.alt ?? ''} loading="lazy" />
+            <div class="a-media-meta">
+              <b>{m.alt || 'بدون متن جایگزین'}</b>
+              {m.width && m.height && <>{fa(m.width)}×{fa(m.height)} · </>}
+              {kb(m.bytes)} کیلوبایت
+              {m.width && <> · {fa(variantWidths(m.width).length)} اندازه</>}
+
+              <form method="POST" style="margin-top:8px">
+                <input type="hidden" name="_action" value="alt" />
+                <input type="hidden" name="id" value={m.id} />
+                <input class="a-input" name="alt" value={m.alt ?? ''}
+                       style="font-size:12.5px;padding:6px 8px" placeholder="متن جایگزین" />
+                <button class="a-btn a-btn-sm" type="submit" style="margin-top:6px">ذخیره</button>
+              </form>
+
+              <form method="POST" style="margin-top:6px">
+                <input type="hidden" name="_action" value="delete" />
+                <input type="hidden" name="id" value={m.id} />
+                <button class="a-btn a-btn-sm a-btn-danger" type="submit"
+                        onclick="return confirm('این تصویر حذف شود؟ هر جای سایت که از آن استفاده شده خالی می‌ماند.')">
+                  حذف
+                </button>
+              </form>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</Admin>

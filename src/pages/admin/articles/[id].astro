@@ -1,0 +1,169 @@
+---
+import { eq } from 'drizzle-orm';
+import Admin from '../../../layouts/Admin.astro';
+import SeoFields from '../../../components/admin/SeoFields.astro';
+import MediaPicker from '../../../components/admin/MediaPicker.astro';
+import { getDb } from '../../../server/db/client';
+import { articles } from '../../../server/db/schema';
+import { deleteContent, saveContent, slugify } from '../../../server/services/content';
+import { listMedia } from '../../../server/media/store';
+import { jalaliToISO } from '../../../utils';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const raw = Astro.params.id!;
+const isNew = raw === 'new';
+const id = isNew ? null : Number(raw);
+
+const db = await getDb();
+let error: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+
+  if (form.get('_action') === 'delete' && id) {
+    await deleteContent(user.id, 'articles', id);
+    return Astro.redirect('/admin/articles');
+  }
+
+  const title = String(form.get('title') ?? '').trim();
+  const slug = slugify(String(form.get('slug') ?? '') || title);
+  const dateFa = String(form.get('dateFa') ?? '').trim();
+
+  /* تاریخ شمسی چیزی است که در سایت دیده می‌شود، ولی داده‌های ساختاریافته و
+     مرتب‌سازی به تاریخ میلادی نیاز دارند. هر دو نگه داشته می‌شوند. */
+  const iso = dateFa ? jalaliToISO(dateFa) : undefined;
+
+  if (!title) error = 'عنوان مقاله الزامی است.';
+  else if (dateFa && !iso) error = 'تاریخ را به شکل ۱۴۰۴/۰۵/۱۲ بنویسید.';
+  else {
+    const coverId = Number(form.get('coverMediaId'));
+    const values = {
+      slug,
+      title,
+      category: String(form.get('category') ?? 'edu'),
+      body: String(form.get('body') ?? ''),
+      dateFa,
+      publishedAt: iso ? new Date(iso) : null,
+      readTime: Number(form.get('readTime')) || 5,
+      coverMediaId: coverId > 0 ? coverId : null,
+      published: form.get('published') === '1',
+      seoTitle: String(form.get('seoTitle') ?? '').trim() || null,
+      seoDescription: String(form.get('seoDescription') ?? '').trim() || null,
+      canonicalOverride: String(form.get('canonicalOverride') ?? '').trim() || null,
+      noindex: form.get('noindex') === '1',
+    };
+
+    try {
+      const savedId = await saveContent({ userId: user.id, entity: 'articles', id: id ?? undefined, values });
+      return Astro.redirect(`/admin/articles/${savedId}?saved=1`);
+    } catch (err) {
+      error = err instanceof Error && /unique|duplicate/i.test(err.message)
+        ? 'این نشانی قبلاً برای مقالهٔ دیگری استفاده شده است.'
+        : 'ذخیره ناموفق بود.';
+      console.error('[admin/articles]', err);
+    }
+  }
+}
+
+const [row] = id ? await db.select().from(articles).where(eq(articles.id, id)).limit(1) : [];
+if (!isNew && !row) return Astro.rewrite('/404');
+
+const media = await listMedia();
+const saved = Astro.url.searchParams.get('saved') === '1';
+const a = row ?? null;
+---
+<Admin
+  title={isNew ? 'مقالهٔ تازه' : a!.title}
+  lead="متن مقاله با مارک‌داون نوشته می‌شود: **پررنگ**، *مورب*، ## تیتر، - فهرست."
+  roles={['admin', 'editor']}
+>
+  {!isNew && a!.published && (
+    <a slot="actions" class="a-btn" href={`/magazine/${a!.slug}`} target="_blank" rel="noopener">
+      مشاهده در سایت ↗
+    </a>
+  )}
+
+  {saved && <p class="a-msg a-msg-ok">تغییرات ذخیره شد.</p>}
+  {error && <p class="a-msg a-msg-err">{error}</p>}
+
+  <form method="POST">
+    <div class="a-card">
+      <h2>مقاله</h2>
+
+      <div class="a-field">
+        <label for="title">عنوان</label>
+        <input class="a-input" id="title" name="title" value={a?.title ?? ''} required />
+      </div>
+
+      <div class="a-row">
+        <div class="a-field">
+          <label for="slug">نشانی صفحه</label>
+          <input class="a-input" id="slug" name="slug" value={a?.slug ?? ''} dir="ltr"
+                 placeholder="از روی عنوان ساخته می‌شود" />
+          <p class="a-hint">
+            namadniroo.ir/magazine/<b>{a?.slug ?? '…'}</b> —
+            با تغییرش ریدایرکت ۳۰۱ خودکار ساخته می‌شود.
+          </p>
+        </div>
+        <div class="a-field">
+          <label for="category">دسته</label>
+          <select class="a-select" id="category" name="category">
+            <option value="edu" selected={a?.category === 'edu'}>آموزش</option>
+            <option value="market" selected={a?.category === 'market'}>بازار انرژی</option>
+            <option value="news" selected={a?.category === 'news'}>خبر شرکت</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="a-row">
+        <div class="a-field">
+          <label for="dateFa">تاریخ انتشار</label>
+          <input class="a-input" id="dateFa" name="dateFa" value={a?.dateFa ?? ''} placeholder="۱۴۰۴/۰۵/۱۲" />
+        </div>
+        <div class="a-field">
+          <label for="readTime">زمان مطالعه (دقیقه)</label>
+          <input class="a-input" id="readTime" name="readTime" type="number" min="1" value={a?.readTime ?? 5} />
+        </div>
+      </div>
+
+      <div class="a-field">
+        <label for="body">متن مقاله</label>
+        <textarea class="a-textarea is-tall" id="body" name="body">{a?.body ?? ''}</textarea>
+      </div>
+
+      <label class="a-check">
+        <input type="checkbox" name="published" value="1" checked={a?.published ?? true} /> منتشر شود
+      </label>
+    </div>
+
+    <MediaPicker media={media} selectedId={a?.coverMediaId ?? null} name="coverMediaId" label="تصویر شاخص" />
+
+    <SeoFields
+      path={a ? `/magazine/${a.slug}` : '/magazine/…'}
+      seoTitle={a?.seoTitle}
+      seoDescription={a?.seoDescription}
+      canonicalOverride={a?.canonicalOverride}
+      noindex={a?.noindex}
+      fallbackTitle={a ? `${a.title} | مجلهٔ نماد نیرو` : 'عنوان مقاله | مجلهٔ نماد نیرو'}
+    />
+
+    <div class="a-actions">
+      <button class="a-btn a-btn-primary" type="submit">ذخیره</button>
+      <a class="a-btn" href="/admin/articles">بازگشت</a>
+    </div>
+  </form>
+
+  {!isNew && (
+    <form method="POST" class="a-card" style="margin-top:26px">
+      <h2>حذف مقاله</h2>
+      <p class="a-hint">برای برداشتن موقت از سایت، به‌جای حذف تیک «منتشر شود» را بردارید.</p>
+      <input type="hidden" name="_action" value="delete" />
+      <div class="a-actions">
+        <button class="a-btn a-btn-danger" type="submit"
+                onclick="return confirm('این مقاله برای همیشه حذف شود؟')">حذف مقاله</button>
+      </div>
+    </form>
+  )}
+</Admin>

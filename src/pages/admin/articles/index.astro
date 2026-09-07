@@ -1,0 +1,48 @@
+---
+import { desc } from 'drizzle-orm';
+import Admin from '../../../layouts/Admin.astro';
+import { getDb } from '../../../server/db/client';
+import { articles } from '../../../server/db/schema';
+import { fa } from '../../../utils';
+import { categoryLabel } from '../../../data/site';
+
+export const prerender = false;
+
+const db = await getDb();
+const rows = await db.select().from(articles).orderBy(desc(articles.publishedAt), desc(articles.id));
+---
+<Admin title="مقالات" lead="مجلهٔ انرژی. مقالهٔ منتشرنشده پیش‌نویس می‌ماند و در سایت دیده نمی‌شود." roles={['admin', 'editor']}>
+  <a slot="actions" class="a-btn a-btn-primary" href="/admin/articles/new">مقالهٔ تازه</a>
+
+  <div class="a-card">
+    <div class="a-table-wrap">
+      <table class="a-table">
+        <thead>
+          <tr><th>عنوان</th><th>دسته</th><th>تاریخ</th><th>زمان مطالعه</th><th>وضعیت</th><th></th></tr>
+        </thead>
+        <tbody>
+          {rows.map((a) => (
+            <tr>
+              <td><a href={`/admin/articles/${a.id}`}>{a.title}</a></td>
+              <td>{categoryLabel[a.category]}</td>
+              <td class="a-num">{a.dateFa || '—'}</td>
+              <td class="a-num">{fa(a.readTime)} دقیقه</td>
+              <td>
+                <span class={`a-badge ${a.published ? 'a-badge-live' : 'a-badge-draft'}`}>
+                  {a.published ? 'منتشرشده' : 'پیش‌نویس'}
+                </span>
+                {a.noindex && <span class="a-badge a-badge-lost" style="margin-inline-start:5px">noindex</span>}
+              </td>
+              <td>
+                {a.published && (
+                  <a class="a-btn a-btn-sm" href={`/magazine/${a.slug}`} target="_blank" rel="noopener">مشاهده ↗</a>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {rows.length === 0 && <p class="a-empty">هنوز مقاله‌ای ثبت نشده است.</p>}
+  </div>
+</Admin>

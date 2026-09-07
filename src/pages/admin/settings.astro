@@ -1,0 +1,97 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { getAllSettings, setSetting } from '../../server/repos/content';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+
+/**
+ * ویرایش متن‌های ثابت سایت.
+ *
+ * هر کلید یک ساختار متفاوت دارد (فهرست منو، آرایهٔ آمار، متن ساده)، پس
+ * به‌جای ساختن فرم اختصاصی برای هر کدام، محتوا به‌صورت JSON ویرایش می‌شود
+ * و پیش از ذخیره اعتبارسنجی می‌گردد. برای این تعداد کلید و این تیم، فرم
+ * اختصاصی ساختن هزینه‌ای بود که ارزشش را نداشت — ولی ورودی خراب هرگز
+ * ذخیره نمی‌شود.
+ */
+
+const LABELS: Record<string, { title: string; hint: string }> = {
+  site: { title: 'اطلاعات شرکت', hint: 'نام، تلفن، شهر و سال تأسیس — در سرصفحه و پابرگ استفاده می‌شود.' },
+  nav: { title: 'منوی اصلی', hint: 'ترتیب همین فهرست، ترتیب منوی سایت است.' },
+  stats: { title: 'آمار صفحهٔ اصلی', hint: 'چهار عدد بزرگ زیر اسلایدر.' },
+  heroSlides: { title: 'اسلایدر صفحهٔ اصلی', hint: 'برچسب و آیکن هر اسلاید.' },
+  promoSlides: { title: 'بنرهای صفحهٔ اصلی', hint: 'نشانی مقصد و توضیح هر بنر.' },
+  areas: { title: 'حوزه‌های فعالیت', hint: 'محتوای صفحهٔ «حوزه‌های فعالیت».' },
+  timeline: { title: 'مسیر رشد شرکت', hint: 'خط زمانی صفحهٔ «درباره ما».' },
+  capabilities: { title: 'توانمندی‌ها', hint: 'کارت‌های صفحهٔ «درباره ما».' },
+  brands: { title: 'برندها', hint: 'لوگوهای نوار برندها.' },
+  clients: { title: 'کارفرمایان', hint: 'فهرست نام کارفرمایان.' },
+  portfolio: { title: 'پرتفولیو', hint: 'نشانی و حجم فایل PDF.' },
+  robots: { title: 'robots.txt', hint: 'قواعد خزش. مسدودسازی پنل و نشانی نقشهٔ سایت همیشه خودکار اضافه می‌شود.' },
+};
+
+let message: { kind: 'ok' | 'err'; text: string } | null = null;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const key = String(form.get('key') ?? '');
+  const raw = String(form.get('value') ?? '');
+
+  try {
+    // robots یک متن ساده است، بقیه ساختار JSON دارند
+    const value = key === 'robots' ? raw : JSON.parse(raw);
+    await setSetting(key, value, user.id);
+    message = { kind: 'ok', text: `«${LABELS[key]?.title ?? key}» ذخیره شد و در سایت اعمال شد.` };
+  } catch (err) {
+    message = {
+      kind: 'err',
+      text:
+        err instanceof SyntaxError
+          ? 'ساختار واردشده معتبر نیست؛ تغییرات ذخیره نشد. احتمالاً یک ویرگول یا کروشه جا افتاده است.'
+          : 'ذخیره ناموفق بود.',
+    };
+  }
+}
+
+const settings = await getAllSettings();
+
+// کلیدهای شناخته‌شده اول، به ترتیب فهرست بالا
+const keys = [
+  ...Object.keys(LABELS).filter((k) => k in settings || k === 'robots'),
+  ...Object.keys(settings).filter((k) => !(k in LABELS)),
+];
+
+const asText = (key: string): string => {
+  const value = settings[key];
+  if (key === 'robots') return typeof value === 'string' ? value : 'User-agent: *\nAllow: /';
+  return JSON.stringify(value ?? null, null, 2);
+};
+---
+<Admin
+  title="متن‌های سایت"
+  lead="منو، آمار، حوزه‌ها، برندها و بقیهٔ متن‌های ثابت. هر تغییر بلافاصله در سایت دیده می‌شود."
+  roles={['admin', 'editor']}
+>
+  {message && <p class={`a-msg a-msg-${message.kind === 'ok' ? 'ok' : 'err'}`}>{message.text}</p>}
+
+  <p class="a-msg a-msg-warn">
+    ساختار هر بخش را دست‌نخورده نگه دارید و فقط متن‌های داخل گیومه را عوض کنید.
+    اگر ساختار خراب شود، ذخیره انجام نمی‌شود و پیام خطا می‌بینید — پس سایت از کار نمی‌افتد.
+  </p>
+
+  {keys.map((key) => (
+    <form class="a-card" method="POST">
+      <h2>{LABELS[key]?.title ?? key}</h2>
+      <p class="a-hint" style="margin-bottom:12px">{LABELS[key]?.hint ?? `کلید: ${key}`}</p>
+
+      <input type="hidden" name="key" value={key} />
+      <textarea class="a-textarea is-tall" name="value" spellcheck="false"
+                style="min-height:220px" dir={key === 'robots' ? 'ltr' : 'rtl'}>{asText(key)}</textarea>
+
+      <div class="a-actions">
+        <button class="a-btn a-btn-primary a-btn-sm" type="submit">ذخیرهٔ این بخش</button>
+      </div>
+    </form>
+  ))}
+</Admin>

@@ -83,7 +83,24 @@ export async function createRedirect(
      به‌روز می‌کنیم تا همیشه یک پرش بیشتر لازم نباشد. */
   await db.update(redirects).set({ toPath: to }).where(eq(redirects.toPath, from));
 
+  // ردیفی که بعد از اصلاح زنجیره به خودش اشاره کند حلقه می‌سازد
+  await db.delete(redirects).where(eq(redirects.fromPath, normalizePath(to)));
+
   invalidate(TAGS.redirects);
+}
+
+/**
+ * ریدایرکتی که از این نشانی شروع می‌شود را حذف می‌کند.
+ *
+ * لازم است چون نشانی‌ای که زمانی منتقل شده ممکن است دوباره صفحهٔ واقعی
+ * شود — مثلاً وقتی ویراستار نشانی را عوض می‌کند و بعد پشیمان می‌شود و
+ * برش می‌گرداند. بدون این، آن نشانی برای همیشه به جای دیگری می‌رفت.
+ */
+export async function clearRedirectFrom(path: string): Promise<void> {
+  const db = await getDb();
+  const result = await db.delete(redirects).where(eq(redirects.fromPath, normalizePath(path)));
+  invalidate(TAGS.redirects);
+  return void result;
 }
 
 export async function deleteRedirect(id: number): Promise<void> {

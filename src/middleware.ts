@@ -45,7 +45,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
   /* شناسایی کاربر فقط برای مسیرهای پنل. صفحات عمومی نه به آن نیاز دارند
      نه باید هزینهٔ کوئری‌اش را بدهند. */
   if (pathname.startsWith('/admin')) {
-    context.locals.user = await resolveSession(readSessionCookie(context)).catch(() => null);
+    const user = await resolveSession(readSessionCookie(context)).catch(() => null);
+    context.locals.user = user;
+
+    /* محافظت از دسترسی اینجا انجام می‌شود و نه در قالب صفحات پنل: قالب یک
+       کامپوننت است و `return` داخل آن جلوی رندر صفحه را نمی‌گیرد، پس صفحه
+       با وجود ریدایرکت هم ساخته می‌شد. اینجا درخواست پیش از رسیدن به صفحه
+       متوقف می‌شود، و افزودن صفحهٔ تازه به پنل نمی‌تواند به‌اشتباه
+       محافظت‌نشده بماند. */
+    const isPublic = pathname === '/admin/login' || pathname === '/admin/logout';
+    if (!user && !isPublic) {
+      return context.redirect(`/admin/login?next=${encodeURIComponent(pathname)}`);
+    }
   }
 
   return next();

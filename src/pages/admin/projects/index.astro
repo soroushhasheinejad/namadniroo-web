@@ -1,0 +1,53 @@
+---
+import { asc } from 'drizzle-orm';
+import Admin from '../../../layouts/Admin.astro';
+import { getDb } from '../../../server/db/client';
+import { projects } from '../../../server/db/schema';
+import { fa } from '../../../utils';
+
+export const prerender = false;
+
+const db = await getDb();
+const rows = await db.select().from(projects).orderBy(asc(projects.sortOrder), asc(projects.id));
+
+const catLabel: Record<string, string> = {
+  supply: 'تأمین تجهیزات',
+  build: 'احداث و اجرا',
+  invest: 'سرمایه‌گذاری',
+};
+---
+<Admin
+  title="پروژه‌ها"
+  lead="کارنامهٔ پروژه‌ها؛ همان چیزی که در صفحهٔ پروژه‌ها و سرمایه‌گذاری دیده می‌شود."
+  roles={['admin', 'editor']}
+>
+  <a slot="actions" class="a-btn a-btn-primary" href="/admin/projects/new">پروژهٔ تازه</a>
+
+  <div class="a-card">
+    <div class="a-table-wrap">
+      <table class="a-table">
+        <thead>
+          <tr><th>کارفرما</th><th>ظرفیت</th><th>نوع همکاری</th><th>دسته</th><th>ترتیب</th><th>وضعیت</th></tr>
+        </thead>
+        <tbody>
+          {rows.map((p) => (
+            <tr>
+              <td><a href={`/admin/projects/${p.id}`}>{p.name}</a></td>
+              <td class="a-num">{p.capacity} {p.unit}</td>
+              <td>{p.tag}</td>
+              <td>{catLabel[p.cat]}</td>
+              <td class="a-num">{fa(p.sortOrder)}</td>
+              <td>
+                <span class={`a-badge ${p.published ? 'a-badge-live' : 'a-badge-draft'}`}>
+                  {p.published ? 'منتشرشده' : 'پیش‌نویس'}
+                </span>
+                {p.featured && <span class="a-badge a-badge-contacted" style="margin-inline-start:5px">منتخب</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {rows.length === 0 && <p class="a-empty">هنوز پروژه‌ای ثبت نشده است.</p>}
+  </div>
+</Admin>

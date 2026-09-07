@@ -1,0 +1,108 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { createRedirect, deleteRedirect, listRedirects } from '../../server/repos/redirects';
+import { fa } from '../../utils';
+
+export const prerender = false;
+
+let message: { kind: 'ok' | 'err'; text: string } | null = null;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+
+  if (form.get('_action') === 'delete') {
+    await deleteRedirect(Number(form.get('id')));
+    message = { kind: 'ok', text: 'ریدایرکت حذف شد.' };
+  } else {
+    const from = String(form.get('fromPath') ?? '').trim();
+    const to = String(form.get('toPath') ?? '').trim();
+
+    if (!from.startsWith('/') || !to.startsWith('/')) {
+      message = { kind: 'err', text: 'هر دو نشانی باید با / شروع شوند.' };
+    } else if (from === to) {
+      message = { kind: 'err', text: 'مبدأ و مقصد نمی‌توانند یکی باشند.' };
+    } else {
+      await createRedirect(from, to, { statusCode: Number(form.get('statusCode')) || 301 });
+      message = { kind: 'ok', text: 'ریدایرکت ثبت شد.' };
+    }
+  }
+}
+
+const rows = await listRedirects();
+const auto = rows.filter((r) => r.auto).length;
+---
+<Admin
+  title="ریدایرکت‌ها"
+  lead="انتقال نشانی‌های قدیمی به نشانی تازه، بدون از دست دادن رتبهٔ گوگل."
+  roles={['admin', 'editor']}
+>
+  {message && <p class={`a-msg a-msg-${message.kind === 'ok' ? 'ok' : 'err'}`}>{message.text}</p>}
+
+  <form class="a-card" method="POST">
+    <h2>ریدایرکت تازه</h2>
+    <div class="a-row-3">
+      <div class="a-field">
+        <label for="fromPath">از نشانی</label>
+        <input class="a-input" id="fromPath" name="fromPath" dir="ltr" placeholder="/old-page" required />
+      </div>
+      <div class="a-field">
+        <label for="toPath">به نشانی</label>
+        <input class="a-input" id="toPath" name="toPath" dir="ltr" placeholder="/new-page" required />
+      </div>
+      <div class="a-field">
+        <label for="statusCode">نوع</label>
+        <select class="a-select" id="statusCode" name="statusCode">
+          <option value="301">۳۰۱ — دائمی (پیشنهاد)</option>
+          <option value="302">۳۰۲ — موقت</option>
+        </select>
+        <p class="a-hint">برای انتقال همیشگی، ۳۰۱ را انتخاب کنید.</p>
+      </div>
+    </div>
+    <div class="a-actions"><button class="a-btn a-btn-primary" type="submit">افزودن</button></div>
+  </form>
+
+  <div class="a-card">
+    <h2>ریدایرکت‌های فعال ({fa(rows.length)})</h2>
+    {auto > 0 && (
+      <p class="a-hint" style="margin-bottom:12px">
+        {fa(auto)} مورد خودکار هنگام تغییر نشانی یک مطلب ساخته شده است. حذفشان نکنید مگر مطمئن باشید
+        دیگر لینکی به نشانی قدیمی وجود ندارد.
+      </p>
+    )}
+
+    {rows.length === 0 ? (
+      <p class="a-empty">ریدایرکتی ثبت نشده است.</p>
+    ) : (
+      <div class="a-table-wrap">
+        <table class="a-table">
+          <thead>
+            <tr><th>از</th><th>به</th><th>نوع</th><th>مراجعه</th><th>منشأ</th><th></th></tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr>
+                <td dir="ltr">{r.fromPath}</td>
+                <td dir="ltr">{r.toPath}</td>
+                <td class="a-num">{fa(r.statusCode)}</td>
+                <td class="a-num">{fa(r.hits)}</td>
+                <td>
+                  <span class={`a-badge ${r.auto ? 'a-badge-contacted' : 'a-badge-draft'}`}>
+                    {r.auto ? 'خودکار' : 'دستی'}
+                  </span>
+                </td>
+                <td>
+                  <form method="POST">
+                    <input type="hidden" name="_action" value="delete" />
+                    <input type="hidden" name="id" value={r.id} />
+                    <button class="a-btn a-btn-sm a-btn-danger" type="submit"
+                            onclick="return confirm('این ریدایرکت حذف شود؟')">حذف</button>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+</Admin>
