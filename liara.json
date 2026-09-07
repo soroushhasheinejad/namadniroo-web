@@ -11,7 +11,7 @@
   },
   "disks": [
     {
-      "name": "data",
+      "name": "storage",
       "mountTo": "/data"
     }
   ],
