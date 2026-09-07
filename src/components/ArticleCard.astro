@@ -1,12 +1,13 @@
 ---
 import { categoryLabel } from '../data/site';
 import { fa } from '../utils';
-interface Props { a: any }
+import type { ArticleView } from '../server/repos/content';
+
+interface Props { a: ArticleView }
 const { a } = Astro.props;
-const d = a.data;
 ---
-<a class="mag-card" data-cat={d.category} href={`/magazine/${a.id}`}>
-  <span class="mag-tag">{categoryLabel[d.category]}</span>
-  <h3 class="mag-title">{d.title}</h3>
-  <span class="mag-date">{d.date} · {fa(d.readTime)} دقیقه</span>
+<a class="mag-card" data-cat={a.category} href={`/magazine/${a.slug}`}>
+  <span class="mag-tag">{categoryLabel[a.category]}</span>
+  <h3 class="mag-title">{a.title}</h3>
+  <span class="mag-date">{a.dateFa} · {fa(a.readTime)} دقیقه</span>
 </a>

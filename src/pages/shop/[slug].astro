@@ -1,35 +1,35 @@
 ---
-import { getCollection } from 'astro:content';
-import { Image } from 'astro:assets';
 import Base from '../../layouts/Base.astro';
 import ProductCard from '../../components/ProductCard.astro';
+import DbImage from '../../components/DbImage.astro';
 import { categoryLabel } from '../../data/site';
 import { breadcrumbSchema } from '../../utils';
+import { listProducts } from '../../server/repos/content';
 
-export async function getStaticPaths() {
-  const products = await getCollection('products');
-  return products.map((p) => ({
-    params: { slug: p.id },
-    props: { product: p, all: products },
-  }));
-}
+export const prerender = false;
 
-const { product, all } = Astro.props;
-const p = product.data;
+const { slug } = Astro.params;
 
-const related = all
-  .filter((x: any) => x.id !== product.id && x.data.cat === p.cat)
-  .sort((a: any, b: any) => a.data.order - b.data.order)
-  .slice(0, 4);
+/* یک بار خوانده و کش می‌شود؛ هم محصول موردنظر و هم مرتبط‌ها از همین فهرست
+   درمی‌آیند، پس صفحه فقط یک کوئری می‌زند نه دو تا. */
+const all = await listProducts();
+const p = all.find((x) => x.slug === slug);
+
+// نشانی نامعتبر یا محصولی که از انتشار خارج شده
+if (!p) return Astro.rewrite('/404');
+
+const related = all.filter((x) => x.slug !== p.slug && x.cat === p.cat).slice(0, 4);
 
 // نام برند بدون &nbsp; که در بعضی رکوردها برای جلوگیری از شکست خط آمده
 const brandPlain = p.brand.replace(/&nbsp;/g, ' ').trim();
-const description = `${p.name} — ${brandPlain} — ${p.spec} ${p.specUnit}. استعلام قیمت، موجودی و مشاوره فنی از نماد نیرو.`;
+const description =
+  p.seoDescription ||
+  `${p.name} — ${brandPlain} — ${p.spec} ${p.specUnit}. استعلام قیمت، موجودی و مشاوره فنی از نماد نیرو.`;
 
 const pageSchema = [
   breadcrumbSchema([
     { name: 'فروشگاه', href: '/shop' },
-    { name: p.name, href: `/shop/${product.id}` },
+    { name: p.name, href: `/shop/${p.slug}` },
   ]),
   {
     '@context': 'https://schema.org',
@@ -38,16 +38,28 @@ const pageSchema = [
     description,
     brand: { '@type': 'Brand', name: brandPlain },
     category: categoryLabel[p.cat],
-    ...(p.image ? { image: new URL(p.image, 'https://namadniroo.ir').href } : {}),
+    ...(p.image ? { image: new URL(p.image.url, 'https://namadniroo.ir').href } : {}),
+    /* فروشگاه فعلاً لیدجن است و قیمت آنلاین ندارد. `Offer` را با وضعیت
+       «استعلامی» می‌آوریم تا گوگل محصول را کامل بشناسد بدون این‌که قیمتی
+       ادعا کنیم که وجود ندارد. */
+    offers: {
+      '@type': 'Offer',
+      url: `https://namadniroo.ir/shop/${p.slug}`,
+      priceCurrency: 'IRR',
+      availability: 'https://schema.org/InStock',
+      ...(p.price ? { price: p.price } : { price: '0' }),
+      seller: { '@id': 'https://namadniroo.ir/#organization' },
+    },
   },
 ];
 ---
 <Base
-  title={`${p.name} | فروشگاه نماد نیرو`}
+  title={p.seoTitle || `${p.name} | فروشگاه نماد نیرو`}
   description={description}
-  image={p.image}
+  image={p.image?.url}
   type="product"
   schema={pageSchema}
+  noindex={p.noindex}
 >
   <div class="article-head">
     <div class="wrap">
@@ -64,16 +76,20 @@ const pageSchema = [
     <div class="wrap about-intro">
       <div class="product-thumb product-hero">
         {p.image
-          ? <Image class="product-img" src={p.image} alt={p.name} width={620} densities={[1, 2]} loading="eager" />
+          ? <DbImage image={p.image} class="product-img" sizes="(max-width: 800px) 90vw, 620px" priority />
           : <span class="thumb-brand" set:html={p.brand} />}
       </div>
       <div>
         <p class="lead-lg">{p.brand} · {p.spec} {p.specUnit}</p>
-        <p>
-          محصولی از دستهٔ محصولات {categoryLabel[p.cat]} نماد نیرو، مناسب برای پروژه‌های
-          {p.cat === 'home' ? ' خانگی و تجاری کوچک' : ' صنعتی و نیروگاهی'}.
-          مشخصات فنی کامل، قیمت روز، موجودی و زمان تحویل را از کارشناسان فروش استعلام بگیرید.
-        </p>
+        {p.body
+          ? <p>{p.body}</p>
+          : (
+            <p>
+              محصولی از دستهٔ محصولات {categoryLabel[p.cat]} نماد نیرو، مناسب برای پروژه‌های
+              {p.cat === 'home' ? ' خانگی و تجاری کوچک' : ' صنعتی و نیروگاهی'}.
+              مشخصات فنی کامل، قیمت روز، موجودی و زمان تحویل را از کارشناسان فروش استعلام بگیرید.
+            </p>
+          )}
         <a class="btn btn-solid" href="/#quote">استعلام قیمت و موجودی</a>
       </div>
     </div>
@@ -87,7 +103,7 @@ const pageSchema = [
           <h2 class="section-title">در همین دسته</h2>
         </header>
         <div class="products">
-          {related.map((r: any) => <ProductCard p={r.data} id={r.id} />)}
+          {related.map((r) => <ProductCard p={r} />)}
         </div>
       </div>
     </section>

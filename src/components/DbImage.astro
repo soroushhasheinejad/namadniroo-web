@@ -1,0 +1,41 @@
+---
+import { buildSrcset } from '../server/media/store';
+import type { ImageRef } from '../server/repos/content';
+
+/**
+ * تصویری که از دیتابیس می‌آید.
+ *
+ * جای کامپوننت `<Image>` خود Astro را می‌گیرد، چون آن یکی فقط تصاویری را
+ * می‌شناسد که در زمان بیلد داخل مخزن باشند. تصاویری که ویراستار آپلود
+ * می‌کند بعد از بیلد می‌آیند، پس نسخه‌های مختلفشان هنگام آپلود ساخته شده و
+ * اینجا فقط srcset مناسب نوشته می‌شود.
+ *
+ * ابعاد همیشه نوشته می‌شوند تا مرورگر پیش از دانلود جای درست را کنار
+ * بگذارد و چیدمان صفحه بعد از لود نپرد.
+ */
+interface Props {
+  image: ImageRef;
+  sizes: string;
+  /** روی تصویر بزرگ بالای صفحه true شود؛ روی بقیه هرگز */
+  priority?: boolean;
+  class?: string;
+  /** اگر تصویر تزئینی است و متن کنارش همان معنا را می‌رساند */
+  decorative?: boolean;
+}
+
+const { image, sizes, priority = false, class: className, decorative = false } = Astro.props;
+
+const srcset = image.key ? buildSrcset(image.key, image.width) : undefined;
+---
+<img
+  src={image.url}
+  srcset={srcset}
+  sizes={srcset ? sizes : undefined}
+  width={image.width ?? undefined}
+  height={image.height ?? undefined}
+  alt={decorative ? '' : image.alt}
+  class={className}
+  loading={priority ? 'eager' : 'lazy'}
+  fetchpriority={priority ? 'high' : 'auto'}
+  decoding={priority ? 'sync' : 'async'}
+/>

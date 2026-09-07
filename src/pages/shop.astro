@@ -1,13 +1,18 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import FilterBar from '../components/FilterBar.astro';
 import ProductCard from '../components/ProductCard.astro';
 import { filters } from '../data/site';
 import { breadcrumbSchema } from '../utils';
+import { listProducts } from '../server/repos/content';
 
-const products = (await getCollection('products')).sort((a, b) => a.data.order - b.data.order);
+/* محتوا از دیتابیس می‌آید، پس صفحه باید روی سرور ساخته شود تا تغییرات پنل
+   بدون بیلد دوباره دیده شوند. لایهٔ کش باعث می‌شود این کار در عمل هزینهٔ
+   کوئری نداشته باشد. */
+export const prerender = false;
+
+const products = await listProducts();
 
 const pageSchema = breadcrumbSchema([{ name: 'فروشگاه', href: '/shop' }]);
 ---
@@ -22,7 +27,7 @@ const pageSchema = breadcrumbSchema([{ name: 'فروشگاه', href: '/shop' }])
     <div class="wrap">
       <FilterBar items={filters.products} label="فیلتر محصولات" />
       <div class="shop-grid">
-        {products.map((p) => <ProductCard p={p.data} id={p.id} />)}
+        {products.map((p) => <ProductCard p={p} />)}
       </div>
     </div>
   </section>

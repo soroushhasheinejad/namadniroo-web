@@ -1,15 +1,15 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import ProjectTile from '../components/ProjectTile.astro';
 import { breadcrumbSchema, toLatinDigits } from '../utils';
+import { listProjects } from '../server/repos/content';
 
-const invested = (await getCollection('projects'))
-  .filter((p) => p.data.cat === 'invest')
-  .sort((a, b) => a.data.order - b.data.order);
+export const prerender = false;
 
-const totalMW = invested.reduce((sum, p) => sum + (parseFloat(toLatinDigits(p.data.capacity)) || 0), 0);
+const invested = (await listProjects()).filter((p) => p.cat === 'invest');
+
+const totalMW = invested.reduce((sum, p) => sum + (parseFloat(toLatinDigits(p.capacity)) || 0), 0);
 const faNum = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
 
 const pageSchema = breadcrumbSchema([{ name: 'سرمایه‌گذاری', href: '/investment' }]);
@@ -45,7 +45,7 @@ const pageSchema = breadcrumbSchema([{ name: 'سرمایه‌گذاری', href: 
         <h2 class="section-title">نیروگاه‌هایی که در آن‌ها سهیم‌ایم</h2>
       </header>
       <div class="proj-grid">
-        {invested.map((p, i) => <ProjectTile p={p.data} large={i === 0} />)}
+        {invested.map((p, i) => <ProjectTile p={p} large={i === 0} />)}
       </div>
     </div>
   </section>

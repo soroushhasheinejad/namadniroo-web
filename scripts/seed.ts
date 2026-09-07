@@ -16,8 +16,8 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { eq } from 'drizzle-orm';
 import { getDb } from '../src/server/db/client';
-import { ensureMigrated } from '../src/server/db/migrate';
-import { articles, leads, media, products, projects, settings } from '../src/server/db/schema';
+import { articles, leads, products, projects, settings } from '../src/server/db/schema';
+import { ingestImage } from '../src/server/media/store';
 import { jalaliToISO } from '../src/utils';
 import { normalizePhone } from '../src/lib/phone';
 
@@ -28,14 +28,15 @@ const root = path.resolve(import.meta.dirname, '..');
    ============================================================ */
 
 /**
- * تصاویر فعلی داخل `src/assets/` هستند و Astro در زمان بیلد بهینه‌شان
- * می‌کند. رکورد media برایشان می‌سازیم تا محتوا بتواند به آن‌ها ارجاع دهد؛
- * `key` همان مسیر نسبی است، و بعد از راه‌اندازی فضای ذخیره‌سازی، آپلودهای
- * تازه با کلید واقعی ثبت می‌شوند.
+ * تصاویر موجود در `src/assets/` را وارد خط لولهٔ رسانه می‌کند.
+ *
+ * تا امروز Astro این‌ها را در زمان بیلد بهینه می‌کرد. حالا از همان مسیری
+ * عبور می‌کنند که آپلودهای پنل عبور می‌کنند: تبدیل به WebP در چند اندازه و
+ * ذخیره روی دیسک پایدار. نتیجه یکدست است — چه تصویری که امروز در مخزن است
+ * و چه تصویری که فردا ویراستار آپلود می‌کند.
  */
 async function seedMedia(): Promise<Map<string, number>> {
-  const db = await getDb();
-  const byKey = new Map<string, number>();
+  const byFilename = new Map<string, number>();
 
   const dirs = ['src/assets', 'src/assets/products'];
   for (const dir of dirs) {
@@ -44,24 +45,21 @@ async function seedMedia(): Promise<Map<string, number>> {
 
     for (const file of await readdir(full)) {
       if (!/\.(jpe?g|png|webp)$/i.test(file)) continue;
-      const key = `${dir}/${file}`;
-      const [row] = await db
-        .insert(media)
-        .values({
-          key,
-          url: `/${key}`,
-          mime: file.endsWith('.png') ? 'image/png' : file.endsWith('.webp') ? 'image/webp' : 'image/jpeg',
-          alt: null,
-          bytes: 0,
-        })
-        .onConflictDoUpdate({ target: media.key, set: { url: `/${key}` } })
-        .returning({ id: media.id });
-      if (row) byKey.set(file, row.id);
+
+      const buffer = await readFile(path.join(full, file));
+      const mime = file.endsWith('.png')
+        ? 'image/png'
+        : file.endsWith('.webp')
+          ? 'image/webp'
+          : 'image/jpeg';
+
+      const { media: row } = await ingestImage(buffer, { filename: file, mime });
+      byFilename.set(file, row.id);
     }
   }
 
-  console.log(`رسانه: ${byKey.size} فایل ثبت شد`);
-  return byKey;
+  console.log(`رسانه: ${byFilename.size} تصویر پردازش شد`);
+  return byFilename;
 }
 
 /** `../assets/products/x.jpg` → شناسهٔ رکورد رسانه */
@@ -292,9 +290,6 @@ async function importOldLeads(): Promise<void> {
    ============================================================ */
 
 async function main(): Promise<void> {
-  await ensureMigrated();
-  console.log('ساختار دیتابیس به‌روز است');
-
   const byKey = await seedMedia();
   await seedProducts(byKey);
   await seedProjects(byKey);

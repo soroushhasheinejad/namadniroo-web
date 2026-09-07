@@ -1,67 +1,74 @@
 ---
-import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import ArticleCard from '../../components/ArticleCard.astro';
 import { categoryLabel } from '../../data/site';
-import { fa, breadcrumbSchema, jalaliToISO } from '../../utils';
+import { fa, breadcrumbSchema } from '../../utils';
+import { listArticles } from '../../server/repos/content';
+import { renderMarkdown } from '../../server/content/markdown';
 
-export async function getStaticPaths() {
-  const articles = (await getCollection('articles')).filter((a) => !a.data.draft);
-  return articles.map((a) => ({
-    params: { slug: a.id },
-    props: { article: a, all: articles },
-  }));
-}
+export const prerender = false;
 
-const { article, all } = Astro.props;
-const { Content } = await render(article);
-const d = article.data;
+const { slug } = Astro.params;
 
-const related = all
-  .filter((a: any) => a.id !== article.id && a.data.category === d.category)
-  .slice(0, 3);
+const all = await listArticles();
+const article = all.find((a) => a.slug === slug);
 
-const published = jalaliToISO(d.date);
+// نشانی نامعتبر یا مقاله‌ای که پیش‌نویس شده است
+if (!article) return Astro.rewrite('/404');
+
+/* متن مقاله و مطالب مرتبط به هم وابسته نیستند، پس با هم آماده می‌شوند. */
+const [html, related] = await Promise.all([
+  renderMarkdown(article.body),
+  Promise.resolve(
+    all.filter((a) => a.slug !== article.slug && a.category === article.category).slice(0, 3),
+  ),
+]);
+
+const published = article.publishedAt?.toISOString().slice(0, 10);
+const description = article.seoDescription || article.title;
 
 const pageSchema = [
   breadcrumbSchema([
     { name: 'مجله', href: '/magazine' },
-    { name: categoryLabel[d.category], href: '/magazine' },
-    { name: d.title, href: `/magazine/${article.id}` },
+    { name: categoryLabel[article.category], href: '/magazine' },
+    { name: article.title, href: `/magazine/${article.slug}` },
   ]),
   {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: d.title,
+    headline: article.title,
+    description,
     inLanguage: 'fa-IR',
     ...(published ? { datePublished: published } : {}),
+    dateModified: article.updatedAt.toISOString().slice(0, 10),
     author: { '@type': 'Organization', name: 'نماد نیرو' },
     publisher: { '@id': 'https://namadniroo.ir/#organization' },
-    mainEntityOfPage: `https://namadniroo.ir/magazine/${article.id}`,
-    ...(d.cover ? { image: new URL(d.cover, 'https://namadniroo.ir').href } : {}),
+    mainEntityOfPage: `https://namadniroo.ir/magazine/${article.slug}`,
+    ...(article.cover
+      ? { image: new URL(article.cover.url, 'https://namadniroo.ir').href }
+      : {}),
   },
 ];
 ---
 <Base
-  title={`${d.title} | مجلهٔ نماد نیرو`}
-  description={d.title}
-  image={d.cover}
+  title={article.seoTitle || `${article.title} | مجلهٔ نماد نیرو`}
+  description={description}
+  image={article.cover?.url}
   type="article"
   schema={pageSchema}
+  noindex={article.noindex}
 >
   <article class="article">
     <div class="wrap article-head">
       <p class="breadcrumb">
-        <a href="/">خانه</a><span>/</span><a href="/magazine">مجله</a><span>/</span>{categoryLabel[d.category]}
+        <a href="/">خانه</a><span>/</span><a href="/magazine">مجله</a><span>/</span>{categoryLabel[article.category]}
       </p>
-      <span class="mag-tag">{categoryLabel[d.category]}</span>
-      <h1 class="article-title">{d.title}</h1>
-      <p class="article-meta">{d.date} · {fa(d.readTime)} دقیقه مطالعه</p>
+      <span class="mag-tag">{categoryLabel[article.category]}</span>
+      <h1 class="article-title">{article.title}</h1>
+      <p class="article-meta">{article.dateFa} · {fa(article.readTime)} دقیقه مطالعه</p>
     </div>
 
-    <div class="wrap article-body">
-      <Content />
-    </div>
+    <div class="wrap article-body" set:html={html} />
   </article>
 
   {related.length > 0 && (
@@ -72,7 +79,7 @@ const pageSchema = [
           <h2 class="section-title">در همین دسته</h2>
         </header>
         <div class="mag-grid">
-          {related.map((a: any) => <ArticleCard a={a} />)}
+          {related.map((a) => <ArticleCard a={a} />)}
         </div>
       </div>
     </section>

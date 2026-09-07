@@ -8,7 +8,6 @@
  */
 import { eq } from 'drizzle-orm';
 import { getDb } from '../src/server/db/client';
-import { ensureMigrated } from '../src/server/db/migrate';
 import { users } from '../src/server/db/schema';
 import { hashPassword, suggestPassword } from '../src/server/auth/password';
 
@@ -26,7 +25,6 @@ if (!['admin', 'editor', 'sales'].includes(role)) {
 
 const plain = password || suggestPassword();
 
-await ensureMigrated();
 const db = await getDb();
 const passwordHash = await hashPassword(plain);
 

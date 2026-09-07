@@ -1,15 +1,15 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import FilterBar from '../components/FilterBar.astro';
 import ArticleCard from '../components/ArticleCard.astro';
 import { filters } from '../data/site';
 import { breadcrumbSchema } from '../utils';
+import { listArticles } from '../server/repos/content';
 
-const articles = (await getCollection('articles'))
-  .filter((a) => !a.data.draft)
-  .sort((a, b) => b.data.date.localeCompare(a.data.date));
+export const prerender = false;
+
+const articles = await listArticles();
 
 const pageSchema = breadcrumbSchema([{ name: 'مجله', href: '/magazine' }]);
 ---

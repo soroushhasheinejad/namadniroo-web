@@ -1,23 +1,18 @@
 ---
-import { getImage } from 'astro:assets';
+import DbImage from './DbImage.astro';
+import type { ProjectView } from '../server/repos/content';
 
-interface Props { p: any; large?: boolean }
+interface Props { p: ProjectView; large?: boolean }
 const { p, large = false } = Astro.props;
 
-/* تصویر پروژه تگ img است نه background در CSS. این کارت‌ها پایین صفحه‌اند و
-   با background هرچند دیده نمی‌شدند، مرورگر بی‌درنگ دانلودشان می‌کرد؛ حالا
-   تا کاربر به آن‌ها نرسد بارگذاری نمی‌شوند. */
-const width = large ? 900 : 600;
-const optimized = p.image
-  ? await getImage({ src: p.image, format: 'webp', width, quality: 80 })
-  : null;
-const height = p.image ? Math.round((width * p.image.height) / p.image.width) : undefined;
+/* تصویر پروژه تگ img است نه background در CSS. با background — هرچند کارت
+   پایین صفحه بود و دیده نمی‌شد — مرورگر بی‌درنگ دانلودش می‌کرد؛ حالا تا
+   کاربر به آن نرسد بارگذاری نمی‌شود. */
+const sizes = large ? '(max-width: 900px) 92vw, 640px' : '(max-width: 900px) 92vw, 420px';
 ---
 <article class:list={['proj-card', large && 'proj-lg']}>
   <div class="proj-img">
-    {optimized && (
-      <img src={optimized.src} width={width} height={height} alt="" loading="lazy" decoding="async" />
-    )}
+    {p.image && <DbImage image={p.image} sizes={sizes} decorative />}
   </div>
   <div class="proj-meta">
     <span class="proj-cap">{p.capacity} مگاوات · {p.tag}</span>

@@ -1,5 +1,4 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import FilterBar from '../components/FilterBar.astro';
@@ -7,8 +6,11 @@ import ProjectCard from '../components/ProjectCard.astro';
 import PortfolioDownload from '../components/PortfolioDownload.astro';
 import { filters } from '../data/site';
 import { breadcrumbSchema } from '../utils';
+import { listProjects } from '../server/repos/content';
 
-const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+export const prerender = false;
+
+const projects = await listProjects();
 
 const pageSchema = breadcrumbSchema([{ name: 'پروژه‌ها', href: '/projects' }]);
 ---
@@ -29,7 +31,7 @@ const pageSchema = breadcrumbSchema([{ name: 'پروژه‌ها', href: '/projec
     <div class="wrap">
       <FilterBar items={filters.projects} label="فیلتر پروژه‌ها" />
       <div class="plist">
-        {projects.map((p) => <ProjectCard p={p.data} />)}
+        {projects.map((p) => <ProjectCard p={p} />)}
       </div>
     </div>
   </section>

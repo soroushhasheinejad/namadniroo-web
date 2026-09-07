@@ -1,5 +1,4 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import HeroSlider from '../components/HeroSlider.astro';
 import Stats from '../components/Stats.astro';
@@ -10,6 +9,7 @@ import ProjectTile from '../components/ProjectTile.astro';
 import ArticleCard from '../components/ArticleCard.astro';
 import QuoteForm from '../components/QuoteForm.astro';
 import { heroImages } from '../lib/sliderImages';
+import { listArticles, listFeaturedProducts, listFeaturedProjects } from '../server/repos/content';
 
 /* پوستر اسلاید اول، بزرگ‌ترین عنصر قابل مشاهدهٔ صفحه (LCP) است. آدرسش را
    به Base می‌دهیم تا در <head> با preload اعلام شود و دانلودش هم‌زمان با
@@ -18,20 +18,15 @@ import { heroImages } from '../lib/sliderImages';
    ساخته نمی‌شود و آدرس‌ها قطعاً یکی هستند. */
 const [heroLcp] = await heroImages();
 
-const products = (await getCollection('products'))
-  .filter((p) => p.data.featured)
-  .sort((a, b) => a.data.order - b.data.order)
-  .slice(0, 4);
+export const prerender = false;
 
-const projects = (await getCollection('projects'))
-  .filter((p) => p.data.featured)
-  .sort((a, b) => a.data.order - b.data.order)
-  .slice(0, 3);
-
-const articles = (await getCollection('articles'))
-  .filter((a) => !a.data.draft)
-  .sort((a, b) => b.data.date.localeCompare(a.data.date))
-  .slice(0, 3);
+/* سه بخش صفحه به هم وابسته نیستند، پس با هم خوانده می‌شوند نه پشت سر هم —
+   وگرنه زمان رندر می‌شد مجموع سه کوئری به‌جای کندترینشان. */
+const [products, projects, articles] = await Promise.all([
+  listFeaturedProducts(4),
+  listFeaturedProjects(3),
+  listArticles().then((all) => all.slice(0, 3)),
+]);
 
 const homeSchema = [
   {
@@ -77,7 +72,7 @@ const homeSchema = [
     <div class="wrap">
       <SectionHead eyebrow="فروشگاه تجهیزات" title="اینورترها و پنل‌های خورشیدی" moreHref="/shop" />
       <div class="products">
-        {products.map((p) => <ProductCard p={p.data} id={p.id} showCat={false} />)}
+        {products.map((p) => <ProductCard p={p} showCat={false} />)}
       </div>
     </div>
   </section>
@@ -86,7 +81,7 @@ const homeSchema = [
     <div class="wrap">
       <SectionHead eyebrow="نمونه‌کارها" title="از کویر تا خط تولید" moreHref="/projects" moreLabel="همهٔ پروژه‌ها" />
       <div class="proj-grid">
-        {projects.map((p, i) => <ProjectTile p={p.data} large={i === 0} />)}
+        {projects.map((p, i) => <ProjectTile p={p} large={i === 0} />)}
       </div>
     </div>
   </section>

@@ -61,17 +61,35 @@ async function connect(): Promise<Database> {
 }
 
 /**
- * اتصال مشترک. اولین فراخوانی اتصال را می‌سازد و بقیه همان را می‌گیرند —
- * از جمله فراخوانی‌های هم‌زمان، که همگی منتظر همان یک Promise می‌مانند تا
- * دو استخر اتصال ساخته نشود.
+ * اتصال مشترک، با ساختار به‌روزشده.
+ *
+ * اولین فراخوانی اتصال را می‌سازد و مایگریشن‌ها را اجرا می‌کند؛ بقیه همان را
+ * می‌گیرند — از جمله فراخوانی‌های هم‌زمان، که همگی منتظر همان یک Promise
+ * می‌مانند تا دو استخر اتصال ساخته نشود.
+ *
+ * مایگریشن اینجا انجام می‌شود و نه هنگام بالا آمدن اپ، چون آن‌وقت حتی
+ * ساختن صفحات ثابت در زمان بیلد هم به دیتابیس وصل می‌شد. این‌طوری فقط
+ * چیزی که واقعاً به داده نیاز دارد اتصال را برقرار می‌کند.
  */
 export function getDb(): Promise<Database> {
   if (instance) return Promise.resolve(instance);
-  connecting ??= connect().then((db) => {
-    instance = db;
-    connecting = null;
-    return db;
-  });
+
+  connecting ??= connect()
+    .then(async (db) => {
+      const { runMigrations } = await import('./migrate');
+      const applied = await runMigrations(db as never);
+      if (applied > 0) console.log(`[db] ${applied} مایگریشن اجرا شد`);
+
+      instance = db;
+      connecting = null;
+      return db;
+    })
+    .catch((err) => {
+      // اجازه می‌دهیم درخواست بعدی دوباره تلاش کند
+      connecting = null;
+      throw err;
+    });
+
   return connecting;
 }
 

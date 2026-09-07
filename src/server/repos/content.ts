@@ -16,6 +16,8 @@ import { TAGS, cached, invalidate } from '../cache';
 
 /** تصویر به شکلی که قالب‌ها لازم دارند */
 export interface ImageRef {
+  /** کلید فایل — برای ساختن srcset لازم است */
+  key: string;
   url: string;
   alt: string;
   width: number | null;
@@ -63,6 +65,7 @@ export function listProducts(): Promise<ProductView[]> {
         seoDescription: products.seoDescription,
         noindex: products.noindex,
         updatedAt: products.updatedAt,
+        imageKey: media.key,
         imageUrl: media.url,
         imageAlt: media.alt,
         imageWidth: media.width,
@@ -140,6 +143,7 @@ export function listProjects(): Promise<ProjectView[]> {
         note: projects.note,
         featured: projects.featured,
         updatedAt: projects.updatedAt,
+        imageKey: media.key,
         imageUrl: media.url,
         imageAlt: media.alt,
         imageWidth: media.width,
@@ -208,6 +212,7 @@ export function listArticles(): Promise<ArticleView[]> {
         seoDescription: articles.seoDescription,
         noindex: articles.noindex,
         updatedAt: articles.updatedAt,
+        imageKey: media.key,
         imageUrl: media.url,
         imageAlt: media.alt,
         imageWidth: media.width,
@@ -288,6 +293,7 @@ export async function setSetting(key: string, value: unknown, userId?: number): 
 function toImageRef(row: Record<string, any>, fallbackAlt: string): ImageRef | null {
   if (!row.imageUrl) return null;
   return {
+    key: row.imageKey,
     url: row.imageUrl,
     // اگر ویراستار alt ننوشته، نام رکورد بهتر از رشتهٔ خالی است
     alt: row.imageAlt || fallbackAlt,

@@ -1,7 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 
-import sitemap from '@astrojs/sitemap';
 import node from '@astrojs/node';
 import pruneUnusedAssets from './src/integrations/prune-unused-assets';
 
@@ -36,24 +35,6 @@ export default defineConfig({
   },
 
   integrations: [
-    sitemap({
-      // صفحهٔ ۴۰۴ و مسیرهای غیرمحتوایی نباید در نقشهٔ سایت بیایند
-      filter: (page) =>
-        !page.includes('/404') && !page.includes('/leads') && !page.includes('/health'),
-      changefreq: 'weekly',
-      lastmod: new Date(),
-
-      // افزونه آدرس‌ها را با اسلش انتهایی می‌سازد؛ اینجا حذفش می‌کنیم تا
-      // دقیقاً هم‌شکل تگ canonical باشند و گوگل مجبور به دنبال‌کردن ریدایرکت نشود.
-      serialize(item) {
-        const url = new URL(item.url);
-        if (url.pathname !== '/') {
-          url.pathname = url.pathname.replace(/\/+$/, '');
-        }
-        item.url = url.href;
-        return item;
-      },
-    }),
 
     /* نسخهٔ اصلی تصاویری که فقط شکل بهینه‌شدهٔ آن‌ها استفاده می‌شود از خروجی
        پاک می‌شود — بدون این کار حدود ۳٫۵ مگابایت JPG بی‌مصرف دیپلوی می‌شد. */
