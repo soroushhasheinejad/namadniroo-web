@@ -11,14 +11,30 @@ import { getDb } from '../src/server/db/client';
 import { users } from '../src/server/db/schema';
 import { hashPassword, suggestPassword } from '../src/server/auth/password';
 
-const [email, name, role = 'admin', password] = process.argv.slice(2);
+/* نقش و رمز از انتها برداشته می‌شوند و هرچه می‌ماند نام است.
+   دلیلش این است که نام معمولاً چند کلمه است و وقتی این اسکریپت از راه دور
+   اجرا می‌شود (`liara shell`) نقل‌قول‌ها به‌درستی عبور نمی‌کنند و نام تکه
+   می‌شود. این‌طور دیگر به نقل‌قول وابسته نیست. */
+const argv = process.argv.slice(2);
+const email = argv.shift();
+
+const ROLES = ['admin', 'editor', 'sales'] as const;
+
+let password: string | undefined;
+let role = 'admin';
+
+// آخرین آرگومان اگر نقش نبود، رمز است
+if (argv.length > 1 && !ROLES.includes(argv.at(-1) as never)) password = argv.pop();
+if (argv.length > 1 && ROLES.includes(argv.at(-1) as never)) role = argv.pop()!;
+
+const name = argv.join(' ').trim();
 
 if (!email || !name) {
   console.error('استفاده: npm run db:admin -- <ایمیل> "<نام>" [admin|editor|sales] [رمز]');
   process.exit(1);
 }
 
-if (!['admin', 'editor', 'sales'].includes(role)) {
+if (!ROLES.includes(role as never)) {
   console.error(`نقش نامعتبر: ${role} — یکی از admin، editor یا sales`);
   process.exit(1);
 }
