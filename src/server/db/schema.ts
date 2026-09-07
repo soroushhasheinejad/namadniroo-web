@@ -1,14 +1,5 @@
-import {
-  boolean,
-  index,
-  integer,
-  jsonb,
-  pgTable,
-  serial,
-  text,
-  timestamp,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
 
 /**
  * ساختار دیتابیس — منبع حقیقت.
@@ -16,28 +7,37 @@ import {
  * تایپ‌های TypeScript از همین‌جا استخراج می‌شوند، پس اگر ستونی عوض شود،
  * هر جای کد که با آن کار می‌کند در زمان کامپایل خطا می‌دهد نه در زمان اجرا.
  *
- * قرارداد نام‌گذاری: نام ستون‌ها snake_case (رسم Postgres) و نام فیلدها در
- * کد camelCase (رسم TypeScript).
+ * موتور SQLite است (از طریق libSQL) و فایلش روی دیسک پایدار می‌نشیند.
+ * برای این حجم داده — چند هزار رکورد محتوا و لید، با خواندن بسیار بیشتر از
+ * نوشتن — از یک دیتابیس شبکه‌ای سریع‌تر هم هست، چون کوئری بدون رفت‌وبرگشت
+ * شبکه انجام می‌شود.
+ *
+ * قرارداد نام‌گذاری: نام ستون‌ها snake_case و نام فیلدها در کد camelCase.
  */
+
+/** تاریخ‌ها به‌صورت عدد (ثانیهٔ یونیکس) ذخیره می‌شوند و به Date تبدیل می‌گردند */
+const timestamp = (name: string) => integer(name, { mode: 'timestamp' });
+const now = () => sql`(unixepoch())`;
+const bool = (name: string) => integer(name, { mode: 'boolean' });
 
 /* ============================================================
    کاربران و ورود
    ============================================================ */
 
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
+export const users = sqliteTable('users', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
   email: text('email').notNull().unique(),
   name: text('name').notNull(),
-  /** هش argon2 — رمز خام هرگز ذخیره نمی‌شود */
+  /** هش scrypt — رمز خام هرگز ذخیره نمی‌شود */
   passwordHash: text('password_hash').notNull(),
   /** admin: همه‌چیز · editor: محتوا · sales: فقط لیدها */
   role: text('role', { enum: ['admin', 'editor', 'sales'] }).notNull().default('editor'),
-  active: boolean('active').notNull().default(true),
-  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  active: bool('active').notNull().default(true),
+  lastLoginAt: timestamp('last_login_at'),
+  createdAt: timestamp('created_at').notNull().default(now()),
 });
 
-export const sessions = pgTable(
+export const sessions = sqliteTable(
   'sessions',
   {
     /** شناسهٔ تصادفی که در کوکی می‌نشیند */
@@ -45,8 +45,8 @@ export const sessions = pgTable(
     userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').notNull().default(now()),
   },
   (t) => [index('sessions_user_idx').on(t.userId)],
 );
@@ -55,9 +55,9 @@ export const sessions = pgTable(
    رسانه
    ============================================================ */
 
-export const media = pgTable('media', {
-  id: serial('id').primaryKey(),
-  /** کلید فایل در فضای ذخیره‌سازی */
+export const media = sqliteTable('media', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  /** کلید فایل در فضای ذخیره‌سازی — از محتوای خود فایل ساخته می‌شود */
   key: text('key').notNull().unique(),
   /** آدرس قابل نمایش */
   url: text('url').notNull(),
@@ -80,7 +80,7 @@ export const media = pgTable('media', {
    */
   alt: text('alt'),
   uploadedBy: integer('uploaded_by').references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at').notNull().default(now()),
 });
 
 /* ============================================================
@@ -100,21 +100,21 @@ const seoColumns = () => ({
   ogMediaId: integer('og_media_id'),
   /** فقط در موارد خاص پر می‌شود؛ در حالت عادی canonical خودکار است */
   canonicalOverride: text('canonical_override'),
-  noindex: boolean('noindex').notNull().default(false),
+  noindex: bool('noindex').notNull().default(false),
 });
 
 const contentColumns = () => ({
-  published: boolean('published').notNull().default(true),
+  published: bool('published').notNull().default(true),
   sortOrder: integer('sort_order').notNull().default(999),
-  featured: boolean('featured').notNull().default(false),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  featured: bool('featured').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().default(now()),
+  updatedAt: timestamp('updated_at').notNull().default(now()),
 });
 
-export const products = pgTable(
+export const products = sqliteTable(
   'products',
   {
-    id: serial('id').primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
     slug: text('slug').notNull(),
     name: text('name').notNull(),
     brand: text('brand').notNull(),
@@ -130,20 +130,17 @@ export const products = pgTable(
     /* --- فاز فروش آنلاین: ساختار آماده است، هنوز استفاده نمی‌شود --- */
     price: integer('price'),
     sku: text('sku'),
-    inStock: boolean('in_stock'),
+    inStock: bool('in_stock'),
     ...contentColumns(),
     ...seoColumns(),
   },
-  (t) => [
-    uniqueIndex('products_slug_idx').on(t.slug),
-    index('products_cat_idx').on(t.cat),
-  ],
+  (t) => [uniqueIndex('products_slug_idx').on(t.slug), index('products_cat_idx').on(t.cat)],
 );
 
-export const projects = pgTable(
+export const projects = sqliteTable(
   'projects',
   {
-    id: serial('id').primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
     slug: text('slug').notNull(),
     /** نام کارفرما */
     name: text('name').notNull(),
@@ -159,10 +156,10 @@ export const projects = pgTable(
   (t) => [uniqueIndex('projects_slug_idx').on(t.slug)],
 );
 
-export const articles = pgTable(
+export const articles = sqliteTable(
   'articles',
   {
-    id: serial('id').primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
     slug: text('slug').notNull(),
     title: text('title').notNull(),
     category: text('category', { enum: ['edu', 'market', 'news'] }).notNull(),
@@ -171,7 +168,7 @@ export const articles = pgTable(
     /** تاریخ نمایشی شمسی، همان شکلی که در سایت دیده می‌شود */
     dateFa: text('date_fa').notNull(),
     /** همان تاریخ به میلادی، برای مرتب‌سازی و داده‌های ساختاریافته */
-    publishedAt: timestamp('published_at', { withTimezone: true }),
+    publishedAt: timestamp('published_at'),
     readTime: integer('read_time').notNull().default(5),
     coverMediaId: integer('cover_media_id'),
     ...contentColumns(),
@@ -186,14 +183,14 @@ export const articles = pgTable(
 /**
  * متن‌های ثابت سایت — منو، آمار، برندها، حوزه‌ها، شمارهٔ تماس.
  *
- * به‌جای یک جدول برای هر کدام، یک جدول کلید-مقدار با ستون jsonb: این داده‌ها
+ * به‌جای یک جدول برای هر کدام، یک جدول کلید-مقدار با ستون JSON: این داده‌ها
  * شکل‌های خیلی متفاوتی دارند، به‌ندرت کوئری‌ای روی محتوایشان زده می‌شود و
  * همیشه یک‌جا خوانده می‌شوند. ساختن ده جدول برایشان پیچیدگی بی‌فایده بود.
  */
-export const settings = pgTable('settings', {
+export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
-  value: jsonb('value').notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  value: text('value', { mode: 'json' }).notNull(),
+  updatedAt: timestamp('updated_at').notNull().default(now()),
   updatedBy: integer('updated_by').references(() => users.id, { onDelete: 'set null' }),
 });
 
@@ -201,10 +198,10 @@ export const settings = pgTable('settings', {
    لیدها
    ============================================================ */
 
-export const leads = pgTable(
+export const leads = sqliteTable(
   'leads',
   {
-    id: serial('id').primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name').notNull(),
     /** همان چیزی که کاربر تایپ کرده */
     phone: text('phone').notNull(),
@@ -222,8 +219,8 @@ export const leads = pgTable(
       .default('new'),
     assignedTo: integer('assigned_to').references(() => users.id, { onDelete: 'set null' }),
     notes: text('notes'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at').notNull().default(now()),
+    updatedAt: timestamp('updated_at').notNull().default(now()),
   },
   (t) => [
     // پنل همیشه بر اساس تاریخ مرتب می‌کند و اغلب بر اساس وضعیت فیلتر
@@ -245,18 +242,18 @@ export const leads = pgTable(
  * لید با `emailed:false` می‌ماند و هیچ‌وقت دوباره تلاش نمی‌شد. حالا تلاش
  * مجدد با فاصلهٔ فزاینده انجام می‌شود و پاسخ فرم هم منتظر SMTP نمی‌ماند.
  */
-export const outbox = pgTable(
+export const outbox = sqliteTable(
   'outbox',
   {
-    id: serial('id').primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
     kind: text('kind', { enum: ['email'] }).notNull().default('email'),
-    payload: jsonb('payload').notNull(),
+    payload: text('payload', { mode: 'json' }).notNull(),
     attempts: integer('attempts').notNull().default(0),
     /** قبل از این زمان تلاش نمی‌شود — مبنای backoff */
-    nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull().defaultNow(),
-    sentAt: timestamp('sent_at', { withTimezone: true }),
+    nextAttemptAt: timestamp('next_attempt_at').notNull().default(now()),
+    sentAt: timestamp('sent_at'),
     lastError: text('last_error'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at').notNull().default(now()),
   },
   (t) => [index('outbox_pending_idx').on(t.sentAt, t.nextAttemptAt)],
 );
@@ -273,33 +270,33 @@ export const outbox = pgTable(
  * نشکنند. اگر این کار به کامیت و دیپلوی نیاز داشته باشد، در عمل انجام
  * نمی‌شود.
  */
-export const redirects = pgTable(
+export const redirects = sqliteTable(
   'redirects',
   {
-    id: serial('id').primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
     fromPath: text('from_path').notNull(),
     toPath: text('to_path').notNull(),
     statusCode: integer('status_code').notNull().default(301),
     /** true یعنی خودکار هنگام تغییر slug ساخته شده، نه دستی */
-    auto: boolean('auto').notNull().default(false),
+    auto: bool('auto').notNull().default(false),
     hits: integer('hits').notNull().default(0),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at').notNull().default(now()),
   },
   (t) => [uniqueIndex('redirects_from_idx').on(t.fromPath)],
 );
 
-export const auditLog = pgTable(
+export const auditLog = sqliteTable(
   'audit_log',
   {
-    id: serial('id').primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
     userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
     /** نام جدول، مثل `products` */
     entity: text('entity').notNull(),
     entityId: text('entity_id'),
     action: text('action', { enum: ['create', 'update', 'delete', 'login'] }).notNull(),
     /** فقط فیلدهای تغییرکرده، به شکل { field: [قبل, بعد] } */
-    diff: jsonb('diff'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    diff: text('diff', { mode: 'json' }),
+    createdAt: timestamp('created_at').notNull().default(now()),
   },
   (t) => [index('audit_entity_idx').on(t.entity, t.entityId)],
 );

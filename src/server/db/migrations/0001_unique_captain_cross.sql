@@ -1,1 +1,0 @@
-ALTER TABLE "media" ADD COLUMN "original_name" text;

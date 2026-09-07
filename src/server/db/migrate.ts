@@ -60,23 +60,21 @@ function statements(source: string): string[] {
     .filter(Boolean);
 }
 
-export async function runMigrations(db: {
-  execute: (query: ReturnType<typeof sql>) => Promise<unknown>;
-}): Promise<number> {
-  await db.execute(
+interface Runner {
+  run: (query: ReturnType<typeof sql>) => Promise<unknown>;
+  all: <T>(query: ReturnType<typeof sql>) => Promise<T[]>;
+}
+
+export async function runMigrations(db: Runner): Promise<number> {
+  await db.run(
     sql.raw(`create table if not exists ${HISTORY_TABLE} (
       name text primary key,
-      applied_at timestamptz not null default now()
+      applied_at integer not null default (unixepoch())
     )`),
   );
 
-  const applied = (await db.execute(sql.raw(`select name from ${HISTORY_TABLE}`))) as
-    | { rows?: { name: string }[] }
-    | { name: string }[];
-
-  // شکل خروجی بین درایور Postgres و PGlite فرق دارد
-  const rows = Array.isArray(applied) ? applied : (applied.rows ?? []);
-  const done = new Set(rows.map((r) => r.name));
+  const applied = await db.all<{ name: string }>(sql.raw(`select name from ${HISTORY_TABLE}`));
+  const done = new Set(applied.map((r) => r.name));
   const files = await loadMigrations();
 
   // ترتیب اجرا بر اساس نام فایل است؛ drizzle آن‌ها را با شمارهٔ ابتدایی می‌سازد
@@ -87,9 +85,9 @@ export async function runMigrations(db: {
   for (const path of pending) {
     const name = path.split('/').pop()!;
     for (const statement of statements(files[path]!)) {
-      await db.execute(sql.raw(statement));
+      await db.run(sql.raw(statement));
     }
-    await db.execute(sql`insert into ${sql.identifier(HISTORY_TABLE)} (name) values (${name})`);
+    await db.run(sql`insert into ${sql.identifier(HISTORY_TABLE)} (name) values (${name})`);
   }
 
   return pending.length;

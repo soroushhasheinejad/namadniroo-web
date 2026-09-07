@@ -10,21 +10,20 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "db:admin": "tsx scripts/create-admin.ts"
+    "db:admin": "tsx scripts/create-admin.ts",
+    "db:backup": "tsx scripts/backup.ts"
   },
   "dependencies": {
     "@astrojs/node": "^9.5.5",
-    "@astrojs/sitemap": "^3.7.3",
-    "@electric-sql/pglite": "^0.5.8",
+    "@libsql/client": "^0.18.0",
     "astro": "^5.18.2",
     "drizzle-orm": "^0.45.2",
     "nodemailer": "^9.0.6",
-    "postgres": "^3.4.9"
+    "tsx": "^4.23.13"
   },
   "devDependencies": {
     "@types/nodemailer": "^8.0.1",
     "drizzle-kit": "^0.31.10",
-    "tsx": "^4.23.13",
     "vitest": "^5.0.0"
   }
 }

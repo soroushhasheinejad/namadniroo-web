@@ -312,16 +312,16 @@ export function contentLastModified(): Promise<Date> {
     [TAGS.products, TAGS.projects, TAGS.articles, TAGS.settings],
     async () => {
       const db = await getDb();
-      const [row] = await db
-        .select({
-          at: sql<Date>`greatest(
-            coalesce((select max(updated_at) from products), to_timestamp(0)),
-            coalesce((select max(updated_at) from projects), to_timestamp(0)),
-            coalesce((select max(updated_at) from articles), to_timestamp(0))
-          )`,
-        })
-        .from(sql`(select 1) as t`);
-      return row?.at ? new Date(row.at) : new Date();
+      /* در SQLite تابع `max` با چند آرگومان بزرگ‌ترین را برمی‌گرداند (معادل
+         `greatest` در Postgres). تاریخ‌ها عدد ثانیه‌اند، پس مقایسه و
+         `coalesce` روی همان عدد انجام می‌شود. */
+      const [row] = await db.all<{ at: number | null }>(sql`select max(
+        coalesce((select max(updated_at) from products), 0),
+        coalesce((select max(updated_at) from projects), 0),
+        coalesce((select max(updated_at) from articles), 0)
+      ) as at`);
+
+      return row?.at ? new Date(row.at * 1000) : new Date();
     },
   );
 }

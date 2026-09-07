@@ -20,7 +20,7 @@ export const GET: APIRoute = async () => {
 
   try {
     const db = await getDb();
-    await db.execute(sql`select 1`);
+    await db.get(sql`select 1`);
     checks.database = 'ok';
   } catch (err) {
     healthy = false;

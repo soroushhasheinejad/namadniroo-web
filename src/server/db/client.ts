@@ -1,63 +1,48 @@
-import type { PgDatabase } from 'drizzle-orm/pg-core';
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
+import { drizzle } from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
 import * as schema from './schema';
 
 /**
  * اتصال به دیتابیس.
  *
- * دو حالت دارد و انتخاب بین آن‌ها خودکار است:
+ * موتور SQLite است و کل دیتابیس یک فایل روی دیسک پایدار. برای این سایت
+ * انتخاب درستی است: حجم داده کم است، خواندن بسیار بیشتر از نوشتن است، و
+ * کوئری بدون رفت‌وبرگشت شبکه انجام می‌شود — یعنی سریع‌تر از یک دیتابیس
+ * شبکه‌ای، بدون هزینهٔ ماهانهٔ جداگانه.
  *
- * - اگر `DATABASE_URL` تعریف شده باشد → Postgres واقعی (روی سرور).
- * - اگر تعریف نشده باشد → PGlite، یعنی همان Postgres که به WebAssembly
- *   کامپایل شده و داده را در یک پوشهٔ محلی نگه می‌دارد.
+ * محدودیتی که باید بدانید: بکاپ خودکار ندارد. فایل دیتابیس باید دوره‌ای
+ * کپی شود (بخش بکاپ در DEPLOY.md).
  *
- * دلیل حالت دوم: کسی که مخزن را تازه clone می‌کند باید فقط با
- * `npm install && npm run dev` سایت را ببیند، بدون نصب Postgres. چون PGlite
- * واقعاً Postgres است (نه یک شبیه‌ساز مثل SQLite)، همان مایگریشن‌ها و همان
- * SQL در هر دو حالت اجرا می‌شود و رفتار محیط توسعه با سرور یکی می‌ماند.
+ * محیط توسعه و سرور دقیقاً یک موتور را اجرا می‌کنند؛ فقط مسیر فایل فرق
+ * می‌کند.
  */
 
-type Database = PgDatabase<any, typeof schema>;
+export function databaseFile(): string {
+  return process.env.DATABASE_PATH ?? './.data/namadniroo.db';
+}
+
+type Database = ReturnType<typeof drizzle<typeof schema>>;
 
 let instance: Database | null = null;
 let connecting: Promise<Database> | null = null;
 
 async function connect(): Promise<Database> {
-  const url = process.env.DATABASE_URL;
+  const file = path.resolve(databaseFile());
+  mkdirSync(path.dirname(file), { recursive: true });
 
-  if (url) {
-    const [{ drizzle }, postgres] = await Promise.all([
-      import('drizzle-orm/postgres-js'),
-      import('postgres').then((m) => m.default),
-    ]);
+  const client = createClient({ url: `file:${file}` });
 
-    /* سقف اتصال‌ها پایین نگه داشته شده: این اپ روی یک نمونه اجرا می‌شود و
-       دیتابیس‌های مدیریت‌شده سقف اتصال محدودی دارند. */
-    const sql = postgres(url, {
-      max: 8,
-      idle_timeout: 30,
-      connect_timeout: 10,
-      // درایور به‌طور پیش‌فرض روی خطای اتصال کل پروسه را نمی‌خواباند؛
-      // خطا به لایهٔ بالا برمی‌گردد و آنجا لاگ می‌شود.
-      onnotice: () => {},
-    });
+  /* WAL باعث می‌شود خواندن و نوشتن هم‌زمان همدیگر را بلوکه نکنند — بدون آن،
+     یک ذخیره در پنل می‌توانست چند بازدیدکننده را لحظه‌ای معطل کند.
+     `foreign_keys` در SQLite به‌صورت پیش‌فرض خاموش است و باید در هر اتصال
+     روشن شود، وگرنه ارجاع‌های تعریف‌شده در اسکیما رعایت نمی‌شوند. */
+  await client.execute('PRAGMA journal_mode = WAL');
+  await client.execute('PRAGMA foreign_keys = ON');
+  await client.execute('PRAGMA busy_timeout = 5000');
 
-    return drizzle(sql, { schema }) as unknown as Database;
-  }
-
-  const [{ PGlite }, { drizzle }] = await Promise.all([
-    import('@electric-sql/pglite'),
-    import('drizzle-orm/pglite'),
-  ]);
-
-  const dataDir = process.env.PGLITE_DIR ?? './.data/pglite';
-
-  // PGlite فقط پوشهٔ خودش را می‌سازد، نه مسیر والد را
-  const { mkdirSync } = await import('node:fs');
-  const { dirname } = await import('node:path');
-  mkdirSync(dirname(dataDir), { recursive: true });
-
-  const client = new PGlite(dataDir);
-  return drizzle(client, { schema }) as unknown as Database;
+  return drizzle(client, { schema });
 }
 
 /**
@@ -65,7 +50,7 @@ async function connect(): Promise<Database> {
  *
  * اولین فراخوانی اتصال را می‌سازد و مایگریشن‌ها را اجرا می‌کند؛ بقیه همان را
  * می‌گیرند — از جمله فراخوانی‌های هم‌زمان، که همگی منتظر همان یک Promise
- * می‌مانند تا دو استخر اتصال ساخته نشود.
+ * می‌مانند تا دو اتصال ساخته نشود.
  *
  * مایگریشن اینجا انجام می‌شود و نه هنگام بالا آمدن اپ، چون آن‌وقت حتی
  * ساختن صفحات ثابت در زمان بیلد هم به دیتابیس وصل می‌شد. این‌طوری فقط
@@ -77,7 +62,7 @@ export function getDb(): Promise<Database> {
   connecting ??= connect()
     .then(async (db) => {
       const { runMigrations } = await import('./migrate');
-      const applied = await runMigrations(db as never);
+      const applied = await runMigrations(db);
       if (applied > 0) console.log(`[db] ${applied} مایگریشن اجرا شد`);
 
       instance = db;

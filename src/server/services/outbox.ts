@@ -120,15 +120,15 @@ export async function outboxStatus(): Promise<OutboxStatus> {
 
   const [[pending], [failed], [sentToday]] = await Promise.all([
     db
-      .select({ value: sql<number>`count(*)::int` })
+      .select({ value: sql<number>`count(*)` })
       .from(outbox)
       .where(and(isNull(outbox.sentAt), sql`${outbox.attempts} < ${MAX_ATTEMPTS}`)),
     db
-      .select({ value: sql<number>`count(*)::int` })
+      .select({ value: sql<number>`count(*)` })
       .from(outbox)
       .where(and(isNull(outbox.sentAt), sql`${outbox.attempts} >= ${MAX_ATTEMPTS}`)),
     db
-      .select({ value: sql<number>`count(*)::int` })
+      .select({ value: sql<number>`count(*)` })
       .from(outbox)
       .where(sql`${outbox.sentAt} >= ${startOfDay}`),
   ]);

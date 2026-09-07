@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, ilike, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, like, or, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { leads, type Lead, type LeadStatus, type NewLead } from '../db/schema';
 import { normalizePhone } from '../../lib/phone';
@@ -43,7 +43,8 @@ function buildFilter(query: LeadQuery) {
   if (query.q?.trim()) {
     const raw = query.q.trim();
     const term = `%${raw}%`;
-    const matches = [ilike(leads.name, term), ilike(leads.phone, term)];
+    // در SQLite، LIKE برای حروف لاتین به بزرگی و کوچکی حساس نیست
+    const matches = [like(leads.name, term), like(leads.phone, term)];
 
     /* شماره‌ها به همان شکلی ذخیره می‌شوند که کاربر تایپ کرده — که اغلب با
        ارقام فارسی است. پس جست‌وجوی «۰۹۱۲…» با تایپ لاتین هیچ‌وقت نتیجه
@@ -51,7 +52,7 @@ function buildFilter(query: LeadQuery) {
        بررسی می‌شود و هر دو نگارش پیدا می‌شوند. */
     const normalized = normalizePhone(raw);
     if (normalized) matches.push(eq(leads.phoneNormalized, normalized));
-    else matches.push(ilike(leads.phoneNormalized, term));
+    else matches.push(like(leads.phoneNormalized, term));
 
     clauses.push(or(...matches));
   }

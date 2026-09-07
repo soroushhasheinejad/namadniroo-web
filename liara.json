@@ -11,14 +11,15 @@
   },
   "disks": [
     {
-      "name": "media",
-      "mountTo": "/media"
+      "name": "data",
+      "mountTo": "/data"
     }
   ],
   "envs": {
     "HOST": "0.0.0.0",
     "PORT": "3000",
-    "MEDIA_DIR": "/media"
+    "DATABASE_PATH": "/data/namadniroo.db",
+    "MEDIA_DIR": "/data/media"
   },
   "healthCheck": {
     "command": "CMD curl --fail http://localhost:3000/health || exit 1",
