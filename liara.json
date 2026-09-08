@@ -20,12 +20,5 @@
     "PORT": "3000",
     "DATABASE_PATH": "/data/namadniroo.db",
     "MEDIA_DIR": "/data/media"
-  },
-  "healthCheck": {
-    "command": "CMD-SHELL curl -fsS -m 5 http://127.0.0.1:3000/ping || exit 1",
-    "interval": 30,
-    "timeout": 10,
-    "retries": 5,
-    "startPeriod": 90
   }
 }

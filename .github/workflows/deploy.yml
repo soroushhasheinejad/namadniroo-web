@@ -23,11 +23,12 @@ jobs:
           node-version: 22
           cache: npm
 
-      # ساخت محلی روی رانر، فقط برای اینکه اگر کد خطا دارد
+      # بیلد و تست روی رانر، تا اگر کد خطا دارد
       # پیش از فرستادن به لیارا مشخص شود.
-      - name: Install & build (sanity check)
+      - name: Install, test & build
         run: |
           npm ci
+          npm test
           npm run build
 
       # توکن در Settings → Secrets and variables → Actions تعریف می‌شود
@@ -44,3 +45,21 @@ jobs:
             --build-location iran \
             --no-app-logs \
             --message "deploy ${GITHUB_SHA::7} from GitHub Actions"
+
+      # لیارا سازوکار healthCheck خودش را دارد، ولی روی این اپ نسخه‌های
+      # کاملاً سالم را هم ناسالم اعلام می‌کرد و برمی‌گرداند. پس تأیید سلامت
+      # اینجا انجام می‌شود: اگر نسخهٔ تازه بالا نیامده باشد یا دیتابیس و
+      # دیسکش در دسترس نباشد، همین مرحله قرمز می‌شود و خبردار می‌شویم.
+      - name: Verify the deployment is healthy
+        run: |
+          for i in $(seq 1 20); do
+            body=$(curl -fsS -m 15 https://namadniroo.ir/health || true)
+            case "$body" in
+              *'"status":"ok"'*) echo "$body"; exit 0 ;;
+            esac
+            echo "هنوز آماده نیست (تلاش $i)"
+            sleep 15
+          done
+          echo "نسخهٔ تازه سالم پاسخ نداد:"
+          curl -s -m 15 https://namadniroo.ir/health || true
+          exit 1
