@@ -19,6 +19,8 @@ export interface QuoteInput {
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
+  /** خلاصهٔ برآورد ماشین‌حساب، اگر لید از آن صفحه آمده باشد */
+  estimate?: string;
 }
 
 export type ValidationResult =
@@ -26,11 +28,11 @@ export type ValidationResult =
   | { ok: false; message: string; status: 400 | 422 };
 
 /** حذف شکست خط (تا هدر ایمیل تزریق نشود) و کوتاه‌کردن به سقف مجاز */
-export function clean(value: unknown): string {
+export function clean(value: unknown, limit: number = MAX_FIELD): string {
   return String(value ?? '')
     .replace(/[\r\n]+/g, ' ')
     .trim()
-    .slice(0, MAX_FIELD);
+    .slice(0, limit);
 }
 
 export function validateQuote(body: Record<string, unknown>): ValidationResult {
@@ -62,6 +64,9 @@ export function validateQuote(body: Record<string, unknown>): ValidationResult {
       utmSource: clean(body.utm_source) || undefined,
       utmMedium: clean(body.utm_medium) || undefined,
       utmCampaign: clean(body.utm_campaign) || undefined,
+      /* سقف بلندتر از بقیهٔ فیلدها چون یک جملهٔ کامل است، ولی همچنان
+         محدود — این متن از سمت کاربر می‌آید. */
+      estimate: clean(body.estimate, 400) || undefined,
     },
   };
 }

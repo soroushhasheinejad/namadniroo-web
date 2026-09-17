@@ -8,6 +8,13 @@
       "when": 1788807894072,
       "tag": "0000_loving_ares",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789636858150,
+      "tag": "0001_mean_boom_boom",
+      "breakpoints": true
     }
   ]
 }

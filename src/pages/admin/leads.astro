@@ -44,13 +44,14 @@ if (params.get('export') === 'csv') {
   const csv =
     '﻿' + // تا اکسل فارسی را درست باز کند
     [
-      ['تاریخ ثبت', 'نام', 'تلفن', 'تلفن یکتا', 'ظرفیت', 'حوزه', 'مبدأ', 'وضعیت', 'یادداشت'],
+      ['تاریخ ثبت', 'نام', 'تلفن', 'تلفن یکتا', 'ظرفیت', 'برآورد', 'حوزه', 'مبدأ', 'وضعیت', 'یادداشت'],
       ...rows.map((l) => [
         l.createdAt.toISOString(),
         l.name,
         l.phone,
         l.phoneNormalized,
         l.capacity,
+        l.estimate,
         l.area,
         l.source,
         l.status,
@@ -131,6 +132,12 @@ const statusLabel = Object.fromEntries(STATUSES.map((s) => [s.key, s.label]));
               {l.capacity && <> · ظرفیت: {l.capacity}</>}
             </p>
             {l.source && <p class="a-hint" dir="ltr" style="margin-top:2px">مبدأ: {l.source}</p>}
+            {l.estimate && (
+              <p class="a-estimate">
+                <span>برآوردی که خودش دیده بود</span>
+                {l.estimate}
+              </p>
+            )}
             {(l.utmSource || l.utmCampaign) && (
               <p class="a-hint" dir="ltr" style="margin-top:2px">
                 کمپین: {[l.utmSource, l.utmMedium, l.utmCampaign].filter(Boolean).join(' / ')}
@@ -177,3 +184,24 @@ const statusLabel = Object.fromEntries(STATUSES.map((s) => [s.key, s.label]));
     </nav>
   )}
 </Admin>
+
+<style>
+  /* برآوردی که خود کاربر در ماشین‌حساب دیده بود — عمداً از یادداشت تیم
+     فروش جدا و کم‌رنگ‌تر است تا معلوم باشد این متن را کاربر تولید کرده. */
+  .a-estimate {
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    border-inline-start: 2px solid var(--yellow);
+    background: rgba(255, 196, 26, 0.05);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+  .a-estimate span {
+    display: block;
+    color: var(--faint);
+    font-size: 11px;
+    margin-bottom: 2px;
+  }
+</style>

@@ -219,6 +219,15 @@ export const leads = sqliteTable(
       .default('new'),
     assignedTo: integer('assigned_to').references(() => users.id, { onDelete: 'set null' }),
     notes: text('notes'),
+    /**
+     * خلاصهٔ برآوردی که کاربر در ماشین‌حساب دیده بود.
+     *
+     * جدا از `notes` نگه داشته می‌شود و نه داخل آن: `notes` را تیم فروش
+     * می‌نویسد و این را کاربر. اگر در یک ستون می‌ریختند، معلوم نبود کدام
+     * جمله را چه کسی نوشته — و متنی که از بیرون می‌آید می‌توانست شبیه
+     * یادداشت همکار به نظر برسد.
+     */
+    estimate: text('estimate'),
     createdAt: timestamp('created_at').notNull().default(now()),
     updatedAt: timestamp('updated_at').notNull().default(now()),
   },

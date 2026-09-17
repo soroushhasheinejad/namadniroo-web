@@ -34,6 +34,7 @@ export async function submitQuote(input: QuoteInput): Promise<QuoteResult> {
     utmSource: input.utmSource ?? null,
     utmMedium: input.utmMedium ?? null,
     utmCampaign: input.utmCampaign ?? null,
+    estimate: input.estimate ?? null,
   });
 
   /* لید ذخیره شده است؛ ایمیل فقط اطلاع‌رسانی است و اگر صف خطا بدهد نباید
@@ -49,6 +50,7 @@ export async function submitQuote(input: QuoteInput): Promise<QuoteResult> {
         `ظرفیت موردنظر: ${input.capacity || '—'}\n` +
         `حوزهٔ درخواست: ${input.area || '—'}\n` +
         `صفحهٔ مبدأ: ${input.source || '—'}\n` +
+        (input.estimate ? `\nبرآوردی که کاربر دیده بود:\n${input.estimate}\n` : '') +
         `\nمشاهده در پنل: https://namadniroo.ir/admin/leads\n`,
     });
   } catch (err) {
