@@ -31,6 +31,7 @@ export const nav = [
   { href: '/shop', label: 'فروشگاه' },
   { href: '/ae-solar', label: 'AE Solar' },
   { href: '/investment', label: 'سرمایه‌گذاری' },
+  { href: '/solar-calculator', label: 'برآورد سرمایه' },
   { href: '/magazine', label: 'مجله' },
   { href: '/about', label: 'درباره ما' },
   { href: '/contact', label: 'تماس با ما' },

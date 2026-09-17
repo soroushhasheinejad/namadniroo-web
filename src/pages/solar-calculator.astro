@@ -1,0 +1,537 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import { breadcrumbSchema, faqSchema } from '../utils';
+import { ROUTES, SOURCES, UPDATED_AT, YIELD_BY_REGION } from '../data/solarModel';
+
+export const prerender = false;
+
+const regions = Object.entries(YIELD_BY_REGION);
+
+const faq = [
+  {
+    q: 'با یک میلیارد تومان چه نیروگاهی می‌توان ساخت؟',
+    a: 'به‌طور تقریبی حدود ۳۵ تا ۵۰ کیلووات روی پشت‌بام، یا ۱۵ تا ۲۵ کیلووات به‌صورت زمینی — چون نیروگاه زمینی هزینهٔ زمین، پست و خط انتقال هم دارد. عدد دقیق به قیمت روز تجهیزات و موقعیت زمین بستگی دارد.',
+  },
+  {
+    q: 'بازگشت سرمایهٔ نیروگاه خورشیدی چند سال است؟',
+    a: 'بسته به نرخ فروش برق و هزینهٔ احداث، معمولاً بین ۴ تا ۹ سال برآورد می‌شود. فروش در بورس انرژی بازگشت را کوتاه‌تر می‌کند و خرید تضمینی ساتبا بلندتر، در عوض درآمد تضمینی‌تری دارد.',
+  },
+  {
+    q: 'برق نیروگاه را به چه کسی می‌توان فروخت؟',
+    a: 'سه مسیر رایج است: خرید تضمینی ۲۰ سالهٔ ساتبا، فروش به صنایع از طریق تابلوی سبز بورس انرژی، و خودمصرفی صنعتی برای صنایع مشمول ماده ۱۶ که باید بخشی از برقشان را تجدیدپذیر تأمین کنند.',
+  },
+  {
+    q: 'هر مگاوات نیروگاه چقدر زمین می‌خواهد؟',
+    a: 'حدود ۱ تا ۱٫۵ هکتار برای نصب زمینی. روی پشت‌بام حدود ۶ مترمربع به ازای هر کیلووات لازم است.',
+  },
+];
+
+const pageSchema = [
+  breadcrumbSchema([
+    { name: 'سرمایه‌گذاری', href: '/investment' },
+    { name: 'برآورد سرمایه‌گذاری', href: '/solar-calculator' },
+  ]),
+  faqSchema(faq),
+];
+---
+<Base
+  schema={pageSchema}
+  title="برآورد سرمایه‌گذاری نیروگاه خورشیدی | نماد نیرو"
+  description="با سرمایهٔ موردنظرتان چه نیروگاه خورشیدی می‌توان ساخت، چقدر برق تولید می‌کند و در چه مدتی برمی‌گردد — برآورد تقریبی بر پایهٔ نرخ‌های ۱۴۰۵ و سه روش فروش برق."
+>
+  <PageHero
+    crumb="برآورد سرمایه‌گذاری"
+    title="با این سرمایه، چه نیروگاهی؟"
+    lead="سرمایهٔ موردنظرتان را وارد کنید تا ببینید تقریباً چه ظرفیتی می‌شود ساخت، چقدر برق تولید می‌کند، و با هر روش فروش برق چه آورده‌ای دارد."
+  />
+
+  <div class="wrap">
+    <p class="approx-banner">
+      <b>این محاسبه تقریبی است.</b>
+      خروجی این صفحه یک برآورد اولیه برای شناخت ابعاد کار است، نه طرح توجیهی.
+      قیمت تجهیزات با نرخ ارز و نرخ فروش برق با مصوبه‌های وزارت نیرو تغییر می‌کند،
+      و هزینهٔ زمین و فاصله تا شبکه در هر پروژه فرق دارد.
+      برای تصمیم سرمایه‌گذاری، امکان‌سنجی اختصاصی لازم است.
+    </p>
+  </div>
+
+  <section class="calc">
+    <div class="wrap calc-grid">
+      <form class="calc-form" id="calcForm" novalidate>
+        <h2 class="calc-h">فرض‌های شما</h2>
+
+        <div class="field">
+          <label for="c-investment">سرمایهٔ موردنظر (تومان)</label>
+          <input id="c-investment" type="text" inputmode="numeric" dir="ltr" value="10,000,000,000" />
+          <span class="field-hint" id="investmentWords">۱۰ میلیارد تومان</span>
+        </div>
+
+        <div class="presets" id="presets">
+          <button type="button" data-amount="1000000000">۱ میلیارد</button>
+          <button type="button" data-amount="5000000000">۵ میلیارد</button>
+          <button type="button" data-amount="10000000000">۱۰ میلیارد</button>
+          <button type="button" data-amount="70000000000">۷۰ میلیارد</button>
+          <button type="button" data-amount="200000000000">۲۰۰ میلیارد</button>
+        </div>
+
+        <div class="field">
+          <label for="c-mount">نوع نصب</label>
+          <select id="c-mount">
+            <option value="ground">زمینی — نیروگاه مستقل روی زمین</option>
+            <option value="roof">پشت‌بام — روی سوله یا ساختمان موجود</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="c-region">منطقه</label>
+          <select id="c-region">
+            {regions.map(([key, r]) => (
+              <option value={key} selected={key === 'high'}>{r.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <details class="advanced">
+          <summary>فرض‌های پیشرفته</summary>
+          <p class="adv-note">
+            اگر استعلام قیمت دارید، این‌ها را با عدد خودتان عوض کنید — نتیجه بلافاصله به‌روز می‌شود.
+          </p>
+
+          <div class="field">
+            <label for="c-equip">هزینهٔ تجهیزات و نصب (میلیون تومان بر کیلووات)</label>
+            <input id="c-equip" type="number" step="0.5" min="1" dir="ltr" value="35" />
+          </div>
+
+          <div class="field" id="siteField">
+            <label for="c-site">زمین، پست و خط انتقال (میلیون تومان بر کیلووات)</label>
+            <input id="c-site" type="number" step="0.5" min="0" dir="ltr" value="35" />
+          </div>
+
+          <div class="field">
+            <label for="c-om">نگه‌داری سالانه (درصد سرمایه)</label>
+            <input id="c-om" type="number" step="0.1" min="0" dir="ltr" value="1.5" />
+          </div>
+        </details>
+      </form>
+
+      <div class="calc-out" id="calcOut">
+        <h2 class="calc-h">نتیجهٔ تقریبی</h2>
+
+        <div class="out-top">
+          <div class="out-big">
+            <span class="out-label">ظرفیت قابل احداث</span>
+            <b id="outCapacity">—</b>
+            <span class="out-range" id="outCapacityRange"></span>
+          </div>
+          <div class="out-big">
+            <span class="out-label">تولید سال اول</span>
+            <b id="outProduction">—</b>
+            <span class="out-range">کیلووات‌ساعت در سال</span>
+          </div>
+          <div class="out-big">
+            <span class="out-label">زمین یا سقف لازم</span>
+            <b id="outArea">—</b>
+            <span class="out-range" id="outAreaNote"></span>
+          </div>
+        </div>
+
+        <h3 class="out-h">آورده، به تفکیک روش فروش برق</h3>
+        <div class="route-table" id="routeTable"></div>
+        <p class="out-foot">
+          همهٔ عددها تقریبی‌اند و به قیمت امروز حساب شده‌اند؛ تورم و تعدیل نرخ در آن‌ها لحاظ نشده.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="about-sec alt">
+    <div class="wrap">
+      <header class="about-head">
+        <p class="eyebrow">سه راه برای فروش برق</p>
+        <h2>هر کدام برای چه کسی مناسب است</h2>
+      </header>
+      <div class="cap-grid">
+        {ROUTES.map((r) => (
+          <div class="cap-card route-card">
+            <h3>{r.title}</h3>
+            <p class="route-tariff">{r.tariffLabel}</p>
+            <p>{r.summary}</p>
+            <ul class="route-pros">
+              {r.pros.map((p) => <li>{p}</li>)}
+            </ul>
+            <ul class="route-cons">
+              {r.cons.map((c) => <li>{c}</li>)}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="about-sec">
+    <div class="wrap assumptions">
+      <header class="about-head">
+        <p class="eyebrow">شفافیت محاسبه</p>
+        <h2>این عددها از کجا آمده‌اند</h2>
+      </header>
+
+      <div class="assume-grid">
+        <div>
+          <h3>فرض‌های مدل</h3>
+          <ul class="assume-list">
+            <li><b>تولید سالانه:</b> ۱۳۵۰ تا ۱۸۵۰ کیلووات‌ساعت به ازای هر کیلووات، بسته به تابش منطقه. افت گرما، غبار و اینورتر در آن لحاظ شده.</li>
+            <li><b>افت راندمان:</b> ۰٫۷ درصد در سال.</li>
+            <li><b>نگه‌داری:</b> ۱٫۵ درصد سرمایه در سال.</li>
+            <li><b>افق محاسبه:</b> ۲۰ سال، هم‌اندازهٔ قرارداد خرید تضمینی.</li>
+            <li><b>تورم:</b> لحاظ نشده. همه‌چیز به قیمت امروز است.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3>چرا بازه می‌دهیم و نه یک عدد</h3>
+          <p>
+            منابع منتشرشده دربارهٔ هزینهٔ احداث با هم اختلاف زیادی دارند.
+            بخشی از این اختلاف واقعی است: بعضی برآوردها فقط تجهیزات و نصب را
+            حساب می‌کنند و بعضی زمین، پست و خط انتقال را هم اضافه می‌کنند —
+            که در نیروگاه زمینی می‌تواند نزدیک نیمی از کل سرمایه باشد.
+            بخش دیگرش هم به نرخ ارز و تاریخ انتشار برمی‌گردد.
+          </p>
+          <p>
+            به همین دلیل خروجی این صفحه بازه است، و می‌توانید فرض‌ها را با
+            استعلام خودتان جایگزین کنید.
+          </p>
+        </div>
+      </div>
+
+      <h3 class="src-h">منابع — آخرین به‌روزرسانی: {UPDATED_AT}</h3>
+      <ul class="src-list">
+        {SOURCES.map((s) => (
+          <li>
+            <a href={s.url} target="_blank" rel="noopener noreferrer nofollow">{s.label}</a>
+            <span>{s.note}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section class="calc-cta">
+    <div class="wrap">
+      <h2>برآورد دقیق پروژهٔ خودتان را بگیرید</h2>
+      <p>
+        این صفحه ابعاد کار را نشان می‌دهد. برای عدد قابل اتکا، کارشناسان ما با
+        بررسی زمین، فاصله تا شبکه و قیمت روز تجهیزات، امکان‌سنجی اختصاصی
+        تهیه می‌کنند.
+      </p>
+      <a class="btn btn-solid" id="ctaLink" href="/#quote">درخواست امکان‌سنجی</a>
+    </div>
+  </section>
+</Base>
+
+<script>
+  import {
+    EQUIPMENT_COST,
+    ROUTES,
+    SITE_COST,
+    TARIFF,
+    YIELD_BY_REGION,
+    calculate,
+    type Assumptions,
+    type Mount,
+  } from '../data/solarModel';
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+  const form = $<HTMLFormElement>('calcForm');
+  if (form) {
+    const investmentInput = $<HTMLInputElement>('c-investment');
+    const mountSelect = $<HTMLSelectElement>('c-mount');
+    const regionSelect = $<HTMLSelectElement>('c-region');
+    const equipInput = $<HTMLInputElement>('c-equip');
+    const siteInput = $<HTMLInputElement>('c-site');
+    const omInput = $<HTMLInputElement>('c-om');
+    const siteField = $<HTMLDivElement>('siteField');
+
+    const fa = (v: string | number) => String(v).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]!);
+    const latin = (v: string) => v.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+
+    /** عدد بزرگ را به «میلیارد/میلیون تومان» می‌نویسد — خواندن ۱۲ رقم پشت‌سرهم سخت است */
+    const toman = (n: number): string => {
+      if (n >= 1_000_000_000_000) return `${fa((n / 1_000_000_000_000).toFixed(1))} هزار میلیارد`;
+      if (n >= 1_000_000_000) return `${fa((n / 1_000_000_000).toFixed(n < 10_000_000_000 ? 1 : 0))} میلیارد`;
+      if (n >= 1_000_000) return `${fa(Math.round(n / 1_000_000))} میلیون`;
+      return fa(Math.round(n).toLocaleString('en-US'));
+    };
+
+    const grouped = (n: number) => Math.round(n).toLocaleString('en-US');
+
+    const readInvestment = (): number => {
+      const raw = latin(investmentInput.value).replace(/[^\d]/g, '');
+      return Number(raw) || 0;
+    };
+
+    const assumptionsFrom = (): Assumptions => ({
+      equipmentCostPerKw: Number(equipInput.value) * 1_000_000,
+      siteCostPerKw: Number(siteInput.value) * 1_000_000,
+      yieldPerKw: YIELD_BY_REGION[regionSelect.value]!.kwhPerKw,
+      mount: mountSelect.value as Mount,
+      omRate: Number(omInput.value) / 100,
+      degradation: 0.007,
+      years: 20,
+    });
+
+    /** ظرفیت را با واحد مناسب می‌نویسد */
+    const capacity = (kw: number) =>
+      kw >= 1000 ? `${fa((kw / 1000).toFixed(2))} مگاوات` : `${fa(Math.round(kw))} کیلووات`;
+
+    const area = (m2: number) =>
+      m2 >= 10_000 ? `${fa((m2 / 10_000).toFixed(1))} هکتار` : `${fa(Math.round(m2))} مترمربع`;
+
+    const render = () => {
+      const investment = readInvestment();
+      const base = assumptionsFrom();
+
+      $('investmentWords').textContent = investment ? `${toman(investment)} تومان` : '—';
+
+      // هزینهٔ محوطه فقط برای نصب زمینی معنا دارد
+      siteField.hidden = base.mount === 'roof';
+
+      if (investment < 50_000_000) {
+        $('outCapacity').textContent = '—';
+        $('outCapacityRange').textContent = 'مبلغی بالاتر وارد کنید';
+        $('outProduction').textContent = '—';
+        $('outArea').textContent = '—';
+        $('routeTable').innerHTML = '';
+        return;
+      }
+
+      const mid = calculate(investment, base);
+
+      /* بازه از کم‌ترین و بیش‌ترین هزینهٔ منتشرشده ساخته می‌شود، نه از یک
+         درصد دلخواه — تا بازه واقعاً بازتاب اختلاف منابع باشد. */
+      const scale = mid.scale;
+      const cheap = calculate(investment, {
+        ...base,
+        equipmentCostPerKw: EQUIPMENT_COST[scale].min,
+        siteCostPerKw: SITE_COST.min,
+      });
+      const pricey = calculate(investment, {
+        ...base,
+        equipmentCostPerKw: EQUIPMENT_COST[scale].max,
+        siteCostPerKw: SITE_COST.max,
+      });
+
+      $('outCapacity').textContent = `حدود ${capacity(mid.capacityKw)}`;
+      $('outCapacityRange').textContent =
+        `بازه: ${capacity(pricey.capacityKw)} تا ${capacity(cheap.capacityKw)}`;
+      $('outProduction').textContent = `حدود ${fa(grouped(mid.firstYearProductionKwh))}`;
+      $('outArea').textContent = `حدود ${area(mid.areaM2)}`;
+      $('outAreaNote').textContent =
+        base.mount === 'ground' ? 'زمین، شامل فاصلهٔ بین ردیف‌ها' : 'سطح بدون سایه روی پشت‌بام';
+
+      const rows = ROUTES.map((route) => {
+        const tariff =
+          route.key === 'satba' ? TARIFF.satba[mid.scale] : TARIFF[route.key];
+
+        /* بالای یک مگاوات نرخ مصوب خرید تضمینی وجود ندارد؛ به‌جای نشان‌دادن
+           عددی که مصوبه‌ای پشتش نیست، همین را می‌گوییم. */
+        if (tariff === null) {
+          return `
+            <div class="route-row">
+              <div class="route-name">
+                <b>${route.title}</b>
+                <span>برای این ظرفیت نرخ مصوب ندارد</span>
+              </div>
+              <div class="route-nums route-na">
+                مصوبهٔ ۱۴۰۵ تا سقف یک مگاوات نرخ دارد. نیروگاه بزرگ‌تر از
+                راه بورس انرژی یا مزایده قیمت‌گذاری می‌شود.
+              </div>
+            </div>`;
+        }
+
+        const r = calculate(investment, { ...base, tariff });
+        const payback = r.paybackYears
+          ? `${fa(r.paybackYears.toFixed(1))} سال`
+          : 'بیش از ۲۰ سال';
+
+        return `
+          <div class="route-row">
+            <div class="route-name">
+              <b>${route.title}</b>
+              <span>${fa(grouped(tariff))} تومان بر کیلووات‌ساعت</span>
+            </div>
+            <div class="route-nums">
+              <div><span>درآمد خالص سال اول</span><b>${toman(r.firstYearNet)} تومان</b></div>
+              <div><span>بازگشت سرمایه</span><b>${payback}</b></div>
+              <div><span>جمع ۲۰ سال</span><b>${toman(r.totalNet)} تومان</b></div>
+            </div>
+          </div>`;
+      });
+
+      $('routeTable').innerHTML = rows.join('');
+
+      /* لینک دعوت به مشاوره، ظرفیت برآوردشده را با خودش می‌برد تا کارشناس
+         بداند کاربر دربارهٔ چه ابعادی پرسیده است. */
+      $<HTMLAnchorElement>('ctaLink').href =
+        `/contact?capacity=${encodeURIComponent(capacity(mid.capacityKw))}`;
+    };
+
+    /** مبلغ را موقع تایپ سه‌رقم‌سه‌رقم جدا می‌کند */
+    investmentInput.addEventListener('input', () => {
+      const pos = investmentInput.selectionStart ?? 0;
+      const before = investmentInput.value.length;
+      const n = readInvestment();
+      investmentInput.value = n ? grouped(n) : '';
+      const after = investmentInput.value.length;
+      investmentInput.setSelectionRange(pos + (after - before), pos + (after - before));
+      render();
+    });
+
+    for (const el of [mountSelect, regionSelect, equipInput, siteInput, omInput]) {
+      el.addEventListener('input', render);
+    }
+
+    /* پیش‌فرض هزینهٔ تجهیزات با مقیاس عوض می‌شود، مگر کاربر خودش دست برده
+       باشد — در آن صورت به عددش دست نمی‌زنیم. */
+    let equipTouched = false;
+    equipInput.addEventListener('input', () => { equipTouched = true; });
+
+    $('presets').addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('button[data-amount]');
+      if (!btn) return;
+      investmentInput.value = grouped(Number(btn.getAttribute('data-amount')));
+      if (!equipTouched) {
+        const kw = Number(btn.getAttribute("data-amount")) / 35_000_000;
+        const scale = kw < 200 ? 'small' : kw < 1000 ? 'commercial' : 'utility';
+        equipInput.value = String(EQUIPMENT_COST[scale].typical / 1_000_000);
+      }
+      render();
+    });
+
+    render();
+  }
+</script>
+
+<style>
+  .approx-banner {
+    margin: 28px 0 0;
+    padding: 16px 20px;
+    border: 1px solid rgba(255, 196, 26, 0.35);
+    border-inline-start: 3px solid var(--yellow);
+    border-radius: var(--r);
+    background: rgba(255, 196, 26, 0.06);
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .approx-banner b { color: var(--yellow); }
+
+  .calc { padding: 40px 0 80px; }
+  .calc-grid { display: grid; grid-template-columns: 380px 1fr; gap: 28px; align-items: start; }
+  .calc-h { margin: 0 0 18px; font-size: 18px; font-weight: 700; }
+
+  .calc-form, .calc-out {
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: var(--bg-1);
+  }
+
+  .field-hint { display: block; margin-top: 6px; color: var(--yellow); font-size: 13px; }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 18px; }
+  .presets button {
+    padding: 6px 12px;
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 13px;
+    cursor: pointer;
+    transition: color .2s, border-color .2s;
+  }
+  .presets button:hover { color: var(--yellow); border-color: var(--yellow); }
+
+  .advanced { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .advanced summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+  .advanced summary:hover { color: var(--ink); }
+  .adv-note { margin: 12px 0 16px; color: var(--faint); font-size: 13px; line-height: 1.8; }
+
+  .out-top { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 30px; }
+  .out-big {
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg-2);
+  }
+  .out-label { display: block; color: var(--faint); font-size: 13px; margin-bottom: 8px; }
+  .out-big b { display: block; color: var(--yellow); font-size: 22px; font-weight: 800; line-height: 1.4; }
+  .out-range { display: block; margin-top: 6px; color: var(--faint); font-size: 12.5px; }
+
+  .out-h { margin: 0 0 14px; font-size: 16px; font-weight: 700; }
+  .out-foot { margin: 16px 0 0; color: var(--faint); font-size: 13px; line-height: 1.8; }
+
+  .route-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 16px;
+    padding: 16px 0;
+    border-top: 1px solid var(--line);
+  }
+  .route-row:first-child { border-top: 0; }
+  .route-name b { display: block; font-size: 15px; }
+  .route-name span { display: block; margin-top: 4px; color: var(--faint); font-size: 12.5px; }
+  .route-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .route-nums span { display: block; color: var(--faint); font-size: 12.5px; margin-bottom: 4px; }
+  .route-nums b { font-size: 15px; color: var(--ink); }
+  .route-na {
+    display: block;
+    color: var(--faint);
+    font-size: 13.5px;
+    line-height: 1.9;
+  }
+
+  .route-card h3 { margin: 0 0 6px; font-size: 17px; }
+  .route-tariff { margin: 0 0 12px; color: var(--yellow); font-size: 13px; }
+  .route-pros, .route-cons { margin: 12px 0 0; padding: 0; list-style: none; }
+  .route-pros li, .route-cons li {
+    position: relative;
+    padding-inline-start: 22px;
+    margin-bottom: 7px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .route-pros li::before { content: "+"; position: absolute; inset-inline-start: 0; color: var(--yellow); font-weight: 700; }
+  .route-cons li::before { content: "−"; position: absolute; inset-inline-start: 0; color: var(--faint); font-weight: 700; }
+
+  .assume-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+  .assume-grid h3 { margin: 0 0 14px; font-size: 16px; }
+  .assume-grid p { color: var(--muted); line-height: 2; margin: 0 0 12px; }
+  .assume-list { margin: 0; padding: 0; list-style: none; }
+  .assume-list li { margin-bottom: 10px; color: var(--muted); font-size: 14.5px; line-height: 1.9; }
+  .assume-list b { color: var(--ink); }
+
+  .src-h { margin: 0 0 14px; font-size: 15px; color: var(--muted); }
+  .src-list { margin: 0; padding: 0; list-style: none; }
+  .src-list li { margin-bottom: 10px; font-size: 14px; }
+  .src-list a { color: var(--yellow); }
+  .src-list a:hover { text-decoration: underline; }
+  .src-list span { display: block; color: var(--faint); font-size: 13px; margin-top: 2px; }
+
+  .calc-cta { padding: 70px 0; background: var(--bg-1); border-top: 1px solid var(--line); text-align: center; }
+  .calc-cta h2 { margin: 0 0 12px; font-size: clamp(22px, 3vw, 30px); font-weight: 800; }
+  .calc-cta p { margin: 0 auto 26px; max-width: 58ch; color: var(--muted); line-height: 2; }
+
+  @media (max-width: 1000px) {
+    .calc-grid { grid-template-columns: 1fr; }
+    .assume-grid { grid-template-columns: 1fr; gap: 28px; }
+  }
+  @media (max-width: 700px) {
+    .out-top { grid-template-columns: 1fr; }
+    .route-row { grid-template-columns: 1fr; gap: 10px; }
+    .route-nums { grid-template-columns: 1fr; gap: 8px; }
+  }
+</style>
