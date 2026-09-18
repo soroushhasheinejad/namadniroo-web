@@ -5,6 +5,10 @@ import { fa } from '../utils';
 import { ae, aeStats, series, whyUs, techGuide, warranty, datasheets, faq } from '../data/aesolar';
 import { breadcrumbSchema, faqSchema } from '../utils';
 
+/* پویا، تا متنی که در پنل عوض می‌شود بلافاصله دیده شود. خواندن از کش
+   درون‌حافظه‌ای است، پس هزینه‌اش ناچیز است. */
+export const prerender = false;
+
 const pageSchema = [
   breadcrumbSchema([{ name: 'AE Solar', href: '/ae-solar' }]),
   faqSchema(faq),

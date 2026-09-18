@@ -1,5 +1,7 @@
 ---
-import { timeline } from '../data/site';
+import { getSiteSettings } from '../server/repos/siteSettings';
+
+const { timeline } = await getSiteSettings();
 ---
 <section class="tl-sec" aria-labelledby="tl-heading">
   <div class="wrap">

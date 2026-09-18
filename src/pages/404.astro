@@ -1,11 +1,13 @@
 ---
 import Base from '../layouts/Base.astro';
-import { nav } from '../data/site';
+import { getSiteSettings } from '../server/repos/siteSettings';
 
 /* سمت سرور رندر می‌شود تا صفحات پویا (محصول و مقاله) بتوانند در نبود
    رکورد به آن rewrite کنند — Astro اجازهٔ rewrite از صفحهٔ پویا به صفحهٔ
    از پیش ساخته‌شده را نمی‌دهد. */
 export const prerender = false;
+
+const { nav } = await getSiteSettings();
 ---
 <Base
   title="صفحه پیدا نشد | نماد نیرو"

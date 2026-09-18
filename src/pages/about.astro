@@ -6,8 +6,14 @@ import Icon from '../components/Icon.astro';
 import BrandMarquee from '../components/BrandMarquee.astro';
 import Timeline from '../components/Timeline.astro';
 import PortfolioDownload from '../components/PortfolioDownload.astro';
-import { capabilities, clients } from '../data/site';
+import { getSiteSettings } from '../server/repos/siteSettings';
 import { breadcrumbSchema } from '../utils';
+
+/* پویا، تا متنی که در پنل عوض می‌شود بلافاصله دیده شود. خواندن از کش
+   درون‌حافظه‌ای است، پس هزینه‌اش ناچیز است. */
+export const prerender = false;
+
+const { capabilities, clients } = await getSiteSettings();
 
 const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about' }]);
 ---

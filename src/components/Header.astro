@@ -1,5 +1,7 @@
 ---
-import { nav, site } from '../data/site';
+import { getSiteSettings } from '../server/repos/siteSettings';
+
+const { nav, site } = await getSiteSettings();
 const path = Astro.url.pathname;
 // اسلش انتهایی را نادیده می‌گیریم تا /shop و /shop/ هر دو «فعال» شمرده شوند
 const norm = (p: string) => (p.length > 1 ? p.replace(/\/+$/, '') : p);

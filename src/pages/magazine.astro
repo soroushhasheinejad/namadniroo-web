@@ -11,6 +11,12 @@ export const prerender = false;
 
 const articles = await listArticles();
 
+/* دسته‌ای که مقالهٔ منتشرشده ندارد دکمهٔ فیلتر هم نمی‌گیرد — کلیک روی آن
+   صفحهٔ خالی نشان می‌داد. */
+const articleFilters = filters.articles.filter(
+  (f) => f.key === 'all' || articles.some((a) => a.category === f.key),
+);
+
 const pageSchema = breadcrumbSchema([{ name: 'مجله', href: '/magazine' }]);
 ---
 <Base schema={pageSchema} title="مجله | نماد نیرو" description="مجلهٔ انرژی نماد نیرو؛ آموزش، بازار انرژی و اخبار شرکت دربارهٔ نیروگاه خورشیدی، اینورتر، نگه‌داری و سرمایه‌گذاری.">
@@ -22,7 +28,7 @@ const pageSchema = breadcrumbSchema([{ name: 'مجله', href: '/magazine' }]);
 
   <section class="mag-sec">
     <div class="wrap">
-      <FilterBar items={filters.articles} label="فیلتر مقاله‌ها" />
+      <FilterBar items={articleFilters} label="فیلتر مقاله‌ها" />
       <div class="mag-grid">
         {articles.map((a) => <ArticleCard a={a} />)}
       </div>

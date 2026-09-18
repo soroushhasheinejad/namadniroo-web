@@ -1,5 +1,7 @@
 ---
-import { site, portfolio } from '../data/site';
+import { getSiteSettings } from '../server/repos/siteSettings';
+
+const { site, portfolio } = await getSiteSettings();
 ---
 <footer class="site-footer">
   <div class="wrap footer-grid">

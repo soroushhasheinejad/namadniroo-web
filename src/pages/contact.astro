@@ -3,8 +3,14 @@ import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import QuoteForm from '../components/QuoteForm.astro';
 import Icon from '../components/Icon.astro';
-import { site } from '../data/site';
+import { getSiteSettings } from '../server/repos/siteSettings';
 import { breadcrumbSchema } from '../utils';
+
+/* پویا، تا متنی که در پنل عوض می‌شود بلافاصله دیده شود. خواندن از کش
+   درون‌حافظه‌ای است، پس هزینه‌اش ناچیز است. */
+export const prerender = false;
+
+const { site } = await getSiteSettings();
 
 const info = [
   { icon: 'phone', title: 'تماس تلفنی', text: site.phone, href: site.phoneHref, dir: 'ltr' },

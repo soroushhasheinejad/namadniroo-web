@@ -1,5 +1,7 @@
 ---
-import { brands } from '../data/site';
+import { getSiteSettings } from '../server/repos/siteSettings';
+
+const { brands } = await getSiteSettings();
 const loop = [...brands, ...brands];
 ---
 <div class="marquee" aria-label="برندهای همکار">

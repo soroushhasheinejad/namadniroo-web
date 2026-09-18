@@ -1,12 +1,13 @@
 ---
 import Icon from './Icon.astro';
-import { portfolio } from '../data/site';
+import { getSiteSettings } from '../server/repos/siteSettings';
 
 interface Props {
   /** پس‌زمینهٔ روشن‌تر، برای وقتی روی بخش تیره می‌نشیند */
   alt?: boolean;
 }
 const { alt = false } = Astro.props;
+const { portfolio } = await getSiteSettings();
 ---
 <section class:list={['pf-sec', alt && 'alt']}>
   <div class="wrap">

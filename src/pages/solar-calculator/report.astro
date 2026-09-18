@@ -1,8 +1,7 @@
 ---
 import { ROUTES, TARIFF, UPDATED_AT, YIELD_BY_REGION, calculate } from '../../data/solarModel';
 import { fa } from '../../utils';
-import { getSetting } from '../../server/repos/content';
-import { site as siteDefaults } from '../../data/site';
+import { getSiteSettings } from '../../server/repos/siteSettings';
 
 export const prerender = false;
 
@@ -47,7 +46,7 @@ const routes = ROUTES.map((route) => {
   return { route, tariff, result: tariff === null ? null : calculate(investment, { ...assumptions, tariff }) };
 });
 
-const contact = await getSetting('site', siteDefaults).catch(() => siteDefaults);
+const { site: contact } = await getSiteSettings();
 
 const grouped = (n: number) => fa(Math.round(n).toLocaleString('en-US'));
 const toman = (n: number): string => {

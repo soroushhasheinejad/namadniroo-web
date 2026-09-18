@@ -1,5 +1,7 @@
 ---
-import { site } from '../data/site';
+import { getSiteSettings } from '../server/repos/siteSettings';
+
+const { site } = await getSiteSettings();
 ---
 <section class="quote" id="quote" aria-label="درخواست مشاوره">
   <div class="wrap quote-inner">

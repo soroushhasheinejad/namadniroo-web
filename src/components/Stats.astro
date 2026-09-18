@@ -1,5 +1,7 @@
 ---
-import { stats } from '../data/site';
+import { getSiteSettings } from '../server/repos/siteSettings';
+
+const { stats } = await getSiteSettings();
 ---
 <section class="stats" aria-label="نماد نیرو در یک نگاه">
   <div class="wrap stats-grid">

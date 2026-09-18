@@ -39,6 +39,8 @@ const pageSchema = [
     headline: article.title,
     description,
     inLanguage: 'fa-IR',
+    articleSection: categoryLabel[article.category],
+    wordCount: article.body.split(/\s+/).filter(Boolean).length,
     ...(published ? { datePublished: published } : {}),
     dateModified: article.updatedAt.toISOString().slice(0, 10),
     author: { '@type': 'Organization', name: 'نماد نیرو' },

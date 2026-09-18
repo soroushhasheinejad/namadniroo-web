@@ -16,10 +16,10 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { eq } from 'drizzle-orm';
 import { getDb } from '../src/server/db/client';
-import { articles, leads, products, projects, settings } from '../src/server/db/schema';
+import { leads, products, projects, settings } from '../src/server/db/schema';
 import { ingestImage } from '../src/server/media/store';
-import { jalaliToISO } from '../src/utils';
 import { normalizePhone } from '../src/lib/phone';
+import { syncArticles } from './articles';
 
 const root = path.resolve(import.meta.dirname, '..');
 
@@ -132,57 +132,6 @@ async function seedProjects(byKey: Map<string, number>): Promise<void> {
 }
 
 /* ============================================================
-   مقالات
-   ============================================================ */
-
-/** جداکردن frontmatter از بدنه، بدون کتابخانه — قالب فایل‌ها ساده و ثابت است */
-function parseFrontmatter(raw: string): { data: Record<string, string>; body: string } {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
-  if (!match) return { data: {}, body: raw };
-
-  const data: Record<string, string> = {};
-  for (const line of match[1]!.split('\n')) {
-    const sep = line.indexOf(':');
-    if (sep === -1) continue;
-    const key = line.slice(0, sep).trim();
-    const value = line.slice(sep + 1).trim().replace(/^["']|["']$/g, '');
-    data[key] = value;
-  }
-
-  return { data, body: match[2] ?? '' };
-}
-
-async function seedArticles(): Promise<void> {
-  const db = await getDb();
-  const dir = path.join(root, 'src/content/articles');
-  const files = (await readdir(dir)).filter((f) => f.endsWith('.md'));
-
-  for (const file of files) {
-    const { data, body } = parseFrontmatter(await readFile(path.join(dir, file), 'utf8'));
-    const iso = jalaliToISO(data.date ?? '');
-
-    const values = {
-      slug: file.replace(/\.md$/, ''),
-      title: data.title ?? file,
-      category: (data.category ?? 'edu') as 'edu' | 'market' | 'news',
-      body: body.trim(),
-      dateFa: data.date ?? '',
-      publishedAt: iso ? new Date(iso) : null,
-      readTime: Number(data.readTime ?? 5),
-      published: data.draft !== 'true',
-      updatedAt: new Date(),
-    };
-
-    await db
-      .insert(articles)
-      .values(values)
-      .onConflictDoUpdate({ target: articles.slug, set: values });
-  }
-
-  console.log(`مقالات: ${files.length} رکورد`);
-}
-
-/* ============================================================
    متن‌های ثابت سایت
    ============================================================ */
 
@@ -208,14 +157,21 @@ async function seedSettings(): Promise<void> {
     ['promoSlides', content.promoSlides],
   ];
 
+  /* فقط کلیدهای غایب را می‌نویسد، هرگز روی موجود. از وقتی سایت واقعاً از
+     این تنظیمات می‌خواند، بازنویسی یعنی پاک‌کردن بی‌صدای هر چیزی که
+     ویراستار در پنل عوض کرده — آن هم با اجرای اسکریپتی که ظاهراً فقط
+     «داده را مقداردهی اولیه می‌کند». */
+  let added = 0;
   for (const [key, value] of entries) {
-    await db
+    const inserted = await db
       .insert(settings)
       .values({ key, value: value as never })
-      .onConflictDoUpdate({ target: settings.key, set: { value: value as never, updatedAt: new Date() } });
+      .onConflictDoNothing({ target: settings.key })
+      .returning({ key: settings.key });
+    added += inserted.length;
   }
 
-  console.log(`تنظیمات: ${entries.length} کلید`);
+  console.log(`تنظیمات: ${added} کلید تازه، ${entries.length - added} کلید موجود دست‌نخورده ماند`);
 }
 
 /* ============================================================
@@ -293,7 +249,7 @@ async function main(): Promise<void> {
   const byKey = await seedMedia();
   await seedProducts(byKey);
   await seedProjects(byKey);
-  await seedArticles();
+  await syncArticles();
   await seedSettings();
   await importOldLeads();
 
