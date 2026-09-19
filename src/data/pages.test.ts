@@ -85,3 +85,35 @@ describe('صفحات', () => {
     expect(saved.intro.body[0]).toBe(aboutPage.defaults.intro.body[0]);
   });
 });
+
+import { EQUIPMENT_COST, SITE_COST, capacityFor } from './solarModel';
+import { calculatorPage } from './pages';
+import { toLatinDigits } from '../utils';
+
+describe('پرسش‌های ماشین‌حساب با خود مدل می‌خوانند', () => {
+  /* پاسخ «با یک میلیارد چه نیروگاهی؟» به‌صورت دادهٔ ساختاریافته به گوگل
+     می‌رود. نسخهٔ قبلی «۳۵ تا ۵۰ کیلووات» می‌گفت — عدد مدل پیش از اصلاح
+     هزینه‌ها — در حالی که خود ماشین‌حساب حدود ۲۶ نشان می‌داد. این تست
+     نگهبان همان است: اگر مدل عوض شد و پاسخ نه، اینجا شکست می‌خورد. */
+  const answer = calculatorPage.defaults.faq.find((f) => f.q.includes('یک میلیارد'))!.a;
+  const numbers = [...toLatinDigits(answer).matchAll(/(\d+) تا (\d+) کیلووات/g)].map((m) => [+m[1]!, +m[2]!]);
+
+  const range = (mount: 'roof' | 'ground') => {
+    const mid = capacityFor(1e9, { mount });
+    const lo = capacityFor(1e9, { mount, equipmentCostPerKw: EQUIPMENT_COST[mid.scale].max, siteCostPerKw: SITE_COST.max });
+    const hi = capacityFor(1e9, { mount, equipmentCostPerKw: EQUIPMENT_COST[mid.scale].min, siteCostPerKw: SITE_COST.min });
+    return [lo.capacityKw, hi.capacityKw];
+  };
+
+  it('بازهٔ پشت‌بام', () => {
+    const [lo, hi] = range('roof');
+    expect(numbers[0]![0]).toBeCloseTo(lo, -0.5);
+    expect(numbers[0]![1]).toBeCloseTo(hi, -0.5);
+  });
+
+  it('بازهٔ زمینی', () => {
+    const [lo, hi] = range('ground');
+    expect(numbers[1]![0]).toBeCloseTo(lo, -0.5);
+    expect(numbers[1]![1]).toBeCloseTo(hi, -0.5);
+  });
+});
