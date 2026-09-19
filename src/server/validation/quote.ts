@@ -15,6 +15,8 @@ export interface QuoteInput {
   phoneNormalized: string;
   capacity: string;
   area: string;
+  /** راه تماس دلخواه کاربر، به فارسی — یا رشتهٔ خالی */
+  contactVia: string;
   source: string;
   utmSource?: string;
   utmMedium?: string;
@@ -22,6 +24,14 @@ export interface QuoteInput {
   /** خلاصهٔ برآورد ماشین‌حساب، اگر لید از آن صفحه آمده باشد */
   estimate?: string;
 }
+
+/* فقط همین سه مقدار پذیرفته می‌شود. متن آزاد از بیرون در این ستون
+   می‌توانست هر چیزی باشد، و تیم فروش بر اساسش تصمیم می‌گیرد. */
+export const CONTACT_VIA: Record<string, string> = {
+  call: 'تماس تلفنی',
+  bale: 'پیام در بله',
+  whatsapp: 'واتساپ',
+};
 
 export type ValidationResult =
   | { ok: true; value: QuoteInput }
@@ -60,6 +70,7 @@ export function validateQuote(body: Record<string, unknown>): ValidationResult {
       phoneNormalized,
       capacity: clean(body.capacity),
       area: clean(body.area),
+      contactVia: CONTACT_VIA[clean(body.contact_via)] ?? '',
       source: clean(body.source),
       utmSource: clean(body.utm_source) || undefined,
       utmMedium: clean(body.utm_medium) || undefined,

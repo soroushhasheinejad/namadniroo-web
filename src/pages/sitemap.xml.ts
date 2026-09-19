@@ -21,6 +21,8 @@ interface Entry {
   lastmod?: Date;
   changefreq: string;
   priority: string;
+  /** تصویر اصلی صفحه، برای دیده‌شدن در جست‌وجوی تصاویر گوگل */
+  image?: string;
 }
 
 /** صفحات ثابت سایت */
@@ -39,13 +41,14 @@ const STATIC_PAGES: Entry[] = [
 const escapeXml = (value: string): string =>
   value.replace(/[<>&'"]/g, (c) => `&${{ '<': 'lt', '>': 'gt', '&': 'amp', "'": 'apos', '"': 'quot' }[c]};`);
 
-function urlEntry({ path, lastmod, changefreq, priority }: Entry): string {
+function urlEntry({ path, lastmod, changefreq, priority, image }: Entry): string {
   return [
     '  <url>',
     `    <loc>${escapeXml(SITE + path)}</loc>`,
     lastmod ? `    <lastmod>${lastmod.toISOString().slice(0, 10)}</lastmod>` : '',
     `    <changefreq>${changefreq}</changefreq>`,
     `    <priority>${priority}</priority>`,
+    image ? `    <image:image><image:loc>${escapeXml(new URL(image, SITE).href)}</image:loc></image:image>` : '',
     '  </url>',
   ]
     .filter(Boolean)
@@ -76,12 +79,13 @@ export const GET: APIRoute = async () => {
         lastmod: a.updatedAt,
         changefreq: 'monthly',
         priority: '0.6',
+        image: a.cover?.url,
       })),
   ];
 
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">',
     ...entries.map(urlEntry),
     '</urlset>',
   ].join('\n');

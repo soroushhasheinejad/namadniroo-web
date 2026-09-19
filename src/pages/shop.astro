@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import RelatedArticles from '../components/RelatedArticles.astro';
 import PageHero from '../components/PageHero.astro';
 import FilterBar from '../components/FilterBar.astro';
 import ProductCard from '../components/ProductCard.astro';
@@ -31,6 +32,11 @@ const pageSchema = breadcrumbSchema([{ name: 'فروشگاه', href: '/shop' }])
       </div>
     </div>
   </section>
+
+  <RelatedArticles
+    slugs={['inverter-role', 'how-panel-works', 'ongrid-offgrid']}
+    title="راهنمای انتخاب تجهیزات"
+  />
 
   <section class="cta-band">
     <div class="wrap">

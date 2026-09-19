@@ -523,6 +523,25 @@ const pageSchema = [
       render();
     });
 
+    /* پاسخ‌هایی که کاربر در پیش‌نمایش صفحهٔ اصلی داده بود (?amount=&region=)
+       همین‌جا اعمال می‌شود تا مجبور نباشد دوباره انتخاب کند. سرمایه از
+       همان مسیر دکمه‌های پیش‌فرض می‌رود تا هزینهٔ تجهیزات هم با مقیاس جور
+       شود. مقدار نامعتبر نادیده گرفته می‌شود. */
+    const params = new URLSearchParams(location.search);
+    const region = params.get('region');
+    if (region && [...regionSelect.options].some((o) => o.value === region)) {
+      regionSelect.value = region;
+    }
+    const amount = Number(params.get('amount'));
+    if (Number.isFinite(amount) && amount >= 100_000_000 && amount <= 10_000_000_000_000) {
+      investmentInput.value = grouped(amount);
+      if (!equipTouched) {
+        const kw = amount / 35_000_000;
+        const scale = kw < 200 ? 'small' : kw < 1000 ? 'commercial' : 'utility';
+        equipInput.value = String(EQUIPMENT_COST[scale].typical / 1_000_000);
+      }
+    }
+
     render();
   }
 </script>

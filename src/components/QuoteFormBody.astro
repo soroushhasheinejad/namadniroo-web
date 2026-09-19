@@ -1,0 +1,101 @@
+---
+import Icon from './Icon.astro';
+import { leadOptions } from '../data/site';
+import { getSiteSettings } from '../server/repos/siteSettings';
+
+/* بدنهٔ فرم مشاوره؛ رفتار مرحله‌ای در اسکریپت `QuoteForm.astro` است.
+   گزینه‌ها input واقعی radio هستند (نه دکمهٔ شبیه‌سازی‌شده) تا کیبورد و
+   صفحه‌خوان بدون هیچ کد اضافه کار کنند. */
+interface Props { uid: string }
+const { uid } = Astro.props;
+const id = (name: string) => `${uid}-${name}`;
+const { portfolio } = await getSiteSettings();
+---
+<input type="text" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true" />
+
+<div class="qf-body">
+  <div class="qf-progress" aria-live="polite">
+    <span class="qf-step-label">سه سؤال کوتاه</span>
+    <ol class="qf-bars" aria-hidden="true"><li class="is-on"></li><li></li><li></li></ol>
+  </div>
+
+  <fieldset class="qf-step" tabindex="-1">
+    <legend class="qf-q">برای چه کاری با ما تماس می‌گیرید؟</legend>
+    <div class="qf-cards">
+      {leadOptions.who.map((o) => (
+        <label class="qf-opt">
+          <input type="radio" name="area" value={o.label} data-key={o.value} />
+          <span class="qf-opt-t">{o.label}</span>
+          <span class="qf-opt-h">{o.hint}</span>
+        </label>
+      ))}
+    </div>
+  </fieldset>
+
+  <fieldset class="qf-step" tabindex="-1">
+    <legend class="qf-q">اندازهٔ تقریبی پروژه یا خرید؟</legend>
+    <p class="qf-hint">اگر نمی‌دانید، «هنوز نمی‌دانم» را بزنید.</p>
+    <div class="qf-rows">
+      {leadOptions.size.map((o) => (
+        <label class="qf-row">
+          <input type="radio" name="capacity" value={o.value} />
+          <span class="qf-row-t">{o.value}</span>
+          <span class="qf-row-h">{o.hint}</span>
+        </label>
+      ))}
+    </div>
+  </fieldset>
+
+  <fieldset class="qf-step" tabindex="-1">
+    <legend class="qf-q">کجا با شما تماس بگیریم؟</legend>
+    <div class="qf-field">
+      <label for={id('name')}>نام و نام خانوادگی</label>
+      <input id={id('name')} name="name" type="text" autocomplete="name" required aria-describedby={id('name-err')} />
+      <span class="qf-field-err" id={id('name-err')}></span>
+    </div>
+    <div class="qf-field">
+      <label for={id('phone')}>شمارهٔ موبایل یا تلفن</label>
+      <input id={id('phone')} name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" placeholder="09xx xxx xxxx" required aria-describedby={id('phone-err')} />
+      <span class="qf-field-err" id={id('phone-err')}></span>
+    </div>
+    <div class="qf-field">
+      <span class="qf-field-label" id={id('via-label')}>ترجیح می‌دهید چطور با شما در تماس باشیم؟</span>
+      <div class="qf-pills" role="radiogroup" aria-labelledby={id('via-label')}>
+        {leadOptions.via.map((o, i) => (
+          <label class="qf-pill">
+            <input type="radio" name="contact_via" value={o.value} checked={i === 0} />
+            <span>{o.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+    <p class="qf-privacy">شماره‌تان فقط برای پاسخ به همین درخواست استفاده می‌شود.</p>
+  </fieldset>
+
+  <p class="qf-error" role="alert"></p>
+
+  <div class="qf-nav">
+    <button type="button" class="qf-back" hidden>
+      <Icon name="arrowPrev" />
+      قبلی
+    </button>
+    <button type="button" class="btn btn-solid qf-next">ادامه</button>
+    <button type="submit" class="btn btn-solid qf-submit">ثبت درخواست</button>
+  </div>
+</div>
+
+<div class="qf-done" hidden tabindex="-1">
+  <span class="qf-done-icon"><Icon name="check" /></span>
+  <p class="qf-done-title">درخواستتان ثبت شد</p>
+  <ul class="qf-next-steps">
+    <li><b>تا یک روز کاری</b><span>کارشناس ما با یک برآورد اولیه با شما تماس می‌گیرد.</span></li>
+    <li>
+      <b>تا آن موقع</b>
+      <span>
+        <a href={portfolio.file} download>پرتفولیوی پروژه‌ها را بگیرید</a>
+        <span class="foot-meta">PDF، {portfolio.size}</span>
+        یا <a href="/solar-calculator">سود نیروگاه را حساب کنید</a>.
+      </span>
+    </li>
+  </ul>
+</div>

@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import RelatedArticles from '../components/RelatedArticles.astro';
 import PageHero from '../components/PageHero.astro';
 import ProjectTile from '../components/ProjectTile.astro';
 import { breadcrumbSchema, toLatinDigits } from '../utils';
@@ -72,6 +73,11 @@ const pageSchema = breadcrumbSchema([{ name: 'سرمایه‌گذاری', href: 
       </div>
     </div>
   </section>
+
+  <RelatedArticles
+    slugs={['solar-plant-profit', 'performance-ratio', 'solar-vs-generator']}
+    title="اقتصاد نیروگاه خورشیدی"
+  />
 
   <section class="cta-band">
     <div class="wrap">

@@ -44,7 +44,7 @@ if (params.get('export') === 'csv') {
   const csv =
     '﻿' + // تا اکسل فارسی را درست باز کند
     [
-      ['تاریخ ثبت', 'نام', 'تلفن', 'تلفن یکتا', 'ظرفیت', 'برآورد', 'حوزه', 'مبدأ', 'وضعیت', 'یادداشت'],
+      ['تاریخ ثبت', 'نام', 'تلفن', 'تلفن یکتا', 'ظرفیت', 'برآورد', 'حوزه', 'راه تماس', 'مبدأ', 'وضعیت', 'یادداشت'],
       ...rows.map((l) => [
         l.createdAt.toISOString(),
         l.name,
@@ -53,6 +53,7 @@ if (params.get('export') === 'csv') {
         l.capacity,
         l.estimate,
         l.area,
+        l.contactVia,
         l.source,
         l.status,
         l.notes,
@@ -131,6 +132,14 @@ const statusLabel = Object.fromEntries(STATUSES.map((s) => [s.key, s.label]));
               {l.area && <> · حوزه: {l.area}</>}
               {l.capacity && <> · ظرفیت: {l.capacity}</>}
             </p>
+            {l.contactVia && (
+              <p class="a-hint" style="margin-top:2px">
+                ترجیح تماس: <b>{l.contactVia}</b>
+                {l.contactVia === 'واتساپ' && l.phoneNormalized && (
+                  <> · <a href={`https://wa.me/${l.phoneNormalized.replace(/^\+/, '')}`} target="_blank" rel="noopener">باز کردن گفت‌وگو</a></>
+                )}
+              </p>
+            )}
             {l.source && <p class="a-hint" dir="ltr" style="margin-top:2px">مبدأ: {l.source}</p>}
             {l.estimate && (
               <p class="a-estimate">

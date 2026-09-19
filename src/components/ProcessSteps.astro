@@ -1,0 +1,31 @@
+---
+import { processSteps } from '../data/site';
+
+/* مسیر همکاری از اولین تماس تا بهره‌برداری. برای خریدی در این اندازه،
+   مشتری پیش از تماس می‌خواهد بداند چه اتفاقی قرار است بیفتد؛ این بخش
+   همان نگرانی را جواب می‌دهد. ترتیب واقعی است، پس فهرست شماره‌دار است. */
+const fa = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
+---
+<section class="process" aria-labelledby="process-title">
+  <div class="wrap">
+    <div class="process-head">
+      <h2 id="process-title" class="section-title">از اولین تماس تا اولین کیلووات‌ساعت</h2>
+      <p>هر گام یک خروجی مشخص دارد که پیش از رفتن به گام بعد در اختیار شما است.</p>
+    </div>
+    <ol class="process-list">
+      {processSteps.map((s, i) => (
+        <li class="process-step">
+          <span class="process-num" aria-hidden="true">{fa(i + 1)}</span>
+          <div class="process-body">
+            <h3>{s.title}</h3>
+            <p>{s.desc}</p>
+            <dl class="process-meta">
+              <div><dt>خروجی</dt><dd>{s.output}</dd></div>
+              {s.time && <div><dt>زمان</dt><dd>{s.time}</dd></div>}
+            </dl>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>

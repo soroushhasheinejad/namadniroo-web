@@ -1,7 +1,10 @@
 ---
 import '../styles/global.css';
+import '../styles/conversion.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import QuoteDialog from '../components/QuoteDialog.astro';
+import MobileBar from '../components/MobileBar.astro';
 import { getSiteSettings } from '../server/repos/siteSettings';
 
 interface Props {
@@ -26,7 +29,7 @@ interface Props {
 const {
   title,
   description = 'نماد نیرو — طراحی، اجرا و بهره‌برداری نیروگاه‌های خورشیدی، تأمین تجهیزات و سرمایه‌گذاری در انرژی‌های تجدیدپذیر.',
-  image = '/assets/banner-1.jpg',
+  image = '/assets/og-default.jpg',
   type = 'website',
   schema,
   noindex = false,
@@ -76,7 +79,9 @@ const schemas = [organizationSchema, ...(schema ? (Array.isArray(schema) ? schem
   <title>{title}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonical.href} />
-  {noindex && <meta name="robots" content="noindex, nofollow" />}
+  {noindex
+    ? <meta name="robots" content="noindex, nofollow" />
+    : <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />}
 
   <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
   <link rel="preload" href="/fonts/DanaVF.woff2" as="font" type="font/woff2" crossorigin />
@@ -107,6 +112,7 @@ const schemas = [organizationSchema, ...(schema ? (Array.isArray(schema) ? schem
   <meta name="twitter:image" content={ogImage.href} />
 
   <meta name="theme-color" content="#0A0A0A" />
+  <slot name="head" />
 
   {schemas.map((s) => (
     <script type="application/ld+json" set:html={JSON.stringify(s)} />
@@ -118,6 +124,8 @@ const schemas = [organizationSchema, ...(schema ? (Array.isArray(schema) ? schem
     <slot />
   </main>
   <Footer />
+  <MobileBar />
+  <QuoteDialog />
 
   <script>
     // منوی موبایل

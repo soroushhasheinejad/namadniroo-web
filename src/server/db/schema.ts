@@ -209,6 +209,8 @@ export const leads = sqliteTable(
     phoneNormalized: text('phone_normalized'),
     capacity: text('capacity'),
     area: text('area'),
+    /** راهی که کاربر برای تماس ترجیح داده (تماس تلفنی، بله، واتساپ) */
+    contactVia: text('contact_via'),
     /** صفحه‌ای که فرم از آن ارسال شده */
     source: text('source'),
     utmSource: text('utm_source'),

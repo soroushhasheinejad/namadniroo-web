@@ -12,13 +12,21 @@
  *
  * `--unpublish-others` مقاله‌هایی را که در پوشه نیستند حذف نمی‌کند، فقط
  * منتشرنشده می‌کند؛ از پنل می‌شود دوباره منتشرشان کرد.
+ *
+ * دو قرارداد دیگر:
+ * - تصویر `covers/<slug>.jpg` اگر باشد، تصویر شاخص مقاله می‌شود (پیش‌نمایش
+ *   لینک در تلگرام و واتساپ، و تصویر Article در داده‌های ساختاریافته).
+ * - `aliases` در frontmatter یعنی نشانی قبلی مقاله: ریدایرکت ۳۰۱ از آن به
+ *   نشانی تازه ساخته می‌شود و ردیف قدیمی با همان نشانی پاک می‌شود.
  */
 import { readFile, readdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { and, eq, notInArray } from 'drizzle-orm';
+import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import { getDb } from '../src/server/db/client';
-import { articles } from '../src/server/db/schema';
+import { articles, redirects } from '../src/server/db/schema';
+import { ingestImage } from '../src/server/media/store';
 import { jalaliToISO } from '../src/utils';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -45,12 +53,25 @@ export async function syncArticles(options: { unpublishOthers?: boolean } = {}):
   const dir = path.join(root, 'src/content/articles');
   const files = (await readdir(dir)).filter((f) => f.endsWith('.md'));
   const slugs: string[] = [];
+  let covers = 0;
 
   for (const file of files) {
     const { data, body } = parseFrontmatter(await readFile(path.join(dir, file), 'utf8'));
     const iso = jalaliToISO(data.date ?? '');
     const slug = file.replace(/\.md$/, '');
     slugs.push(slug);
+
+    let coverMediaId: number | undefined;
+    const coverFile = path.join(dir, 'covers', `${slug}.jpg`);
+    if (existsSync(coverFile)) {
+      const { media: row } = await ingestImage(await readFile(coverFile), {
+        filename: `${slug}.jpg`,
+        mime: 'image/jpeg',
+        alt: data.title,
+      });
+      coverMediaId = row.id;
+      covers++;
+    }
 
     const values = {
       slug,
@@ -64,7 +85,22 @@ export async function syncArticles(options: { unpublishOthers?: boolean } = {}):
       seoDescription: data.description || null,
       published: data.draft !== 'true',
       updatedAt: new Date(),
+      ...(coverMediaId ? { coverMediaId } : {}),
     };
+
+    const aliases = (data.aliases ?? '').split(',').map((a) => a.trim()).filter(Boolean);
+    if (aliases.length > 0) {
+      // ردیف قدیمی باید پیش از درج برود، وگرنه دو ردیف یک مقاله می‌مانند
+      await db.delete(articles).where(inArray(articles.slug, aliases));
+      for (const alias of aliases) {
+        await db
+          .insert(redirects)
+          .values({ fromPath: `/magazine/${alias}`, toPath: `/magazine/${slug}`, statusCode: 301, auto: true })
+          .onConflictDoUpdate({ target: redirects.fromPath, set: { toPath: `/magazine/${slug}`, statusCode: 301 } });
+      }
+    }
+    // اگر روزی همین نشانی قبلاً به جای دیگری ریدایرکت شده بود، صفحهٔ زنده را پنهان می‌کرد
+    await db.delete(redirects).where(eq(redirects.fromPath, `/magazine/${slug}`));
 
     await db
       .insert(articles)
@@ -72,7 +108,7 @@ export async function syncArticles(options: { unpublishOthers?: boolean } = {}):
       .onConflictDoUpdate({ target: articles.slug, set: values });
   }
 
-  console.log(`مقالات: ${files.length} رکورد`);
+  console.log(`مقالات: ${files.length} رکورد، ${covers} تصویر شاخص`);
 
   if (options.unpublishOthers && slugs.length > 0) {
     const hidden = await db

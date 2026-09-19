@@ -1,4 +1,5 @@
 ---
+import Icon from './Icon.astro';
 import { getSiteSettings } from '../server/repos/siteSettings';
 
 const { nav, site } = await getSiteSettings();
@@ -6,6 +7,14 @@ const path = Astro.url.pathname;
 // اسلش انتهایی را نادیده می‌گیریم تا /shop و /shop/ هر دو «فعال» شمرده شوند
 const norm = (p: string) => (p.length > 1 ? p.replace(/\/+$/, '') : p);
 const isActive = (href: string) => norm(href) === norm(path);
+
+/* منو از پنل می‌آید. این دو پیوند فقط در منوی بازشدهٔ موبایل نشان داده
+   می‌شوند (در دسکتاپ هدر خودش تلفن و دکمهٔ مشاوره دارد)، و اگر ویراستار
+   همین‌ها را در منو گذاشته باشد تکرار نمی‌شوند. */
+const extras = [
+  { href: '/contact', label: 'تماس با ما' },
+  { href: '/solar-calculator', label: 'برآورد سود نیروگاه' },
+].filter((x) => !nav.some((n) => norm(n.href) === x.href));
 ---
 <header class="site-header">
   <div class="wrap header-inner">
@@ -17,10 +26,17 @@ const isActive = (href: string) => norm(href) === norm(path);
       {nav.map((n) => (
         <a href={n.href} aria-current={isActive(n.href) ? 'page' : undefined}>{n.label}</a>
       ))}
+      {extras.map((x) => (
+        <a class="nav-extra" href={x.href} aria-current={isActive(x.href) ? 'page' : undefined}>{x.label}</a>
+      ))}
     </nav>
 
     <div class="header-actions">
-      <a href="/#quote" class="btn btn-solid btn-sm">درخواست مشاوره</a>
+      <a class="header-phone" href={site.phoneHref} aria-label={`تماس: ${site.phone}`}>
+        <Icon name="phone" />
+        <span dir="ltr">{site.phone}</span>
+      </a>
+      <a href="/contact" data-quote class="btn btn-solid btn-sm header-cta">مشاورهٔ رایگان</a>
       <button class="menu-toggle" id="menuToggle" aria-label="منو" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>

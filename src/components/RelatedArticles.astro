@@ -1,0 +1,41 @@
+---
+import ArticleCard from './ArticleCard.astro';
+import { listArticles } from '../server/repos/content';
+
+/**
+ * چند مقالهٔ منتخب زیر یک صفحهٔ خدمات یا محصول.
+ *
+ * هدفش سئوست: صفحهٔ خدمت (مثلاً «اجرا») به مقاله‌های آموزشی همان موضوع
+ * لینک می‌دهد و مقاله‌ها هم به صفحهٔ خدمت برمی‌گردند؛ گوگل از این شبکهٔ
+ * لینک می‌فهمد کدام صفحه دربارهٔ چه موضوعی مرجع است.
+ *
+ * مقاله‌ها با slug انتخاب می‌شوند و به همان ترتیب نمایش داده می‌شوند.
+ * مقالهٔ منتشرنشده یا حذف‌شده بی‌صدا کنار گذاشته می‌شود و اگر هیچ‌کدام
+ * نماند، کل بخش رندر نمی‌شود.
+ */
+interface Props {
+  slugs: string[];
+  eyebrow?: string;
+  title?: string;
+}
+
+const { slugs, eyebrow = 'مجلهٔ انرژی', title = 'بیشتر بدانید' } = Astro.props;
+
+const all = await listArticles();
+const picked = slugs
+  .map((slug) => all.find((a) => a.slug === slug))
+  .filter((a): a is NonNullable<typeof a> => Boolean(a));
+---
+{picked.length > 0 && (
+  <section class="magazine">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">{eyebrow}</p>
+        <h2 class="section-title">{title}</h2>
+      </header>
+      <div class="mag-grid">
+        {picked.map((a) => <ArticleCard a={a} />)}
+      </div>
+    </div>
+  </section>
+)}

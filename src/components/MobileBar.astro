@@ -1,0 +1,24 @@
+---
+import Icon from './Icon.astro';
+import { getSiteSettings } from '../server/repos/siteSettings';
+
+/* نوار ثابت پایین صفحه در موبایل: سه کاری که از هر جای سایت باید با یک
+   ضربه ممکن باشد. در دسکتاپ پنهان است؛ آنجا هدر همین نقش را دارد.
+   مشتری ایرانی اغلب ترجیح می‌دهد زنگ بزند تا فرم پر کند، پس تماس اولین
+   گزینه است. */
+const { site } = await getSiteSettings();
+---
+<nav class="mbar" aria-label="تماس سریع">
+  <a class="mbar-item" href={site.phoneHref}>
+    <Icon name="phone" />
+    <span>تماس</span>
+  </a>
+  <a class="mbar-item" href="/solar-calculator">
+    <Icon name="calc" />
+    <span>برآورد سود</span>
+  </a>
+  <a class="mbar-item mbar-main" href="/contact" data-quote>
+    <Icon name="message" />
+    <span>مشاورهٔ رایگان</span>
+  </a>
+</nav>

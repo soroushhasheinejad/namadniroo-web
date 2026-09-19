@@ -1,0 +1,549 @@
+/* ============================================================
+   موتور جذب لید — هیرو، سه در، پیش‌نمایش ماشین‌حساب، مسیر همکاری،
+   پرسش‌ها، فرم سه‌مرحله‌ای، پنجرهٔ مشاوره و نوار موبایل.
+
+   جدا از global.css نگه داشته شده چون همه‌اش یک کار می‌کند: بازدیدکننده
+   را به تماس برساند. هر بخش سه چیدمان جدا دارد:
+     دسکتاپ   ≥ 1100px
+     تبلت     768 – 1099px
+     موبایل   ≤ 767px
+   و در هر سه، هر چیزی که لمس می‌شود دست‌کم ۴۴px ارتفاع دارد.
+   ============================================================ */
+
+html { scroll-padding-top: 88px; }
+html.has-dialog { overflow: hidden; }
+
+.btn svg { width: 20px; height: 20px; flex: none; }
+.btn-lg { --pad: 16px 28px; font-size: 16px; }
+
+/* ---------- Header ---------- */
+.nav { gap: 22px; }
+.nav-extra { display: none; }
+
+.header-phone {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--muted); font-weight: 600; font-size: 14.5px;
+  min-height: 44px; transition: color .2s;
+}
+.header-phone svg { width: 18px; height: 18px; color: var(--yellow); }
+.header-phone:hover { color: var(--ink); }
+
+/* بین ۱۱۰۰ و ۱۳۲۰ جای شماره کامل نیست؛ فقط آیکن تلفن می‌ماند */
+@media (max-width: 1320px) {
+  .header-phone span { display: none; }
+  .header-phone {
+    width: 42px; height: 42px; justify-content: center;
+    border: 1px solid var(--line-2); border-radius: 50%;
+  }
+}
+
+/* منو با تلفن و دکمه دیگر در ۸۶۰px جا نمی‌شود؛ زودتر جمع می‌شود */
+@media (max-width: 1180px) {
+  .nav { display: none; }
+  .menu-toggle { display: block; }
+  .nav.is-open {
+    display: flex; flex-direction: column; gap: 0;
+    position: absolute; inset-inline: 0; top: 72px;
+    max-height: calc(100dvh - 72px); overflow-y: auto;
+    background: rgba(12,12,12,.98); border-bottom: 1px solid var(--line);
+    padding: 8px 24px 16px;
+  }
+  .nav.is-open a { padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
+  .nav.is-open .nav-extra { display: block; color: var(--yellow); }
+  .header-actions .header-cta { display: inline-flex; }
+}
+@media (max-width: 767px) {
+  /* در موبایل نوار پایین تماس و مشاوره را دارد */
+  .header-actions .header-cta, .header-phone { display: none; }
+  .header-inner { height: 64px; }
+  .nav.is-open { top: 64px; max-height: calc(100dvh - 64px); }
+}
+
+/* ============================================================
+   Hero
+   ============================================================ */
+.home-hero {
+  position: relative; background: #000; overflow: hidden;
+  border-bottom: 1px solid var(--line);
+}
+.home-hero-media {
+  position: absolute; inset-block: 0; inset-inline-end: 0; width: 50%;
+  /* بدون رنگ زمینه: عکس در سیاهی خود بخش محو می‌شود؛ هر خاکستری این‌جا
+     لبهٔ عکس را دوباره نمایان می‌کرد */
+}
+.home-hero-media img {
+  width: 100%; height: 100%; object-fit: cover;
+  /* لبهٔ سمت متن در سیاهی محو می‌شود تا عکس و متن یک قاب باشند */
+  -webkit-mask-image: linear-gradient(90deg, #000 30%, transparent 100%);
+          mask-image: linear-gradient(90deg, #000 30%, transparent 100%);
+}
+.home-hero-media::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(0deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 30%);
+}
+
+.home-hero-grid {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1fr 1fr; align-items: center;
+  min-height: clamp(560px, 76vh, 740px);
+}
+.home-hero-copy { padding-block: 72px; max-width: 610px; }
+
+.home-hero-since { margin: 0 0 18px; color: var(--muted); font-size: 15px; font-weight: 600; }
+.home-hero-title {
+  margin: 0; color: #fff; font-weight: 800;
+  font-size: clamp(34px, 3.5vw, 54px); line-height: 1.3;
+  text-wrap: balance;
+}
+.home-hero-sub { margin: 20px 0 0; color: var(--muted); font-size: 18px; line-height: 1.85; max-width: 46ch; }
+.home-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+.home-hero-hint { margin: 12px 0 0; color: var(--faint); font-size: 13.5px; }
+
+.home-hero-proof {
+  display: grid; grid-template-columns: auto 1fr; gap: 32px;
+  margin: 44px 0 0; padding-top: 22px; border-top: 1px solid var(--line);
+}
+.home-hero-proof dt { color: var(--faint); font-size: 13px; }
+.home-hero-proof dd { margin: 4px 0 0; color: var(--ink); font-size: 15px; font-weight: 600; }
+.lat { font-family: var(--mono); font-size: .92em; direction: ltr; unicode-bidi: isolate; }
+
+@media (max-width: 1099px) {
+  .home-hero-media { width: 42%; }
+  .home-hero-grid { grid-template-columns: 1.45fr 1fr; min-height: 560px; }
+  .home-hero-proof { grid-template-columns: 1fr; gap: 14px; }
+}
+@media (max-width: 767px) {
+  .home-hero-media { position: relative; width: 100%; height: 62vw; max-height: 360px; }
+  .home-hero-media img {
+    -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 100%);
+            mask-image: linear-gradient(180deg, #000 45%, transparent 100%);
+  }
+  .home-hero-media::after { background: linear-gradient(180deg, rgba(0,0,0,0) 35%, #000 100%); }
+  .home-hero-grid { grid-template-columns: 1fr; min-height: 0; }
+  .home-hero-copy { padding-block: 0 40px; margin-top: -36px; }
+  .home-hero-since { margin-bottom: 10px; font-size: 14px; }
+  .home-hero-title { font-size: clamp(27px, 7.4vw, 34px); line-height: 1.4; }
+  .home-hero-sub { font-size: 16px; margin-top: 14px; }
+  .home-hero-actions { flex-direction: column; margin-top: 26px; }
+  .home-hero-actions .btn { justify-content: center; width: 100%; }
+  .home-hero-hint { text-align: center; }
+  .home-hero-proof { margin-top: 30px; }
+}
+
+/* ============================================================
+   سه در — «از کجا شروع کنیم؟»
+   ============================================================ */
+.doors { padding: 88px 0 96px; }
+.doors-title { margin-bottom: 32px; }
+.doors-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+.door {
+  position: relative; isolation: isolate;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  aspect-ratio: 4 / 5; max-height: 540px;
+  border-radius: var(--r); overflow: hidden;
+  border: 1px solid var(--line); background: var(--bg-2);
+  transition: border-color .25s;
+}
+.door-media { position: absolute; inset: 0; z-index: -1; }
+.door-media img {
+  width: 100%; height: 100%; object-fit: cover;
+  filter: brightness(.7) contrast(1.05);
+  transition: transform .7s var(--ease), filter .4s;
+}
+.door-media::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.9) 100%);
+}
+/* خط زرد پایین کارت، با هاور از سمت شروع باز می‌شود */
+.door::before {
+  content: ""; position: absolute; inset-inline: 0; bottom: 0; height: 3px; z-index: 2;
+  background: var(--yellow); transform: scaleX(0); transform-origin: right;
+  transition: transform .35s var(--ease);
+}
+.door-body { display: flex; flex-direction: column; gap: 8px; padding: 30px; }
+.door-title { color: #fff; font-weight: 800; font-size: clamp(24px, 2.3vw, 34px); line-height: 1.3; }
+.door-desc { color: #D4D4D4; font-size: 15.5px; line-height: 1.7; }
+.door-cta { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--yellow); font-weight: 700; font-size: 15px; }
+.door-cta svg { width: 18px; height: 18px; transition: transform .25s var(--ease); }
+
+.door:hover { border-color: var(--line-2); }
+.door:hover::before, .door:focus-visible::before { transform: scaleX(1); }
+.door:hover .door-media img { transform: scale(1.04); filter: brightness(.82) contrast(1.05); }
+.door:hover .door-cta svg { transform: translateX(-4px); }
+
+@media (max-width: 1099px) {
+  .doors-list { gap: 14px; }
+  .door { aspect-ratio: 3 / 4; }
+  .door-body { padding: 20px; }
+  .door-desc { font-size: 14.5px; }
+}
+@media (max-width: 767px) {
+  .doors { padding: 44px 0 52px; }
+  .doors-title { margin-bottom: 18px; font-size: 23px; }
+  .doors-list { grid-template-columns: 1fr; gap: 10px; }
+  /* در موبایل هر در یک ردیف لمسی است، نه کارت بلند؛ هر سه بدون اسکرول دیده می‌شوند */
+  .door { flex-direction: row; align-items: stretch; justify-content: flex-start; aspect-ratio: auto; max-height: none; }
+  .door-media { position: relative; inset: auto; z-index: 0; flex: 0 0 104px; }
+  .door-media::after { display: none; }
+  .door-media img { filter: brightness(.85); }
+  .door-body { flex: 1; gap: 2px; padding: 14px 16px; justify-content: center; }
+  .door-title { font-size: 18px; }
+  .door-desc { font-size: 13.5px; color: var(--muted); }
+  .door-cta { margin-top: 6px; font-size: 13.5px; }
+}
+
+/* ============================================================
+   پیش‌نمایش ماشین‌حساب
+   ============================================================ */
+.calc-teaser {
+  padding: 92px 0;
+  background: linear-gradient(180deg, var(--bg) 0%, #07131b 100%);
+  border-block: 1px solid var(--line);
+}
+.calc-teaser-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+.calc-teaser-copy p { margin: 18px 0 0; color: var(--muted); font-size: 17px; line-height: 1.9; max-width: 46ch; }
+
+.calc-teaser-form {
+  display: flex; flex-direction: column; gap: 22px;
+  background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 18px; padding: 28px;
+}
+.ct-group { border: 0; margin: 0; padding: 0; min-width: 0; }
+.ct-group legend, .ct-label { display: block; padding: 0; margin-bottom: 10px; color: var(--muted); font-size: 14px; }
+.ct-pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ct-pill { position: relative; }
+.ct-pill input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ct-pill span {
+  display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 8px 6px;
+  border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg);
+  font-weight: 700; font-size: 15px; cursor: pointer; transition: border-color .15s, background .15s, color .15s;
+}
+.ct-pill span:hover { border-color: var(--cerulean-3); }
+.ct-pill input:checked + span { border-color: var(--yellow); background: rgba(255,196,26,.1); color: var(--yellow); }
+.ct-pill input:focus-visible + span { outline: 2px solid var(--yellow); outline-offset: 2px; }
+.ct-select {
+  width: 100%; min-height: 50px; padding: 12px 14px;
+  background: var(--bg); color: var(--ink); border: 1px solid var(--line-2); border-radius: 12px;
+  font: inherit; font-size: 16px;
+}
+.ct-select:focus { outline: none; border-color: var(--yellow); }
+
+@media (max-width: 1099px) {
+  .calc-teaser-inner { gap: 36px; }
+  .ct-pills { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 767px) {
+  .calc-teaser { padding: 56px 0; }
+  .calc-teaser-inner { grid-template-columns: 1fr; gap: 24px; }
+  .calc-teaser-copy p { font-size: 15.5px; margin-top: 12px; }
+  .calc-teaser-form { padding: 20px; gap: 18px; border-radius: 16px; }
+}
+
+/* ---------- دعوت به اقدام زیر پروژه‌ها ---------- */
+.section-cta {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  margin-top: 24px; padding: 18px 24px;
+  border: 1px solid var(--line); border-radius: var(--r); background: var(--bg-1);
+}
+.section-cta p { margin: 0; font-weight: 700; font-size: 17px; }
+@media (max-width: 767px) {
+  .section-cta { flex-direction: column; align-items: stretch; text-align: center; padding: 18px; }
+  .section-cta .btn { justify-content: center; }
+}
+
+/* ============================================================
+   مسیر همکاری
+   ============================================================ */
+.process { padding: 96px 0; background: var(--bg-1); border-block: 1px solid var(--line); }
+.process-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; margin-bottom: 52px; }
+.process-head p { margin: 0; color: var(--muted); max-width: 40ch; }
+
+.process-list { list-style: none; margin: 0; padding: 0; position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 28px; }
+/* خطی که دایره‌ها را به هم وصل می‌کند؛ از زرد (شروع) به آبی (ادامه) */
+.process-list::before {
+  content: ""; position: absolute; top: 22px; inset-inline: 22px; height: 1px;
+  background: linear-gradient(270deg, var(--yellow), var(--cerulean-2));
+}
+.process-step { position: relative; display: flex; flex-direction: column; gap: 20px; }
+.process-num {
+  position: relative; z-index: 1;
+  display: grid; place-items: center; width: 44px; height: 44px; flex: none;
+  border-radius: 50%; border: 1px solid var(--line-2); background: var(--bg);
+  color: #fff; font-weight: 800; font-size: 17px;
+}
+.process-step:first-child .process-num { background: var(--yellow); border-color: var(--yellow); color: #1A1400; }
+.process-body h3 { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.5; }
+.process-body p { margin: 6px 0 0; color: var(--muted); font-size: 14.5px; line-height: 1.85; }
+.process-meta { display: grid; gap: 4px; margin: 14px 0 0; font-size: 13.5px; }
+.process-meta div { display: flex; gap: 8px; }
+.process-meta dt { color: var(--faint); }
+.process-meta dd { margin: 0; font-weight: 600; }
+
+@media (max-width: 1099px) {
+  .process-head { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 36px; }
+  .process-list { grid-template-columns: 1fr; gap: 0; max-width: 640px; }
+  .process-list::before {
+    top: 22px; bottom: 22px; inset-inline: 21.5px auto; width: 1px; height: auto;
+    background: linear-gradient(180deg, var(--yellow), var(--cerulean-2));
+  }
+  .process-step { flex-direction: row; gap: 20px; padding-bottom: 30px; }
+  .process-step:last-child { padding-bottom: 0; }
+  .process-body { padding-top: 8px; }
+}
+@media (max-width: 767px) {
+  .process { padding: 56px 0; }
+  .process-step { gap: 16px; padding-bottom: 24px; }
+  .process-num { width: 40px; height: 40px; font-size: 16px; }
+  .process-list::before { top: 20px; bottom: 20px; inset-inline-start: 19.5px; }
+  .process-body { padding-top: 6px; }
+  .process-body h3 { font-size: 17px; }
+}
+
+/* ---------- بنر ثابت فروشگاه ---------- */
+.shop-banner { display: block; margin-bottom: 24px; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); }
+.shop-banner img { width: 100%; height: auto; }
+/* متن بنر روی خود تصویر است و در عرض موبایل خوانا نیست */
+@media (max-width: 767px) { .shop-banner { display: none; } }
+
+/* ============================================================
+   پرسش‌ها
+   ============================================================ */
+.home-faq { padding: 96px 0; }
+.home-faq-grid { display: grid; grid-template-columns: 1fr 1.7fr; gap: 72px; align-items: start; }
+.home-faq-head { position: sticky; top: 100px; }
+.home-faq-head p { margin: 14px 0 0; color: var(--muted); }
+.home-faq-head a { color: var(--yellow); font-weight: 700; white-space: nowrap; }
+.hfaq-item { border-bottom: 1px solid var(--line); }
+.hfaq-item:first-child { border-top: 1px solid var(--line); }
+.hfaq-item summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  min-height: 44px; padding: 22px 0; cursor: pointer; list-style: none;
+  font-weight: 700; font-size: 17px; line-height: 1.6;
+}
+.hfaq-item summary::-webkit-details-marker { display: none; }
+.hfaq-item summary::after {
+  content: "+"; flex: none; width: 30px; height: 30px; display: grid; place-items: center;
+  border: 1px solid var(--line-2); border-radius: 50%; color: var(--yellow); font-size: 18px; font-weight: 400;
+}
+.hfaq-item[open] summary::after { content: "−"; }
+.hfaq-item summary:hover { color: #fff; }
+.hfaq-item p { margin: 0; padding: 0 0 24px; color: var(--muted); line-height: 1.95; max-width: 68ch; }
+
+@media (max-width: 1099px) {
+  .home-faq-grid { grid-template-columns: 1fr; gap: 26px; }
+  .home-faq-head { position: static; }
+}
+@media (max-width: 767px) {
+  .home-faq { padding: 56px 0; }
+  .hfaq-item summary { padding: 18px 0; font-size: 16px; }
+  .hfaq-item p { font-size: 15px; }
+}
+
+/* ============================================================
+   فرم سه‌مرحله‌ای
+   ============================================================ */
+.qf [hidden] { display: none !important; }
+.qf-card { background: var(--bg-2); border: 1px solid var(--line); border-radius: 18px; padding: 30px; }
+.qf-body { display: flex; flex-direction: column; gap: 22px; }
+
+/* بدون جاوااسکریپت: همهٔ مراحل زیر هم، فقط دکمهٔ ارسال */
+.qf:not(.is-stepped) .qf-progress,
+.qf:not(.is-stepped) .qf-next,
+.qf:not(.is-stepped) .qf-back { display: none; }
+.qf:not(.is-stepped) .qf-step + .qf-step { margin-top: 10px; }
+
+.qf-progress { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.qf-step-label { color: var(--muted); font-size: 13.5px; font-weight: 600; }
+.qf-bars { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.qf-bars li { width: 36px; height: 4px; border-radius: 4px; background: var(--line-2); transition: background .3s; }
+.qf-bars li.is-on { background: var(--yellow); }
+
+.qf-step { border: 0; margin: 0; padding: 0; min-width: 0; }
+.qf-step:focus { outline: none; }
+.qf-q { padding: 0; margin-bottom: 16px; color: #fff; font-size: 20px; font-weight: 800; line-height: 1.5; }
+.qf-hint { margin: -8px 0 14px; color: var(--faint); font-size: 14px; }
+
+.qf-opt input, .qf-row input, .qf-pill input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+
+.qf-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.qf-opt {
+  position: relative; display: flex; flex-direction: column; gap: 4px;
+  min-height: 86px; padding: 16px; border-radius: 12px;
+  border: 1px solid var(--line-2); background: var(--bg); cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.qf-opt-t { font-weight: 700; font-size: 16px; }
+.qf-opt-h { color: var(--faint); font-size: 13px; line-height: 1.6; }
+
+.qf-rows { display: flex; flex-direction: column; gap: 8px; }
+.qf-row {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 54px; padding: 12px 16px; border-radius: 12px;
+  border: 1px solid var(--line-2); background: var(--bg); cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.qf-row-t { font-weight: 700; font-size: 15.5px; }
+.qf-row-h { color: var(--faint); font-size: 13px; text-align: end; }
+
+.qf-opt:hover, .qf-row:hover { border-color: var(--cerulean-3); }
+.qf-opt:has(input:checked), .qf-row:has(input:checked) { border-color: var(--yellow); background: rgba(255,196,26,.08); }
+.qf-opt:has(input:checked) .qf-opt-t, .qf-row:has(input:checked) .qf-row-t { color: var(--yellow); }
+.qf-opt:has(input:focus-visible), .qf-row:has(input:focus-visible) { outline: 2px solid var(--yellow); outline-offset: 2px; }
+
+.qf-field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.qf-field label, .qf-field-label { color: var(--muted); font-size: 14px; }
+.qf-field input[type="text"], .qf-field input[type="tel"] {
+  width: 100%; min-height: 50px; padding: 12px 14px;
+  background: var(--bg); color: var(--ink); border: 1px solid var(--line-2); border-radius: 12px;
+  font: inherit; font-size: 16px; /* زیر ۱۶px سافاری آیفون صفحه را زوم می‌کند */
+  transition: border-color .15s;
+}
+.qf-field input::placeholder { color: #5c5c5c; }
+.qf-field input:focus { outline: none; border-color: var(--yellow); }
+.qf-field input[aria-invalid="true"] { border-color: #FF8A80; }
+.qf-field-err { color: #FF9A8F; font-size: 13.5px; }
+.qf-field-err:empty { display: none; }
+
+.qf-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.qf-pill { position: relative; }
+.qf-pill span {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 8px 16px;
+  border: 1px solid var(--line-2); border-radius: 999px; cursor: pointer;
+  font-size: 14.5px; font-weight: 600; transition: border-color .15s, background .15s, color .15s;
+}
+.qf-pill input:checked + span { border-color: var(--yellow); background: rgba(255,196,26,.1); color: var(--yellow); }
+.qf-pill input:focus-visible + span { outline: 2px solid var(--yellow); outline-offset: 2px; }
+.qf-privacy { margin: 2px 0 0; color: var(--faint); font-size: 13px; }
+
+.qf-error { margin: 0; color: #FF9A8F; font-size: 14px; }
+.qf-error:empty { display: none; }
+.qf-error a { color: var(--yellow); font-weight: 700; }
+
+.qf-nav { display: flex; align-items: center; gap: 12px; }
+.qf-next, .qf-submit { margin-inline-start: auto; min-width: 170px; justify-content: center; }
+.qf-back {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 8px 4px;
+  background: none; border: 0; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer;
+}
+.qf-back svg { width: 18px; height: 18px; }
+.qf-back:hover { color: var(--ink); }
+
+.qf-done { text-align: center; padding: 8px 0; }
+.qf-done:focus { outline: none; }
+.qf-done-icon {
+  display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto;
+  border-radius: 50%; background: rgba(255,196,26,.12); color: var(--yellow);
+}
+.qf-done-icon svg { width: 28px; height: 28px; stroke-width: 2.2; }
+.qf-done-title { margin: 14px 0 18px; font-size: 21px; font-weight: 800; }
+.qf-next-steps { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; text-align: start; }
+.qf-next-steps li {
+  display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: baseline;
+  padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg);
+  font-size: 14.5px; line-height: 1.8;
+}
+.qf-next-steps b { color: var(--yellow); white-space: nowrap; }
+.qf-next-steps a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+
+/* بخش فرم در صفحه */
+@media (max-width: 767px) {
+  .quote { padding: 56px 0; }
+  .quote-points { display: none; }
+  .quote-lead { font-size: 15.5px; margin: 12px 0 10px; }
+  .quote-inner { gap: 22px; }
+  .qf-card { padding: 20px 16px; border-radius: 16px; }
+  .qf-q { font-size: 18px; }
+  .qf-next, .qf-submit { flex: 1; min-width: 0; }
+  .qf-next-steps li { grid-template-columns: 1fr; gap: 2px; }
+}
+@media (max-width: 380px) {
+  .qf-cards { grid-template-columns: 1fr; }
+  .qf-opt { min-height: 0; }
+}
+
+/* ============================================================
+   پنجرهٔ مشاوره
+   ============================================================ */
+.qdlg {
+  width: min(580px, calc(100vw - 32px)); max-width: none; max-height: none;
+  margin: auto; padding: 0; border: 0; background: transparent; color: var(--ink);
+}
+.qdlg::backdrop { background: rgba(0,0,0,.68); backdrop-filter: blur(6px); }
+.qdlg-panel {
+  max-height: calc(100dvh - 48px); overflow-y: auto; overscroll-behavior: contain;
+  padding: 22px 28px 28px;
+  background: var(--bg-1); border: 1px solid var(--line-2); border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.6);
+}
+.qdlg[open] .qdlg-panel { animation: qdlgIn .22s var(--ease); }
+@keyframes qdlgIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.qdlg-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line);
+}
+.qdlg-title { margin: 0; font-size: 20px; font-weight: 800; }
+.qdlg-sub { margin: 2px 0 0; color: var(--faint); font-size: 13.5px; }
+.qdlg-close {
+  display: grid; place-items: center; width: 44px; height: 44px; flex: none;
+  border: 1px solid var(--line-2); border-radius: 50%; background: transparent; color: var(--ink); cursor: pointer;
+}
+.qdlg-close svg { width: 18px; height: 18px; }
+.qdlg-close:hover { border-color: var(--yellow); color: var(--yellow); }
+
+/* در موبایل پنجره از پایین بالا می‌آید، جایی که انگشت شست هست */
+@media (max-width: 640px) {
+  .qdlg { width: 100%; margin: auto 0 0; }
+  .qdlg-panel {
+    max-height: 92dvh; border-radius: 20px 20px 0 0; border-bottom: 0;
+    padding: 16px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+  .qdlg[open] .qdlg-panel { animation: qdlgUp .28s var(--ease); }
+  @keyframes qdlgUp { from { transform: translateY(100%); } to { transform: none; } }
+  .qdlg-head { margin-bottom: 16px; padding-bottom: 12px; }
+  .qdlg .qf-next, .qdlg .qf-submit { flex: 1; min-width: 0; }
+}
+
+/* ============================================================
+   نوار ثابت موبایل
+   ============================================================ */
+.mbar { display: none; }
+@media (max-width: 767px) {
+  .mbar {
+    position: fixed; inset-inline: 0; bottom: 0; z-index: 70;
+    display: grid; grid-template-columns: 1fr 1fr 1.35fr;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(14,14,14,.95); backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line-2);
+  }
+  .mbar-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    min-height: 60px; color: var(--muted); font-size: 12.5px; font-weight: 600;
+  }
+  .mbar-item svg { width: 21px; height: 21px; color: var(--ink); }
+  .mbar-item:active { background: rgba(255,255,255,.05); }
+  .mbar-main { flex-direction: row; gap: 8px; background: var(--yellow); color: #1A1400; font-size: 14.5px; font-weight: 800; }
+  .mbar-main svg { color: #1A1400; }
+  /* تا نوار روی انتهای فوتر نیفتد */
+  body { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .door, .door::before, .door-media img, .door-cta svg,
+  .qf-bars li, .ct-pill span, .qf-row, .qf-opt { transition: none; }
+  .qdlg[open] .qdlg-panel { animation: none; }
+}
+
+/* ---------- ردیف افقی در موبایل (فقط صفحهٔ اصلی) ----------
+   محصولات و مقاله‌ها در موبایل زیر هم صفحه را خیلی بلند می‌کردند؛ این‌جا
+   پیش‌نمایش‌اند و «مشاهدهٔ همه» مسیر کامل است، پس یک ردیف قابل کشیدن
+   کافی است. لبهٔ کارت بعدی دیده می‌شود تا معلوم باشد ادامه دارد. */
+@media (max-width: 767px) {
+  .rail {
+    display: flex; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory; scrollbar-width: none;
+    margin-inline: -24px; padding-inline: 24px; scroll-padding-inline: 24px;
+  }
+  .rail::-webkit-scrollbar { display: none; }
+  .rail > * { flex: 0 0 78%; scroll-snap-align: start; }
+}

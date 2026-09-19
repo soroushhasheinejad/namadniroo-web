@@ -1,93 +1,221 @@
 ---
+import QuoteFormBody from './QuoteFormBody.astro';
 import { getSiteSettings } from '../server/repos/siteSettings';
 
+/**
+ * فرم درخواست مشاوره — سه مرحله.
+ *
+ * ترتیب سؤال‌ها عمدی است: اول سؤالی که جوابش آسان است (شما کدام هستید؟)،
+ * بعد اندازه، و شماره تلفن در آخر. کسی که دو قدم برداشته، قدم سوم را
+ * راحت‌تر برمی‌دارد تا کسی که از اول با فیلد شماره روبه‌رو شود.
+ *
+ * بدون جاوااسکریپت هر سه مرحله زیر هم دیده می‌شوند؛ اسکریپت آن‌ها را
+ * مرحله‌به‌مرحله می‌کند. همین فرم هم در صفحه (`section`) و هم در پنجرهٔ
+ * مشاورهٔ همهٔ صفحات (`bare`) استفاده می‌شود، پس شناسه‌ها با `uid`
+ * پیشوند می‌گیرند تا دو نسخه در یک صفحه تداخل نکنند.
+ */
+interface Props {
+  uid?: string;
+  /** `section`: بخش کامل با متن کنارش — `bare`: فقط خود فرم */
+  variant?: 'section' | 'bare';
+}
+const { uid = 'q', variant = 'section' } = Astro.props;
 const { site } = await getSiteSettings();
 ---
-<section class="quote" id="quote" aria-label="درخواست مشاوره">
-  <div class="wrap quote-inner">
-    <div class="quote-copy">
-      <h2 class="section-title quote-title">پروژه‌ای در ذهن دارید؟<br />از یک تماس شروع می‌شود.</h2>
-      <p class="quote-lead">فرم را پر کنید؛ کارشناسان ما ظرف یک روز کاری با یک برآورد اولیه تماس می‌گیرند.</p>
-      <ul class="quote-points">
-        <li>مشاورهٔ فنی رایگان و برآورد ظرفیت</li>
-        <li>پاسخ در کمتر از ۲۴ ساعت کاری</li>
-        <li>پشتیبانی از امکان‌سنجی تا بهره‌برداری</li>
-      </ul>
-      <p class="quote-contact">یا مستقیم تماس بگیرید: <a href={site.phoneHref} dir="ltr">{site.phone}</a></p>
+{variant === 'section' ? (
+  <section class="quote" id="quote" aria-labelledby={`${uid}-title`}>
+    <div class="wrap quote-inner">
+      <div class="quote-copy">
+        <h2 id={`${uid}-title`} class="section-title quote-title">پروژه‌ای در ذهن دارید؟<br />از یک تماس شروع می‌شود.</h2>
+        <p class="quote-lead">سه سؤال کوتاه؛ کارشناسان ما ظرف یک روز کاری با یک برآورد اولیه تماس می‌گیرند.</p>
+        <ul class="quote-points">
+          <li>مشاورهٔ فنی رایگان و برآورد ظرفیت</li>
+          <li>پاسخ در کمتر از ۲۴ ساعت کاری</li>
+          <li>پشتیبانی از امکان‌سنجی تا بهره‌برداری</li>
+        </ul>
+        <p class="quote-contact">یا مستقیم تماس بگیرید: <a href={site.phoneHref} dir="ltr">{site.phone}</a></p>
+      </div>
+      <form class="qf qf-card" data-quote-form={uid} data-phone={site.phone} data-phone-href={site.phoneHref} novalidate>
+        <QuoteFormBody uid={uid} />
+      </form>
     </div>
-
-    <form class="quote-form" id="quoteForm" novalidate>
-      <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true" />
-      <input type="hidden" name="source" id="quoteSource" />
-      <div class="field">
-        <label for="q-name">نام و نام خانوادگی</label>
-        <input id="q-name" name="name" type="text" autocomplete="name" required />
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="q-phone">شمارهٔ تماس</label>
-          <input id="q-phone" name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" required />
-        </div>
-        <div class="field">
-          <label for="q-cap">ظرفیت موردنظر</label>
-          <select id="q-cap" name="capacity">
-            <option value="">انتخاب کنید</option>
-            <option>زیر ۱۰ کیلووات (خانگی)</option>
-            <option>۱۰ تا ۱۰۰ کیلووات (تجاری)</option>
-            <option>بالای یک مگاوات (صنعتی)</option>
-            <option>هنوز مطمئن نیستم</option>
-          </select>
-        </div>
-      </div>
-      <div class="field">
-        <label for="q-area">حوزهٔ درخواست</label>
-        <select id="q-area" name="area">
-          <option value="">انتخاب کنید</option>
-          <option>طراحی مهندسی و ساخت نیروگاه</option>
-          <option>خرید اینورتر و پنل</option>
-          <option>سرمایه‌گذاری در پروژه</option>
-        </select>
-      </div>
-      <button type="submit" class="btn btn-solid btn-block">ارسال درخواست</button>
-      <p class="form-note" id="formNote" role="status"></p>
-    </form>
-  </div>
-</section>
+  </section>
+) : (
+  <form class="qf" data-quote-form={uid} data-phone={site.phone} data-phone-href={site.phoneHref} novalidate>
+    <QuoteFormBody uid={uid} />
+  </form>
+)}
 
 <script>
-  const form = document.getElementById('quoteForm') as HTMLFormElement | null;
-  const note = document.getElementById('formNote');
-  const submitBtn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+  type QuoteFormEl = HTMLFormElement & {
+    prefill?: (who?: string) => void;
+    restart?: () => void;
+  };
 
-  // ثبت صفحه‌ای که فرم از آن ارسال شده — برای پیگیری اینکه کدام صفحه لید می‌آورد
-  const sourceField = document.getElementById('quoteSource') as HTMLInputElement | null;
-  if (sourceField) sourceField.value = location.pathname + location.search;
+  /* قاعدهٔ شماره همان `normalizePhone` سرور است (src/lib/phone.ts)، این‌جا
+     فقط برای این‌که کاربر خطا را کنار فیلد ببیند نه بعد از ارسال. داوری
+     نهایی با سرور است. کتابخانهٔ سرور را مستقیم وارد نمی‌کنیم چون
+     باندل صفحه باید سبک بماند و این چند خط تمام منطق آن است. */
+  const phoneLooksValid = (raw: string) => {
+    let s = raw
+      .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+      .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+      .replace(/[\s\-()._]/g, '');
+    if (s.startsWith('+98')) s = s.slice(3);
+    else if (s.startsWith('0098')) s = s.slice(4);
+    else if (s.startsWith('98') && s.length > 10) s = s.slice(2);
+    else if (s.startsWith('0')) s = s.slice(1);
+    return /^9\d{9}$/.test(s) || /^[1-8]\d{9}$/.test(s);
+  };
 
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!form.checkValidity()) { form.reportValidity(); return; }
-
-    if (submitBtn) submitBtn.disabled = true;
-    if (note) note.textContent = 'در حال ارسال...';
-
-    try {
-      const payload = Object.fromEntries(new FormData(form).entries());
-      const res = await fetch('/api/quote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (note) note.textContent = 'درخواست شما ثبت شد؛ به‌زودی تماس می‌گیریم.';
-        form.reset();
-      } else {
-        if (note) note.textContent = 'ارسال با خطا مواجه شد؛ لطفاً مستقیم تماس بگیرید.';
-      }
-    } catch {
-      if (note) note.textContent = 'ارسال با خطا مواجه شد؛ لطفاً مستقیم تماس بگیرید.';
-    } finally {
-      if (submitBtn) submitBtn.disabled = false;
+  /* منبع تبلیغ (utm) از اولین صفحه‌ای که کاربر با آن وارد شده نگه داشته
+     می‌شود؛ وگرنه اگر در صفحهٔ دوم فرم را پر کند، معلوم نیست از کدام
+     کمپین آمده. */
+  const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign'] as const;
+  const utm: Record<string, string> = {};
+  try {
+    const params = new URLSearchParams(location.search);
+    for (const k of UTM_KEYS) {
+      const v = params.get(k);
+      if (v) sessionStorage.setItem(k, v);
+      const stored = sessionStorage.getItem(k);
+      if (stored) utm[k] = stored;
     }
+  } catch { /* حالت خصوصی مرورگر: بدون utm ادامه می‌دهیم */ }
+
+  class ServerMessage extends Error {}
+
+  document.querySelectorAll<QuoteFormEl>('form[data-quote-form]').forEach((form) => {
+    const steps = [...form.querySelectorAll<HTMLFieldSetElement>('.qf-step')];
+    const label = form.querySelector<HTMLElement>('.qf-step-label')!;
+    const bars = [...form.querySelectorAll<HTMLElement>('.qf-bars li')];
+    const back = form.querySelector<HTMLButtonElement>('.qf-back')!;
+    const next = form.querySelector<HTMLButtonElement>('.qf-next')!;
+    const submit = form.querySelector<HTMLButtonElement>('.qf-submit')!;
+    const error = form.querySelector<HTMLElement>('.qf-error')!;
+    const done = form.querySelector<HTMLElement>('.qf-done')!;
+    const body = form.querySelector<HTMLElement>('.qf-body')!;
+    const fa = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
+    let cur = 0;
+
+    form.classList.add('is-stepped');
+
+    const show = (i: number, focus = true) => {
+      cur = Math.max(0, Math.min(i, steps.length - 1));
+      steps.forEach((s, n) => { s.hidden = n !== cur; });
+      label.textContent = `مرحلهٔ ${fa(cur + 1)} از ${fa(steps.length)}`;
+      bars.forEach((b, n) => b.classList.toggle('is-on', n <= cur));
+      back.hidden = cur === 0;
+      next.hidden = cur === steps.length - 1;
+      submit.hidden = cur !== steps.length - 1;
+      error.textContent = '';
+      if (focus) steps[cur].focus({ preventScroll: true });
+    };
+
+    const answered = (i: number) => {
+      const radios = steps[i].querySelectorAll<HTMLInputElement>('input[type="radio"]');
+      return radios.length === 0 || [...radios].some((r) => r.checked);
+    };
+
+    const advance = () => {
+      if (!answered(cur)) { error.textContent = 'یکی از گزینه‌ها را انتخاب کنید.'; return; }
+      show(cur + 1);
+    };
+
+    next.addEventListener('click', advance);
+    back.addEventListener('click', () => show(cur - 1));
+
+    /* با لمس یا کلیک، انتخاب گزینه خودش به مرحلهٔ بعد می‌رود — یک ضربه
+       کمتر در موبایل. با کیبورد نه: آنجا جابه‌جایی با کلیدهای جهت هم
+       change می‌دهد و نباید کاربر را از مرحله بیرون بیندازد. */
+    let lastPointer = 0;
+    form.addEventListener('pointerdown', () => { lastPointer = Date.now(); });
+    form.addEventListener('change', (e) => {
+      const t = e.target as HTMLInputElement;
+      if (t.type !== 'radio' || t.name === 'contact_via') return;
+      error.textContent = '';
+      if (Date.now() - lastPointer < 800 && cur < steps.length - 1) {
+        setTimeout(() => show(cur + 1), 220);
+      }
+    });
+
+    const setFieldError = (input: HTMLInputElement, msg: string) => {
+      const note = form.querySelector<HTMLElement>(`#${input.getAttribute('aria-describedby')}`);
+      input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+      if (note) note.textContent = msg;
+    };
+    form.querySelectorAll<HTMLInputElement>('.qf-field input').forEach((inp) => {
+      inp.addEventListener('input', () => setFieldError(inp, ''));
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (cur !== steps.length - 1) { advance(); return; }
+
+      const nameInput = form.elements.namedItem('name') as HTMLInputElement;
+      const phoneInput = form.elements.namedItem('phone') as HTMLInputElement;
+      let bad: HTMLInputElement | null = null;
+      if (nameInput.value.trim().length < 2) { setFieldError(nameInput, 'نامتان را بنویسید.'); bad ??= nameInput; }
+      if (!phoneLooksValid(phoneInput.value)) {
+        setFieldError(phoneInput, 'شماره را کامل بنویسید؛ مثلاً ۰۹۱۳۱۲۳۴۵۶۷');
+        bad ??= phoneInput;
+      }
+      if (bad) { bad.focus(); return; }
+
+      submit.disabled = true;
+      submit.textContent = 'در حال ارسال…';
+      error.textContent = '';
+
+      try {
+        const payload = {
+          ...Object.fromEntries(new FormData(form).entries()),
+          ...utm,
+          source: location.pathname + location.search,
+        };
+        const res = await fetch('/api/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        /* پیام سرور فارسی و مشخص است (مثلاً «شمارهٔ تماس معتبر نیست»)؛
+           خطای شبکه‌ی مرورگر انگلیسی است و به کاربر نشان داده نمی‌شود. */
+        if (!data.success) throw new ServerMessage(data.message || 'ارسال انجام نشد');
+        body.hidden = true;
+        done.hidden = false;
+        done.focus();
+      } catch (err) {
+        const msg = err instanceof ServerMessage ? err.message : 'اتصال برقرار نشد';
+        error.innerHTML = '';
+        error.append(`${msg}. دوباره امتحان کنید یا مستقیم تماس بگیرید: `);
+        const tel = document.createElement('a');
+        tel.href = form.dataset.phoneHref || '';
+        tel.dir = 'ltr';
+        tel.textContent = form.dataset.phone || '';
+        error.append(tel);
+      } finally {
+        submit.disabled = false;
+        submit.textContent = 'ثبت درخواست';
+      }
+    });
+
+    /* پنجرهٔ مشاوره از این‌ها استفاده می‌کند: وقتی کاربر از «در» صنعت یا
+       صفحهٔ محصول آمده، نوعش از پیش معلوم است و از مرحلهٔ دوم شروع می‌کند. */
+    form.prefill = (who) => {
+      const radio = who
+        ? form.querySelector<HTMLInputElement>(`input[name="area"][data-key="${CSS.escape(who)}"]`)
+        : null;
+      if (radio) radio.checked = true;
+      show(radio ? 1 : 0, false);
+    };
+    form.restart = () => {
+      form.reset();
+      form.querySelectorAll<HTMLInputElement>('[aria-invalid]').forEach((i) => setFieldError(i, ''));
+      body.hidden = false;
+      done.hidden = true;
+      show(0, false);
+    };
+
+    show(0, false);
   });
 </script>

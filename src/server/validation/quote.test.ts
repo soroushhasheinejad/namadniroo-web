@@ -30,6 +30,15 @@ describe('validateQuote', () => {
     expect(result.value.phoneNormalized).toBe('+989131234567');
   });
 
+  it('راه تماس را فقط از میان گزینه‌های مجاز می‌پذیرد', () => {
+    const ok = validateQuote({ ...valid, contact_via: 'bale' });
+    expect(ok.ok && ok.value.contactVia).toBe('پیام در بله');
+
+    // مقدار ناشناخته به‌جای ذخیرهٔ متن آزاد، خالی می‌شود
+    const odd = validateQuote({ ...valid, contact_via: 'fax<script>' });
+    expect(odd.ok && odd.value.contactVia).toBe('');
+  });
+
   it('نبود نام یا شماره را رد می‌کند', () => {
     expect(validateQuote({ phone: '09131234567' })).toMatchObject({ ok: false, status: 422 });
     expect(validateQuote({ name: 'علی' })).toMatchObject({ ok: false, status: 422 });

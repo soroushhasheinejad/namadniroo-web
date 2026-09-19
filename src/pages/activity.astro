@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import RelatedArticles from '../components/RelatedArticles.astro';
 import PageHero from '../components/PageHero.astro';
 import Icon from '../components/Icon.astro';
 import DbImage from '../components/DbImage.astro';
@@ -41,6 +42,11 @@ const blocks = await areaBlocks();
       </div>
     </section>
   ))}
+
+  <RelatedArticles
+    slugs={['epc-meaning', 'plant-components', 'om-plant']}
+    title="پیش از شروع پروژه بخوانید"
+  />
 
   <section class="cta-band">
     <div class="wrap">

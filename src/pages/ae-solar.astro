@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import RelatedArticles from '../components/RelatedArticles.astro';
 import ModuleAnatomy from '../components/ModuleAnatomy.astro';
 import { fa } from '../utils';
 import { ae, aeStats, series, whyUs, techGuide, warranty, datasheets, faq } from '../data/aesolar';
@@ -256,6 +257,11 @@ const pageSchema = [
         </div>
       </div>
     </section>
+
+    <RelatedArticles
+      slugs={['how-panel-works', 'panel-washing', 'performance-ratio']}
+      title="دربارهٔ پنل خورشیدی"
+    />
 
     <!-- ===== دعوت به اقدام ===== -->
     <section class="cta-band">

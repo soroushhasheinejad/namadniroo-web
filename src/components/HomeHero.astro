@@ -1,0 +1,63 @@
+---
+import Icon from './Icon.astro';
+import DbImage from './DbImage.astro';
+import type { ImageRef } from '../server/repos/content';
+import { getSiteSettings } from '../server/repos/siteSettings';
+
+/* هیروی ثابت صفحهٔ اصلی.
+   جای اسلایدر پوستری قبلی را گرفته، به سه دلیل: متن روی پوستر در موبایل
+   ریز می‌شد و گوگل آن را نمی‌خواند، بیشتر بازدیدکننده‌ها فقط اسلاید اول را
+   می‌دیدند، و هیچ دکمه‌ای در پربیننده‌ترین نقطهٔ سایت نبود.
+   پوسترها از بین نرفته‌اند؛ در صفحهٔ «حوزه‌های فعالیت» و پنل باقی‌اند. */
+interface Props { image: ImageRef | null }
+const { image } = Astro.props;
+const { site, clients, stats } = await getSiteSettings();
+/* عدد تیتر از همان آمار پنل می‌آید تا اگر ظرفیت اجراشده به‌روز شد، تیتر
+   و نوار آمار دو عدد متفاوت نگویند. */
+const fa = (n: number | string) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
+const mwStat = stats.find((s) => s.unit === 'MW' && 'value' in s && s.value != null) as { value: number } | undefined;
+const mw = fa(mwStat?.value ?? 70);
+const topClients = clients.filter((c) => !c.startsWith('و ')).slice(0, 3);
+---
+<section class="home-hero" aria-labelledby="hero-title">
+  <div class="home-hero-media">
+    {image && <DbImage image={image} sizes="(max-width: 767px) 100vw, 50vw" priority decorative />}
+  </div>
+
+  <div class="wrap home-hero-grid">
+    <div class="home-hero-copy">
+      <p class="home-hero-since">از {site.since} در کرمان</p>
+      <h1 id="hero-title" class="home-hero-title">
+        نیروگاه خورشیدی‌تان را با تیمی بسازید که {mw}&nbsp;مگاوات ساخته است
+      </h1>
+      <p class="home-hero-sub">
+        طراحی، تأمین تجهیزات، اجرا و بهره‌برداری، برای صنایع، سرمایه‌گذاران و پیمانکاران.
+      </p>
+
+      <div class="home-hero-actions">
+        <a class="btn btn-solid btn-lg" href="/solar-calculator">
+          <Icon name="calc" />
+          سود نیروگاه را حساب کنید
+        </a>
+        <a class="btn btn-ghost btn-lg" href={site.phoneHref}>
+          <Icon name="phone" />
+          <span dir="ltr">{site.phone}</span>
+        </a>
+      </div>
+      <p class="home-hero-hint">برآورد رایگان و فوری، بدون نیاز به ثبت‌نام</p>
+
+      <dl class="home-hero-proof">
+        <div>
+          <dt>نمایندهٔ رسمی</dt>
+          <dd><span class="lat">AE Solar</span> و <span class="lat">Fronius</span> در ایران</dd>
+        </div>
+        {topClients.length > 0 && (
+          <div>
+            <dt>کارفرمایان</dt>
+            <dd>{topClients.join('، ')}</dd>
+          </div>
+        )}
+      </dl>
+    </div>
+  </div>
+</section>

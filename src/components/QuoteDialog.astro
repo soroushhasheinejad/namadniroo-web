@@ -1,0 +1,87 @@
+---
+import Icon from './Icon.astro';
+import QuoteForm from './QuoteForm.astro';
+
+/**
+ * پنجرهٔ مشاوره، در همهٔ صفحات.
+ *
+ * پیش از این هر دکمهٔ «درخواست مشاوره» به `/#quote` لینک بود: کسی که وسط
+ * صفحهٔ یک محصول روی آن می‌زد به انتهای صفحهٔ اصلی پرت می‌شد و رشتهٔ کارش
+ * را گم می‌کرد. حالا فرم همان‌جا باز می‌شود.
+ *
+ * هر لینکی به `/#quote` یا `#quote` و هر عنصری با `data-quote` این پنجره را
+ * باز می‌کند — لینک‌های قدیمی صفحه‌ها و لینک‌هایی که در پنل ذخیره شده‌اند
+ * هم بدون تغییر کار می‌کنند. `data-who` نوع مشتری را از پیش انتخاب می‌کند.
+ * اگر مرورگر `<dialog>` نداشته باشد، لینک عادی کار خودش را می‌کند.
+ */
+---
+<dialog class="qdlg" id="quoteDialog" aria-labelledby="qdlg-title">
+  <div class="qdlg-panel">
+    <header class="qdlg-head">
+      <div>
+        <p class="qdlg-title" id="qdlg-title">مشاورهٔ رایگان</p>
+        <p class="qdlg-sub">پاسخ ظرف یک روز کاری</p>
+      </div>
+      <button type="button" class="qdlg-close" data-quote-close aria-label="بستن">
+        <Icon name="close" />
+      </button>
+    </header>
+    <QuoteForm uid="dlg" variant="bare" />
+  </div>
+</dialog>
+
+<script>
+  type QuoteFormEl = HTMLFormElement & {
+    prefill?: (who?: string) => void;
+    restart?: () => void;
+    querySelector: HTMLFormElement['querySelector'];
+  };
+
+  const dlg = document.getElementById('quoteDialog') as HTMLDialogElement | null;
+  const form = dlg?.querySelector<QuoteFormEl>('form[data-quote-form]') ?? null;
+
+  if (dlg && form && typeof dlg.showModal === 'function') {
+    /* اگر کاربر از صفحهٔ فروشگاه یا سرمایه‌گذاری آمده، نوعش تقریباً معلوم
+       است. لینک صریح (`data-who`) همیشه برنده است. */
+    const inferWho = () => {
+      const p = location.pathname;
+      if (/^\/(shop|product|product-category|ae-solar)/.test(p)) return 'buyer';
+      if (/^\/(investment|solar-calculator)/.test(p)) return 'investor';
+      return '';
+    };
+
+    let opener: HTMLElement | null = null;
+
+    const open = (who: string, from: HTMLElement) => {
+      opener = from;
+      /* فرم ارسال‌شده یک بار دیگر باز شود از نو شروع می‌کند؛ فرم نیمه‌کاره
+         همان‌جا که بود می‌ماند تا کاربر اگر پنجره را بست چیزی از دست ندهد. */
+      if (!form.querySelector('.qf-done')?.hasAttribute('hidden')) form.restart?.();
+      const started = form.querySelector('input[type="radio"]:checked:not([name="contact_via"])');
+      if (!started || who) form.prefill?.(who);
+      dlg.showModal();
+      document.documentElement.classList.add('has-dialog');
+    };
+
+    document.addEventListener('click', (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      const el = (e.target as HTMLElement).closest<HTMLElement>(
+        '[data-quote], a[href="/#quote"], a[href="#quote"]',
+      );
+      if (!el || dlg.contains(el)) return;
+      e.preventDefault();
+      open(el.dataset.who || inferWho(), el);
+    });
+
+    dlg.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      // کلیک روی پس‌زمینه (خود dialog، بیرون از پنل) یا دکمهٔ بستن
+      if (t === dlg || t.closest('[data-quote-close]')) dlg.close();
+    });
+
+    dlg.addEventListener('close', () => {
+      document.documentElement.classList.remove('has-dialog');
+      opener?.focus({ preventScroll: true });
+    });
+  }
+</script>

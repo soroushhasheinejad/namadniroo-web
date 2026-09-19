@@ -30,6 +30,7 @@ export async function submitQuote(input: QuoteInput): Promise<QuoteResult> {
     phoneNormalized: input.phoneNormalized,
     capacity: input.capacity || null,
     area: input.area || null,
+    contactVia: input.contactVia || null,
     source: input.source || null,
     utmSource: input.utmSource ?? null,
     utmMedium: input.utmMedium ?? null,
@@ -49,6 +50,7 @@ export async function submitQuote(input: QuoteInput): Promise<QuoteResult> {
         `شمارهٔ تماس: ${input.phone}\n` +
         `ظرفیت موردنظر: ${input.capacity || '—'}\n` +
         `حوزهٔ درخواست: ${input.area || '—'}\n` +
+        `راه تماس دلخواه: ${input.contactVia || 'تماس تلفنی'}\n` +
         `صفحهٔ مبدأ: ${input.source || '—'}\n` +
         (input.estimate ? `\nبرآوردی که کاربر دیده بود:\n${input.estimate}\n` : '') +
         `\nمشاهده در پنل: https://namadniroo.ir/admin/leads\n`,

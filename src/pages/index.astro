@@ -1,34 +1,46 @@
 ---
 import Base from '../layouts/Base.astro';
-import HeroSlider from '../components/HeroSlider.astro';
+import HomeHero from '../components/HomeHero.astro';
+import AudienceDoors from '../components/AudienceDoors.astro';
 import Stats from '../components/Stats.astro';
-import PromoSlider from '../components/PromoSlider.astro';
+import CalcTeaser from '../components/CalcTeaser.astro';
+import ProcessSteps from '../components/ProcessSteps.astro';
+import HomeFaq from '../components/HomeFaq.astro';
+import DbImage from '../components/DbImage.astro';
 import SectionHead from '../components/SectionHead.astro';
 import ProductCard from '../components/ProductCard.astro';
 import ProjectTile from '../components/ProjectTile.astro';
 import ArticleCard from '../components/ArticleCard.astro';
 import QuoteForm from '../components/QuoteForm.astro';
 import { listArticles, listFeaturedProducts, listFeaturedProjects } from '../server/repos/content';
-import { heroSlides } from '../server/repos/slides';
+import { promoSlides } from '../server/repos/slides';
+import { homeImages } from '../server/repos/homeMedia';
 import { buildSrcset } from '../server/media/store';
+import { faqSchema } from '../utils';
+import { homeFaq } from '../data/site';
 
 
 export const prerender = false;
 
 /* سه بخش صفحه به هم وابسته نیستند، پس با هم خوانده می‌شوند نه پشت سر هم —
    وگرنه زمان رندر می‌شد مجموع سه کوئری به‌جای کندترینشان. */
-const [products, projects, articles, slides] = await Promise.all([
+const [products, projects, articles, images, promos] = await Promise.all([
   listFeaturedProducts(4),
   listFeaturedProjects(3),
   listArticles().then((all) => all.slice(0, 3)),
-  heroSlides(),
+  homeImages(),
+  promoSlides(),
 ]);
 
-/* پوستر اسلاید اول، بزرگ‌ترین عنصر قابل مشاهدهٔ صفحه (LCP) است. آدرسش را
-   به Base می‌دهیم تا در <head> با preload اعلام شود و دانلودش هم‌زمان با
-   خواندن سرصفحه شروع شود، نه بعد از رسیدن به تگ img.
-   HeroSlider همین داده را از کش می‌گیرد، پس کوئری دوباره‌ای زده نمی‌شود. */
-const lcp = slides[0]?.image ?? null;
+/* عکس هیرو بزرگ‌ترین عنصر قابل مشاهدهٔ صفحه (LCP) است. آدرسش را به Base
+   می‌دهیم تا در <head> با preload اعلام شود و دانلودش هم‌زمان با خواندن
+   سرصفحه شروع شود، نه بعد از رسیدن به تگ img. `sizes` باید با همان
+   مقدار خود تگ img یکی باشد، وگرنه مرورگر دو نسخه دانلود می‌کند. */
+const lcp = images.hero;
+const HERO_SIZES = '(max-width: 767px) 100vw, 50vw';
+
+/* بنر فروشگاه دیگر در اسلایدر نمی‌چرخد؛ ثابت بالای محصولات می‌نشیند. */
+const shopBanner = promos.find((p) => p.href === '/shop' && p.image) ?? null;
 
 const homeSchema = [
   {
@@ -55,29 +67,19 @@ const homeSchema = [
       addressCountry: 'IR',
     },
   },
+  faqSchema([...homeFaq]),
 ];
 ---
 <Base
   title="نماد نیرو | راه‌کارهای جامع انرژی پایدار"
   description="نماد نیرو از سال ۱۳۸۷ در کرمان: احداث نیروگاه خورشیدی، تأمین پنل و اینورتر از برندهای معتبر جهانی، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر."
   schema={homeSchema}
-  preloadImage={lcp ? { src: lcp.url, srcset: buildSrcset(lcp.key, lcp.width), sizes: '100vw' } : undefined}
+  preloadImage={lcp ? { src: lcp.url, srcset: buildSrcset(lcp.key, lcp.width), sizes: HERO_SIZES } : undefined}
 >
-  <h1 class="sr-only">
-    نماد نیرو — احداث نیروگاه خورشیدی، تأمین تجهیزات و سرمایه‌گذاری در انرژی تجدیدپذیر
-  </h1>
-  <HeroSlider />
+  <HomeHero image={images.hero} />
+  <AudienceDoors images={images.doors} />
   <Stats />
-  <PromoSlider />
-
-  <section class="shop">
-    <div class="wrap">
-      <SectionHead eyebrow="فروشگاه تجهیزات" title="اینورترها و پنل‌های خورشیدی" moreHref="/shop" />
-      <div class="products">
-        {products.map((p) => <ProductCard p={p} showCat={false} />)}
-      </div>
-    </div>
-  </section>
+  <CalcTeaser />
 
   <section class="projects">
     <div class="wrap">
@@ -85,17 +87,39 @@ const homeSchema = [
       <div class="proj-grid">
         {projects.map((p, i) => <ProjectTile p={p} large={i === 0} />)}
       </div>
+      <div class="section-cta">
+        <p>پروژه‌ای در همین اندازه دارید؟</p>
+        <a class="btn btn-ghost" href="/contact" data-quote data-who="industry">دربارهٔ پروژه‌تان بپرسید</a>
+      </div>
     </div>
   </section>
+
+  <ProcessSteps />
+
+  <section class="shop">
+    <div class="wrap">
+      <SectionHead eyebrow="فروشگاه تجهیزات" title="اینورترها و پنل‌های خورشیدی" moreHref="/shop" />
+      {shopBanner?.image && (
+        <a class="shop-banner" href="/shop" aria-label={shopBanner.alt}>
+          <DbImage image={shopBanner.image} sizes="(max-width: 1240px) 100vw, 1192px" decorative />
+        </a>
+      )}
+      <div class="products rail">
+        {products.map((p) => <ProductCard p={p} showCat={false} />)}
+      </div>
+    </div>
+  </section>
+
+  <HomeFaq />
 
   <section class="magazine">
     <div class="wrap">
       <SectionHead eyebrow="مجلهٔ انرژی" title="دانش، بازار و اخبار" moreHref="/magazine" moreLabel="همهٔ مقاله‌ها" />
-      <div class="mag-grid">
+      <div class="mag-grid rail">
         {articles.map((a) => <ArticleCard a={a} />)}
       </div>
     </div>
   </section>
 
-  <QuoteForm />
+  <QuoteForm uid="home" />
 </Base>

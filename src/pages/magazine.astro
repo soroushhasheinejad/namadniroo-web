@@ -17,9 +17,32 @@ const articleFilters = filters.articles.filter(
   (f) => f.key === 'all' || articles.some((a) => a.category === f.key),
 );
 
-const pageSchema = breadcrumbSchema([{ name: 'مجله', href: '/magazine' }]);
+const pageSchema = [
+  breadcrumbSchema([{ name: 'مجله', href: '/magazine' }]),
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'مجلهٔ انرژی نماد نیرو',
+    url: 'https://namadniroo.ir/magazine',
+    inLanguage: 'fa-IR',
+    publisher: { '@id': 'https://namadniroo.ir/#organization' },
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: articles.map((a, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        url: `https://namadniroo.ir/magazine/${a.slug}`,
+        name: a.title,
+      })),
+    },
+  },
+];
 ---
-<Base schema={pageSchema} title="مجله | نماد نیرو" description="مجلهٔ انرژی نماد نیرو؛ آموزش، بازار انرژی و اخبار شرکت دربارهٔ نیروگاه خورشیدی، اینورتر، نگه‌داری و سرمایه‌گذاری.">
+<Base
+  schema={pageSchema}
+  title="مجله انرژی خورشیدی؛ آموزش نیروگاه خورشیدی | نماد نیرو"
+  description="مقاله‌های کاربردی دربارهٔ نیروگاه خورشیدی: اجزا و اینورتر، آنگرید و آفگرید، نگهداری و O&M، شاخص PR، قرارداد EPC و درآمد و سود نیروگاه خورشیدی."
+>
   <PageHero
     crumb="مجله"
     title="مجلهٔ انرژی"

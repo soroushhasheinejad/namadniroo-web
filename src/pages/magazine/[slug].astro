@@ -16,13 +16,23 @@ const article = all.find((a) => a.slug === slug);
 // نشانی نامعتبر یا مقاله‌ای که پیش‌نویس شده است
 if (!article) return Astro.rewrite('/404');
 
-/* متن مقاله و مطالب مرتبط به هم وابسته نیستند، پس با هم آماده می‌شوند. */
-const [html, related] = await Promise.all([
-  renderMarkdown(article.body),
-  Promise.resolve(
-    all.filter((a) => a.slug !== article.slug && a.category === article.category).slice(0, 3),
-  ),
-]);
+const html = await renderMarkdown(article.body);
+
+/* فهرست مطالب از روی تیترهای h2. شناسه‌ها را پردازشگر مارک‌داون می‌سازد؛
+   لینک‌های پرشی هم به خواننده کمک می‌کنند و هم گاهی گوگل آن‌ها را زیر
+   نتیجه نشان می‌دهد. */
+const toc = [...html.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)].map((m) => ({
+  id: m[1]!,
+  text: m[2]!.replace(/<[^>]+>/g, '').trim(),
+}));
+
+/* مطالب مرتبط: اول هم‌دسته، بعد بقیه — تا مقالهٔ دسته‌ای که فقط دو عضو
+   دارد هم سه پیشنهاد داشته باشد. */
+const others = all.filter((a) => a.slug !== article.slug);
+const related = [
+  ...others.filter((a) => a.category === article.category),
+  ...others.filter((a) => a.category !== article.category),
+].slice(0, 3);
 
 const published = article.publishedAt?.toISOString().slice(0, 10);
 const description = article.seoDescription || article.title;
@@ -60,6 +70,11 @@ const pageSchema = [
   schema={pageSchema}
   noindex={article.noindex}
 >
+  <Fragment slot="head">
+    {published && <meta property="article:published_time" content={published} />}
+    <meta property="article:modified_time" content={article.updatedAt.toISOString()} />
+    <meta property="article:section" content={categoryLabel[article.category]} />
+  </Fragment>
   <article class="article">
     <div class="wrap article-head">
       <p class="breadcrumb">
@@ -69,6 +84,17 @@ const pageSchema = [
       <h1 class="article-title">{article.title}</h1>
       <p class="article-meta">{article.dateFa} · {fa(article.readTime)} دقیقه مطالعه</p>
     </div>
+
+    {toc.length > 2 && (
+      <nav class="wrap article-toc" aria-label="فهرست مطالب">
+        <details open>
+          <summary>فهرست مطالب</summary>
+          <ol>
+            {toc.map((t) => <li><a href={`#${t.id}`}>{t.text}</a></li>)}
+          </ol>
+        </details>
+      </nav>
+    )}
 
     <div class="wrap article-body" set:html={html} />
   </article>

@@ -33,7 +33,11 @@
   --cerulean-3:#5F839B;
 
   --font: "Dana", ui-sans-serif, system-ui, "Segoe UI", Tahoma, sans-serif;
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  /* Dana پیش از Menlo می‌آید: قلم‌های مونو اول حروف فارسی ندارند و مرورگر
+     برای آن‌ها سراغ قلم بعدی فهرست می‌رود. Menlo حروف عربی تک‌عرض دارد که
+     حروف را از هم جدا می‌کند («س ر م ا ی ه»)؛ با Dana در این جایگاه، عدد و
+     نام لاتین مونو می‌مانند و متن فارسی کنارشان درست می‌چسبد. */
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Consolas, "Dana", Menlo, monospace;
 
   --wrap: 1240px;
   --r: 14px;
@@ -589,6 +593,14 @@ section { scroll-margin-top: 84px; }
 .article-body li { margin: 6px 0; }
 .article-body a { color: var(--yellow); }
 .article-body img { border-radius: var(--r); margin: 18px 0; }
+.article-toc { padding: 30px 24px 0; max-width: 78ch; }
+.article-toc details { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 22px; }
+.article-toc summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+.article-toc ol { margin: 12px 0 0; padding-inline-start: 22px; line-height: 2; font-size: 15px; }
+.article-toc a { color: var(--muted); }
+.article-toc a:hover { color: var(--yellow); }
+.article-body h2 { scroll-margin-top: 90px; }
+.mag-excerpt { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.9; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .article-body strong { color: var(--ink); font-weight: 700; }
 /* جدول مقایسه در مقاله‌ها؛ روی موبایل خود جدول اسکرول افقی می‌خورد نه صفحه */
 .article-body table { display: block; overflow-x: auto; width: 100%; margin: 6px 0 22px; border-collapse: collapse; font-size: 15px; line-height: 1.8; }
