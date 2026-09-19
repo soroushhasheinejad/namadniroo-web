@@ -1,22 +1,24 @@
 ---
-import { homeFaq } from '../data/site';
+import type { homePage } from '../data/pages';
 import { getSiteSettings } from '../server/repos/siteSettings';
 
 /* پرسش‌هایی که پیش از تماس در ذهن مشتری است. داده‌اش همان است که
    صفحهٔ اصلی در JSON-LD به گوگل می‌دهد (FAQPage). */
+interface Props { c: (typeof homePage.defaults)['faq'] }
+const { c } = Astro.props;
 const { site } = await getSiteSettings();
 ---
 <section class="home-faq" aria-labelledby="faq-title">
   <div class="wrap home-faq-grid">
     <div class="home-faq-head">
-      <h2 id="faq-title" class="section-title">پرسش‌های پیش از شروع</h2>
+      <h2 id="faq-title" class="section-title">{c.title}</h2>
       <p>
-        جواب سؤالتان اینجا نیست؟
+        {c.lead}
         <a href={site.phoneHref} dir="ltr">{site.phone}</a>
       </p>
     </div>
     <div class="home-faq-list">
-      {homeFaq.map((f, i) => (
+      {c.items.map((f, i) => (
         <details class="hfaq-item" open={i === 0}>
           <summary>{f.q}</summary>
           <p>{f.a}</p>

@@ -1,4 +1,5 @@
 import type { Field } from '../admin/fields';
+import { audiences, homeFaq, processSteps } from './siteContent';
 
 /**
  * متن صفحات، قابل ویرایش از پنل.
@@ -287,13 +288,184 @@ export const notFoundPage = {
    فیلدهایشان جدا اضافه می‌شود. عنوان و توضیحشان برای گوگل اما از همین
    حالا از پنل قابل تغییر است. */
 
-export const homePage = seoOnly(
-  'home',
-  'صفحهٔ اصلی',
-  '/',
-  'نماد نیرو | راه‌کارهای جامع انرژی پایدار',
-  'نماد نیرو از سال ۱۳۸۷ در کرمان: احداث نیروگاه خورشیدی، تأمین پنل و اینورتر از برندهای معتبر جهانی، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر.',
-);
+/* ============================================================
+   صفحهٔ اصلی
+   ============================================================ */
+
+const WHO_OPTIONS = [
+  { value: 'investor', label: 'سرمایه‌گذار' },
+  { value: 'industry', label: 'صنعت — فرم مشاوره را باز می‌کند' },
+  { value: 'buyer', label: 'خریدار تجهیزات' },
+  { value: 'home', label: 'خانگی' },
+];
+
+const headFields = (withMore: boolean): Field[] => [
+  { kind: 'text', key: 'eyebrow', label: 'برچسب کوچک' },
+  { kind: 'text', key: 'title', label: 'عنوان' },
+  ...(withMore ? [{ kind: 'text', key: 'moreLabel', label: 'متن پیوند «همه»' } as Field] : []),
+];
+
+export const homePage = {
+  key: 'home',
+  label: 'صفحهٔ اصلی',
+  path: '/',
+  fields: [
+    seoGroup,
+    {
+      kind: 'group',
+      key: 'hero',
+      label: 'سرصفحه',
+      hint: 'در متن‌ها «{mw}» با عدد مگاوات نوار آمار و «{since}» با سال تأسیس جایگزین می‌شود، تا اگر آن‌ها عوض شدند، این‌جا هم خودکار عوض شود.',
+      fields: [
+        { kind: 'text', key: 'kicker', label: 'سطر کوچک بالای تیتر' },
+        { kind: 'textarea', key: 'title', label: 'تیتر اصلی', rows: 2 },
+        { kind: 'textarea', key: 'sub', label: 'متن زیر تیتر', rows: 2 },
+        { kind: 'text', key: 'primaryLabel', label: 'متن دکمهٔ اصلی' },
+        { kind: 'text', key: 'primaryHref', label: 'نشانی دکمهٔ اصلی', ltr: true },
+        { kind: 'text', key: 'hint', label: 'سطر زیر دکمه‌ها' },
+        { kind: 'text', key: 'proofLabel', label: 'عنوان سطر اعتبار' },
+        { kind: 'text', key: 'proofText', label: 'متن سطر اعتبار', hint: 'نام‌های لاتین خودکار با قلم لاتین نمایش داده می‌شوند.' },
+        { kind: 'text', key: 'clientsLabel', label: 'عنوان سطر کارفرمایان', hint: 'سه نام اول از «متن‌های سایت ← کارفرمایان» می‌آید.' },
+        { kind: 'image', key: 'image', label: 'تصویر سرصفحه', hint: 'بزرگ‌ترین تصویر صفحه؛ پیش از بقیه بارگذاری می‌شود. عکس بی‌متن، چون تیتر روی خود صفحه نوشته می‌شود.' },
+      ],
+    },
+    {
+      kind: 'group',
+      key: 'doors',
+      label: '«از کجا شروع کنیم؟»',
+      fields: [
+        { kind: 'text', key: 'title', label: 'عنوان بخش' },
+        {
+          kind: 'list',
+          key: 'items',
+          label: 'درها',
+          itemTitle: 'title',
+          addLabel: 'افزودن در',
+          item: [
+            { kind: 'text', key: 'title', label: 'عنوان' },
+            { kind: 'text', key: 'desc', label: 'توضیح' },
+            { kind: 'text', key: 'cta', label: 'متن پیوند' },
+            { kind: 'text', key: 'href', label: 'نشانی', ltr: true },
+            { kind: 'select', key: 'who', label: 'نوع مخاطب', options: WHO_OPTIONS, hint: 'در فرم مشاوره از پیش انتخاب می‌شود.' },
+            { kind: 'image', key: 'image', label: 'تصویر' },
+          ],
+        },
+      ],
+    },
+    {
+      kind: 'group',
+      key: 'calcTeaser',
+      label: 'پیش‌نمایش ماشین‌حساب',
+      fields: [
+        { kind: 'text', key: 'title', label: 'عنوان' },
+        { kind: 'textarea', key: 'text', label: 'متن', rows: 2 },
+        { kind: 'text', key: 'button', label: 'متن دکمه' },
+      ],
+    },
+    {
+      kind: 'group',
+      key: 'projects',
+      label: 'بخش پروژه‌ها',
+      fields: [
+        ...headFields(true),
+        { kind: 'text', key: 'ctaText', label: 'پرسش زیر پروژه‌ها' },
+        { kind: 'text', key: 'ctaLabel', label: 'متن دکمه (فرم مشاوره را باز می‌کند)' },
+      ],
+    },
+    {
+      kind: 'group',
+      key: 'process',
+      label: 'مسیر همکاری',
+      fields: [
+        { kind: 'text', key: 'title', label: 'عنوان' },
+        { kind: 'textarea', key: 'lead', label: 'متن زیر عنوان', rows: 2 },
+        {
+          kind: 'list',
+          key: 'steps',
+          label: 'گام‌ها',
+          itemTitle: 'title',
+          addLabel: 'افزودن گام',
+          hint: 'ترتیب ردیف‌ها همان شماره‌گذاری گام‌هاست.',
+          item: [
+            { kind: 'text', key: 'title', label: 'عنوان گام' },
+            { kind: 'textarea', key: 'desc', label: 'توضیح', rows: 2 },
+            { kind: 'text', key: 'output', label: 'خروجی این گام' },
+            { kind: 'text', key: 'time', label: 'زمان', hint: 'فقط جایی که شرکت واقعاً به آن متعهد است. خالی بماند، نمایش داده نمی‌شود.' },
+          ],
+        },
+      ],
+    },
+    { kind: 'group', key: 'shop', label: 'بخش فروشگاه', fields: headFields(false) },
+    {
+      kind: 'group',
+      key: 'faq',
+      label: 'پرسش‌های پیش از شروع',
+      hint: 'همین پرسش‌ها به‌صورت دادهٔ ساختاریافته به گوگل هم داده می‌شوند و ممکن است مستقیم در نتایج جست‌وجو نمایش داده شوند.',
+      fields: [
+        { kind: 'text', key: 'title', label: 'عنوان' },
+        { kind: 'text', key: 'lead', label: 'متن کنار شمارهٔ تماس' },
+        {
+          kind: 'list',
+          key: 'items',
+          label: 'پرسش‌ها',
+          itemTitle: 'q',
+          addLabel: 'افزودن پرسش',
+          item: [
+            { kind: 'text', key: 'q', label: 'پرسش' },
+            { kind: 'textarea', key: 'a', label: 'پاسخ', rows: 3 },
+          ],
+        },
+      ],
+    },
+    { kind: 'group', key: 'magazine', label: 'بخش مجله', fields: headFields(true) },
+  ],
+  defaults: {
+    seo: seo(
+      'نماد نیرو | راه‌کارهای جامع انرژی پایدار',
+      'نماد نیرو از سال ۱۳۸۷ در کرمان: احداث نیروگاه خورشیدی، تأمین پنل و اینورتر از برندهای معتبر جهانی، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر.',
+    ),
+    hero: {
+      kicker: 'از {since} در کرمان',
+      title: 'نیروگاه خورشیدی‌تان را با تیمی بسازید که {mw}\u00a0مگاوات ساخته است',
+      sub: 'طراحی، تأمین تجهیزات، اجرا و بهره‌برداری، برای صنایع، سرمایه‌گذاران و پیمانکاران.',
+      primaryLabel: 'سود نیروگاه را حساب کنید',
+      primaryHref: '/solar-calculator',
+      hint: 'برآورد رایگان و فوری، بدون نیاز به ثبت‌نام',
+      proofLabel: 'نمایندهٔ رسمی',
+      proofText: 'AE Solar و Fronius در ایران',
+      clientsLabel: 'کارفرمایان',
+      image: 'area-3.jpg',
+    },
+    doors: {
+      title: 'از کجا شروع کنیم؟',
+      items: audiences.map((a) => ({ ...a })) as { who: string; title: string; desc: string; cta: string; href: string; image: string }[],
+    },
+    calcTeaser: {
+      title: 'با سرمایهٔ شما چه نیروگاهی ساخته می‌شود؟',
+      text: 'ظرفیت قابل احداث، تولید سالانه و درآمد را در سه روش فروش برق ببینید: خرید تضمینی ساتبا، بورس انرژی و خودمصرفی صنعتی.',
+      button: 'دیدن برآورد',
+    },
+    projects: {
+      eyebrow: 'نمونه‌کارها',
+      title: 'از کویر تا خط تولید',
+      moreLabel: 'همهٔ پروژه‌ها',
+      ctaText: 'پروژه‌ای در همین اندازه دارید؟',
+      ctaLabel: 'دربارهٔ پروژه‌تان بپرسید',
+    },
+    process: {
+      title: 'از اولین تماس تا اولین کیلووات‌ساعت',
+      lead: 'هر گام یک خروجی مشخص دارد که پیش از رفتن به گام بعد در اختیار شما است.',
+      steps: processSteps.map((st) => ({ ...st })),
+    },
+    shop: { eyebrow: 'فروشگاه تجهیزات', title: 'اینورترها و پنل‌های خورشیدی' },
+    faq: {
+      title: 'پرسش‌های پیش از شروع',
+      lead: 'جواب سؤالتان اینجا نیست؟',
+      items: homeFaq.map((f) => ({ ...f })),
+    },
+    magazine: { eyebrow: 'مجلهٔ انرژی', title: 'دانش، بازار و اخبار', moreLabel: 'همهٔ مقاله‌ها' },
+  },
+} satisfies PageDef;
 
 export const activityPage = seoOnly(
   'activity',

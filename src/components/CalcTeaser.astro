@@ -1,5 +1,9 @@
 ---
 import { YIELD_BY_REGION } from '../data/solarModel';
+import type { homePage } from '../data/pages';
+
+interface Props { c: (typeof homePage.defaults)['calcTeaser'] }
+const { c } = Astro.props;
 
 /* دو سؤال اول ماشین‌حساب، داخل صفحهٔ اصلی.
    شروع با سؤالی که جوابش آسان است («چقدر سرمایه؟») بازدیدکننده را وارد
@@ -16,11 +20,8 @@ const regions = Object.entries(YIELD_BY_REGION);
 <section class="calc-teaser" aria-labelledby="calc-teaser-title">
   <div class="wrap calc-teaser-inner">
     <div class="calc-teaser-copy">
-      <h2 id="calc-teaser-title" class="section-title">با سرمایهٔ شما چه نیروگاهی ساخته می‌شود؟</h2>
-      <p>
-        ظرفیت قابل احداث، تولید سالانه و درآمد را در سه روش فروش برق ببینید:
-        خرید تضمینی ساتبا، بورس انرژی و خودمصرفی صنعتی.
-      </p>
+      <h2 id="calc-teaser-title" class="section-title">{c.title}</h2>
+      {c.text && <p>{c.text}</p>}
     </div>
 
     <form class="calc-teaser-form" action="/solar-calculator" method="get">
@@ -45,7 +46,7 @@ const regions = Object.entries(YIELD_BY_REGION);
         </select>
       </div>
 
-      <button type="submit" class="btn btn-solid btn-block">دیدن برآورد</button>
+      <button type="submit" class="btn btn-solid btn-block">{c.button}</button>
     </form>
   </div>
 </section>

@@ -3,21 +3,25 @@ import Icon from './Icon.astro';
 import DbImage from './DbImage.astro';
 import type { ImageRef } from '../server/repos/content';
 import { getSiteSettings } from '../server/repos/siteSettings';
+import { fillTokens, latinParts } from '../lib/text';
+import type { homePage } from '../data/pages';
 
 /* هیروی ثابت صفحهٔ اصلی.
    جای اسلایدر پوستری قبلی را گرفته، به سه دلیل: متن روی پوستر در موبایل
    ریز می‌شد و گوگل آن را نمی‌خواند، بیشتر بازدیدکننده‌ها فقط اسلاید اول را
    می‌دیدند، و هیچ دکمه‌ای در پربیننده‌ترین نقطهٔ سایت نبود.
    پوسترها از بین نرفته‌اند؛ در صفحهٔ «حوزه‌های فعالیت» و پنل باقی‌اند. */
-interface Props { image: ImageRef | null }
-const { image } = Astro.props;
+interface Props { image: ImageRef | null; c: (typeof homePage.defaults)['hero'] }
+const { image, c } = Astro.props;
 const { site, clients, stats } = await getSiteSettings();
 /* عدد تیتر از همان آمار پنل می‌آید تا اگر ظرفیت اجراشده به‌روز شد، تیتر
    و نوار آمار دو عدد متفاوت نگویند. */
 const fa = (n: number | string) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
 const mwStat = stats.find((s) => s.unit === 'MW' && 'value' in s && s.value != null) as { value: number } | undefined;
 const mw = fa(mwStat?.value ?? 70);
-const topClients = clients.filter((c) => !c.startsWith('و ')).slice(0, 3);
+const topClients = clients.filter((name) => !name.startsWith('و ')).slice(0, 3);
+
+const tokens = { mw, since: site.since };
 ---
 <section class="home-hero" aria-labelledby="hero-title">
   <div class="home-hero-media">
@@ -26,34 +30,32 @@ const topClients = clients.filter((c) => !c.startsWith('و ')).slice(0, 3);
 
   <div class="wrap home-hero-grid">
     <div class="home-hero-copy">
-      <p class="home-hero-since">از {site.since} در کرمان</p>
-      <h1 id="hero-title" class="home-hero-title">
-        نیروگاه خورشیدی‌تان را با تیمی بسازید که {mw}&nbsp;مگاوات ساخته است
-      </h1>
-      <p class="home-hero-sub">
-        طراحی، تأمین تجهیزات، اجرا و بهره‌برداری، برای صنایع، سرمایه‌گذاران و پیمانکاران.
-      </p>
+      {c.kicker && <p class="home-hero-since">{fillTokens(c.kicker, tokens)}</p>}
+      <h1 id="hero-title" class="home-hero-title">{fillTokens(c.title, tokens)}</h1>
+      {c.sub && <p class="home-hero-sub">{fillTokens(c.sub, tokens)}</p>}
 
       <div class="home-hero-actions">
-        <a class="btn btn-solid btn-lg" href="/solar-calculator">
+        <a class="btn btn-solid btn-lg" href={c.primaryHref}>
           <Icon name="calc" />
-          سود نیروگاه را حساب کنید
+          {c.primaryLabel}
         </a>
         <a class="btn btn-ghost btn-lg" href={site.phoneHref}>
           <Icon name="phone" />
           <span dir="ltr">{site.phone}</span>
         </a>
       </div>
-      <p class="home-hero-hint">برآورد رایگان و فوری، بدون نیاز به ثبت‌نام</p>
+      {c.hint && <p class="home-hero-hint">{c.hint}</p>}
 
       <dl class="home-hero-proof">
-        <div>
-          <dt>نمایندهٔ رسمی</dt>
-          <dd><span class="lat">AE Solar</span> و <span class="lat">Fronius</span> در ایران</dd>
-        </div>
+        {c.proofText && (
+          <div>
+            <dt>{c.proofLabel}</dt>
+            <dd>{latinParts(c.proofText).map((part) => (part.latin ? <span class="lat">{part.text}</span> : part.text))}</dd>
+          </div>
+        )}
         {topClients.length > 0 && (
           <div>
-            <dt>کارفرمایان</dt>
+            <dt>{c.clientsLabel}</dt>
             <dd>{topClients.join('، ')}</dd>
           </div>
         )}

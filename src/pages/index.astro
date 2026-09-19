@@ -19,7 +19,6 @@ import { buildSrcset } from '../server/media/store';
 import { faqSchema } from '../utils';
 import { getSeoSettings } from '../server/repos/seoSettings';
 import { localBusinessSchema } from '../server/seo/structuredData';
-import { homeFaq } from '../data/site';
 import { seoProps } from '../server/seo/pageSeo';
 import { getPageContent } from '../server/repos/pageContent';
 import { homePage } from '../data/pages';
@@ -29,14 +28,16 @@ export const prerender = false;
 
 /* سه بخش صفحه به هم وابسته نیستند، پس با هم خوانده می‌شوند نه پشت سر هم —
    وگرنه زمان رندر می‌شد مجموع سه کوئری به‌جای کندترینشان. */
-const [products, projects, articles, images, promos, seoSettings] = await Promise.all([
+const [products, projects, articles, promos, seoSettings, c] = await Promise.all([
   listFeaturedProducts(4),
   listFeaturedProjects(3),
   listArticles().then((all) => all.slice(0, 3)),
-  homeImages(),
   promoSlides(),
   getSeoSettings(),
+  // همهٔ متن و تصاویر صفحه، از «متن صفحات ← صفحهٔ اصلی»
+  getPageContent(homePage),
 ]);
+const [images, seo] = await Promise.all([homeImages(c), seoProps(c.seo)]);
 
 /* عکس هیرو بزرگ‌ترین عنصر قابل مشاهدهٔ صفحه (LCP) است. آدرسش را به Base
    می‌دهیم تا در <head> با preload اعلام شود و دانلودش هم‌زمان با خواندن
@@ -59,38 +60,38 @@ const homeSchema = [
   },
   // از «تنظیمات سئو ← اطلاعات کسب‌وکار»
   localBusinessSchema(seoSettings.business),
-  faqSchema([...homeFaq]),
+  // همان پرسش‌هایی که روی صفحه است — گوگل ناهمخوانی این دو را جریمه می‌کند
+  faqSchema(c.faq.items),
 ];
-const seo = await seoProps((await getPageContent(homePage)).seo);
 
 ---
 <Base {...seo}
   schema={homeSchema}
   preloadImage={lcp ? { src: lcp.url, srcset: buildSrcset(lcp.key, lcp.width), sizes: HERO_SIZES } : undefined}
 >
-  <HomeHero image={images.hero} />
-  <AudienceDoors images={images.doors} />
+  <HomeHero image={images.hero} c={c.hero} />
+  <AudienceDoors images={images.doors} c={c.doors} />
   <Stats />
-  <CalcTeaser />
+  <CalcTeaser c={c.calcTeaser} />
 
   <section class="projects">
     <div class="wrap">
-      <SectionHead eyebrow="نمونه‌کارها" title="از کویر تا خط تولید" moreHref="/projects" moreLabel="همهٔ پروژه‌ها" />
+      <SectionHead eyebrow={c.projects.eyebrow} title={c.projects.title} moreHref="/projects" moreLabel={c.projects.moreLabel} />
       <div class="proj-grid">
         {projects.map((p, i) => <ProjectTile p={p} large={i === 0} />)}
       </div>
       <div class="section-cta">
-        <p>پروژه‌ای در همین اندازه دارید؟</p>
-        <a class="btn btn-ghost" href="/contact" data-quote data-who="industry">دربارهٔ پروژه‌تان بپرسید</a>
+        <p>{c.projects.ctaText}</p>
+        <a class="btn btn-ghost" href="/contact" data-quote data-who="industry">{c.projects.ctaLabel}</a>
       </div>
     </div>
   </section>
 
-  <ProcessSteps />
+  <ProcessSteps c={c.process} />
 
   <section class="shop">
     <div class="wrap">
-      <SectionHead eyebrow="فروشگاه تجهیزات" title="اینورترها و پنل‌های خورشیدی" moreHref="/shop" />
+      <SectionHead eyebrow={c.shop.eyebrow} title={c.shop.title} moreHref="/shop" />
       {shopBanner?.image && (
         <a class="shop-banner" href="/shop" aria-label={shopBanner.alt}>
           <DbImage image={shopBanner.image} sizes="(max-width: 1240px) 100vw, 1192px" decorative />
@@ -102,11 +103,11 @@ const seo = await seoProps((await getPageContent(homePage)).seo);
     </div>
   </section>
 
-  <HomeFaq />
+  <HomeFaq c={c.faq} />
 
   <section class="magazine">
     <div class="wrap">
-      <SectionHead eyebrow="مجلهٔ انرژی" title="دانش، بازار و اخبار" moreHref="/magazine" moreLabel="همهٔ مقاله‌ها" />
+      <SectionHead eyebrow={c.magazine.eyebrow} title={c.magazine.title} moreHref="/magazine" moreLabel={c.magazine.moreLabel} />
       <div class="mag-grid rail">
         {articles.map((a) => <ArticleCard a={a} />)}
       </div>

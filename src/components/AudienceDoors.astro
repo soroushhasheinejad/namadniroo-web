@@ -2,20 +2,20 @@
 import Icon from './Icon.astro';
 import DbImage from './DbImage.astro';
 import type { ImageRef } from '../server/repos/content';
-import { audiences } from '../data/site';
+import type { homePage } from '../data/pages';
 
 /* «از کجا شروع کنیم؟» — هر بازدیدکننده در خودش را انتخاب می‌کند.
    در صنعت، مسیر مستقیم فرم مشاوره است (با نوع مشتری از پیش انتخاب‌شده)؛
    href برای وقتی است که جاوااسکریپت نباشد. */
-interface Props { images: Record<string, ImageRef | null> }
-const { images } = Astro.props;
+interface Props { images: (ImageRef | null)[]; c: (typeof homePage.defaults)['doors'] }
+const { images, c } = Astro.props;
 ---
 <section class="doors" aria-labelledby="doors-title">
   <div class="wrap">
-    <h2 id="doors-title" class="section-title doors-title">از کجا شروع کنیم؟</h2>
+    <h2 id="doors-title" class="section-title doors-title">{c.title}</h2>
     <ul class="doors-list" role="list">
-      {audiences.map((a) => {
-        const img = images[a.who];
+      {c.items.map((a, i) => {
+        const img = images[i];
         const opensForm = a.who === 'industry';
         return (
           <li>
