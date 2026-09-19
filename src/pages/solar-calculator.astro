@@ -2,7 +2,8 @@
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import { breadcrumbSchema, faqSchema } from '../utils';
-import { ROUTES, SOURCES, UPDATED_AT, YIELD_BY_REGION } from '../data/solarModel';
+import { DEGRADATION, OM_RATE, ROUTES, SOURCES, UPDATED_AT, YEARS, YIELD_BY_REGION } from '../data/solarModel';
+import { fa } from '../utils';
 import { seoProps } from '../server/seo/pageSeo';
 import { getPageContent } from '../server/repos/pageContent';
 import { calculatorPage } from '../data/pages';
@@ -11,33 +12,30 @@ export const prerender = false;
 
 const regions = Object.entries(YIELD_BY_REGION);
 
-const faq = [
-  {
-    q: 'با یک میلیارد تومان چه نیروگاهی می‌توان ساخت؟',
-    a: 'به‌طور تقریبی حدود ۳۵ تا ۵۰ کیلووات روی پشت‌بام، یا ۱۵ تا ۲۵ کیلووات به‌صورت زمینی — چون نیروگاه زمینی هزینهٔ زمین، پست و خط انتقال هم دارد. عدد دقیق به قیمت روز تجهیزات و موقعیت زمین بستگی دارد.',
-  },
-  {
-    q: 'بازگشت سرمایهٔ نیروگاه خورشیدی چند سال است؟',
-    a: 'بسته به نرخ فروش برق و هزینهٔ احداث، معمولاً بین ۴ تا ۹ سال برآورد می‌شود. فروش در بورس انرژی بازگشت را کوتاه‌تر می‌کند و خرید تضمینی ساتبا بلندتر، در عوض درآمد تضمینی‌تری دارد.',
-  },
-  {
-    q: 'برق نیروگاه را به چه کسی می‌توان فروخت؟',
-    a: 'سه مسیر رایج است: خرید تضمینی ۲۰ سالهٔ ساتبا، فروش به صنایع از طریق تابلوی سبز بورس انرژی، و خودمصرفی صنعتی برای صنایع مشمول ماده ۱۶ که باید بخشی از برقشان را تجدیدپذیر تأمین کنند.',
-  },
-  {
-    q: 'هر مگاوات نیروگاه چقدر زمین می‌خواهد؟',
-    a: 'حدود ۱ تا ۱٫۵ هکتار برای نصب زمینی. روی پشت‌بام حدود ۶ مترمربع به ازای هر کیلووات لازم است.',
-  },
+const c = await getPageContent(calculatorPage);
+
+/* فرض‌های مدل از خود ثابت‌های محاسبه ساخته می‌شوند نه از متن ثابت یا پنل —
+   تا اگر روزی ضریبی در solarModel.ts عوض شد، توضیح صفحه با محاسبه یکی
+   بماند. گرد کردن لازم است: ۰٫۰۰۷×۱۰۰ در جاوااسکریپت ۰٫۷۰۰۰۰۰۰۰۰۰۰۰۰۰۰۱ است. */
+const pct = (rate: number) => fa(String(+(rate * 100).toFixed(3)));
+const yields = Object.values(YIELD_BY_REGION).map((r) => r.kwhPerKw);
+const assumptions = [
+  { label: 'تولید سالانه', text: `${fa(Math.min(...yields))} تا ${fa(Math.max(...yields))} کیلووات‌ساعت به ازای هر کیلووات، بسته به تابش منطقه. افت گرما، غبار و اینورتر در آن لحاظ شده.` },
+  { label: 'افت راندمان', text: `${pct(DEGRADATION)} درصد در سال.` },
+  { label: 'نگه‌داری', text: `${pct(OM_RATE)} درصد سرمایه در سال.` },
+  { label: 'افق محاسبه', text: `${fa(YEARS)} سال، هم‌اندازهٔ قرارداد خرید تضمینی.` },
+  { label: 'تورم', text: 'لحاظ نشده. همه‌چیز به قیمت امروز است.' },
 ];
+
 
 const pageSchema = [
   breadcrumbSchema([
     { name: 'سرمایه‌گذاری', href: '/investment' },
     { name: 'برآورد سرمایه‌گذاری', href: '/solar-calculator' },
   ]),
-  faqSchema(faq),
+  faqSchema(c.faq),
 ];
-const seo = await seoProps((await getPageContent(calculatorPage)).seo);
+const seo = await seoProps(c.seo);
 
 ---
 <Base {...seo}
@@ -45,17 +43,14 @@ const seo = await seoProps((await getPageContent(calculatorPage)).seo);
 >
   <PageHero
     crumb="برآورد سرمایه‌گذاری"
-    title="با این سرمایه، چه نیروگاهی؟"
-    lead="سرمایهٔ موردنظرتان را وارد کنید تا ببینید تقریباً چه ظرفیتی می‌شود ساخت، چقدر برق تولید می‌کند، و با هر روش فروش برق چه آورده‌ای دارد."
+    title={c.hero.title}
+    lead={c.hero.lead}
   />
 
   <div class="wrap">
     <p class="approx-banner">
-      <b>این محاسبه تقریبی است.</b>
-      خروجی این صفحه یک برآورد اولیه برای شناخت ابعاد کار است، نه طرح توجیهی.
-      قیمت تجهیزات با نرخ ارز و نرخ فروش برق با مصوبه‌های وزارت نیرو تغییر می‌کند،
-      و هزینهٔ زمین و فاصله تا شبکه در هر پروژه فرق دارد.
-      برای تصمیم سرمایه‌گذاری، امکان‌سنجی اختصاصی لازم است.
+      <b>{c.disclaimer.lead}</b>
+      {c.disclaimer.text}
     </p>
   </div>
 
@@ -141,17 +136,12 @@ const seo = await seoProps((await getPageContent(calculatorPage)).seo);
 
         <h3 class="out-h">آورده، به تفکیک روش فروش برق</h3>
         <div class="route-table" id="routeTable"></div>
-        <p class="out-foot">
-          همهٔ عددها تقریبی‌اند و به قیمت امروز حساب شده‌اند؛ تورم و تعدیل نرخ در آن‌ها لحاظ نشده.
-        </p>
+        {c.resultsFoot && <p class="out-foot">{c.resultsFoot}</p>}
 
         <div class="pdf-box">
           <div class="pdf-copy">
-            <b>این برآورد را به‌صورت PDF بگیرید</b>
-            <p>
-              یک برگهٔ کامل با همهٔ فرض‌ها، سه روش فروش برق و جمع ۲۰ ساله —
-              مناسب برای ارائه به شریک یا هیئت‌مدیره.
-            </p>
+            <b>{c.pdf.title}</b>
+            <p>{c.pdf.text}</p>
           </div>
 
           <form class="pdf-form" id="pdfForm" novalidate>
@@ -166,10 +156,8 @@ const seo = await seoProps((await getPageContent(calculatorPage)).seo);
                 <input id="p-phone" name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" required />
               </div>
             </div>
-            <button type="submit" class="btn btn-solid btn-block" id="pdfBtn">دریافت PDF برآورد</button>
-            <p class="pdf-note" id="pdfNote">
-              شماره‌تان را می‌گیریم تا در صورت نیاز، کارشناس ما برآورد دقیق‌تری برایتان تهیه کند.
-            </p>
+            <button type="submit" class="btn btn-solid btn-block" id="pdfBtn">{c.pdf.button}</button>
+            <p class="pdf-note" id="pdfNote">{c.pdf.note}</p>
           </form>
         </div>
       </div>
@@ -179,8 +167,8 @@ const seo = await seoProps((await getPageContent(calculatorPage)).seo);
   <section class="about-sec alt">
     <div class="wrap">
       <header class="about-head">
-        <p class="eyebrow">سه راه برای فروش برق</p>
-        <h2>هر کدام برای چه کسی مناسب است</h2>
+        <p class="eyebrow">{c.routesHead.eyebrow}</p>
+        <h2>{c.routesHead.title}</h2>
       </header>
       <div class="cap-grid">
         {ROUTES.map((r) => (
@@ -203,35 +191,21 @@ const seo = await seoProps((await getPageContent(calculatorPage)).seo);
   <section class="about-sec">
     <div class="wrap assumptions">
       <header class="about-head">
-        <p class="eyebrow">شفافیت محاسبه</p>
-        <h2>این عددها از کجا آمده‌اند</h2>
+        <p class="eyebrow">{c.transparency.eyebrow}</p>
+        <h2>{c.transparency.title}</h2>
       </header>
 
       <div class="assume-grid">
         <div>
           <h3>فرض‌های مدل</h3>
           <ul class="assume-list">
-            <li><b>تولید سالانه:</b> ۱۳۵۰ تا ۱۸۵۰ کیلووات‌ساعت به ازای هر کیلووات، بسته به تابش منطقه. افت گرما، غبار و اینورتر در آن لحاظ شده.</li>
-            <li><b>افت راندمان:</b> ۰٫۷ درصد در سال.</li>
-            <li><b>نگه‌داری:</b> ۱٫۵ درصد سرمایه در سال.</li>
-            <li><b>افق محاسبه:</b> ۲۰ سال، هم‌اندازهٔ قرارداد خرید تضمینی.</li>
-            <li><b>تورم:</b> لحاظ نشده. همه‌چیز به قیمت امروز است.</li>
+            {assumptions.map((a) => <li><b>{a.label}:</b> {a.text}</li>)}
           </ul>
         </div>
 
         <div>
-          <h3>چرا بازه می‌دهیم و نه یک عدد</h3>
-          <p>
-            منابع منتشرشده دربارهٔ هزینهٔ احداث با هم اختلاف زیادی دارند.
-            بخشی از این اختلاف واقعی است: بعضی برآوردها فقط تجهیزات و نصب را
-            حساب می‌کنند و بعضی زمین، پست و خط انتقال را هم اضافه می‌کنند —
-            که در نیروگاه زمینی می‌تواند نزدیک نیمی از کل سرمایه باشد.
-            بخش دیگرش هم به نرخ ارز و تاریخ انتشار برمی‌گردد.
-          </p>
-          <p>
-            به همین دلیل خروجی این صفحه بازه است، و می‌توانید فرض‌ها را با
-            استعلام خودتان جایگزین کنید.
-          </p>
+          <h3>{c.transparency.whyTitle}</h3>
+          {c.transparency.whyBody.map((para) => <p>{para}</p>)}
         </div>
       </div>
 
@@ -249,13 +223,9 @@ const seo = await seoProps((await getPageContent(calculatorPage)).seo);
 
   <section class="calc-cta">
     <div class="wrap">
-      <h2>برآورد دقیق پروژهٔ خودتان را بگیرید</h2>
-      <p>
-        این صفحه ابعاد کار را نشان می‌دهد. برای عدد قابل اتکا، کارشناسان ما با
-        بررسی زمین، فاصله تا شبکه و قیمت روز تجهیزات، امکان‌سنجی اختصاصی
-        تهیه می‌کنند.
-      </p>
-      <a class="btn btn-solid" id="ctaLink" href="/#quote">درخواست امکان‌سنجی</a>
+      <h2>{c.cta.title}</h2>
+      <p>{c.cta.text}</p>
+      <a class="btn btn-solid" id="ctaLink" href="/#quote">{c.cta.label}</a>
     </div>
   </section>
 </Base>
