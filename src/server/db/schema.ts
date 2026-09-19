@@ -296,6 +296,28 @@ export const redirects = sqliteTable(
   (t) => [uniqueIndex('redirects_from_idx').on(t.fromPath)],
 );
 
+/**
+ * نشانی‌هایی که بازدیدکننده خواست و وجود نداشتند (۴۰۴).
+ *
+ * بعد از مهاجرت از وردپرس و با هر تغییر نشانی، پیوندهایی در گوگل و
+ * سایت‌های دیگر می‌مانند که به صفحهٔ «پیدا نشد» می‌رسند. هر کدام یعنی
+ * بازدیدکننده‌ای که از دست رفت و اعتبار پیوندی که هدر شد. این جدول نشان
+ * می‌دهد کدام‌ها واقعاً بازدید دارند، تا برایشان ریدایرکت ساخته شود.
+ */
+export const notFound = sqliteTable(
+  'not_found',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    path: text('path').notNull(),
+    hits: integer('hits').notNull().default(1),
+    /** آخرین صفحه‌ای که بازدیدکننده از آن آمد — معمولاً سرنخ پیوند شکسته */
+    referrer: text('referrer'),
+    firstSeen: timestamp('first_seen').notNull().default(now()),
+    lastSeen: timestamp('last_seen').notNull().default(now()),
+  },
+  (t) => [uniqueIndex('not_found_path_idx').on(t.path), index('not_found_hits_idx').on(t.hits)],
+);
+
 export const auditLog = sqliteTable(
   'audit_log',
   {
@@ -325,4 +347,5 @@ export type Article = typeof articles.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 export type NewLead = typeof leads.$inferInsert;
 export type Redirect = typeof redirects.$inferSelect;
+export type NotFound = typeof notFound.$inferSelect;
 export type LeadStatus = Lead['status'];

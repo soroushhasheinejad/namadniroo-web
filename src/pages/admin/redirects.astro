@@ -1,6 +1,7 @@
 ---
 import Admin from '../../layouts/Admin.astro';
 import { createRedirect, deleteRedirect, listRedirects } from '../../server/repos/redirects';
+import { countNotFound, deleteNotFound, listNotFound } from '../../server/repos/notFound';
 import { fa } from '../../utils';
 
 export const prerender = false;
@@ -10,9 +11,14 @@ let message: { kind: 'ok' | 'err'; text: string } | null = null;
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
 
-  if (form.get('_action') === 'delete') {
+  const action = form.get('_action');
+
+  if (action === 'delete') {
     await deleteRedirect(Number(form.get('id')));
     message = { kind: 'ok', text: 'ریدایرکت حذف شد.' };
+  } else if (action === 'ignore404') {
+    await deleteNotFound(String(form.get('path') ?? ''));
+    message = { kind: 'ok', text: 'از فهرست پیوندهای شکسته برداشته شد. اگر دوباره بازدید بگیرد، دوباره ظاهر می‌شود.' };
   } else {
     const from = String(form.get('fromPath') ?? '').trim();
     const to = String(form.get('toPath') ?? '').trim();
@@ -23,20 +29,82 @@ if (Astro.request.method === 'POST') {
       message = { kind: 'err', text: 'مبدأ و مقصد نمی‌توانند یکی باشند.' };
     } else {
       await createRedirect(from, to, { statusCode: Number(form.get('statusCode')) || 301 });
-      message = { kind: 'ok', text: 'ریدایرکت ثبت شد.' };
+      // نشانی حالا ریدایرکت دارد و دیگر به ۴۰۴ نمی‌رسد
+      await deleteNotFound(from);
+      message = { kind: 'ok', text: `ریدایرکت ثبت شد: ${from} ← ${to}` };
     }
   }
 }
 
-const rows = await listRedirects();
+const [rows, broken, brokenTotal] = await Promise.all([listRedirects(), listNotFound(100), countNotFound()]);
 const auto = rows.filter((r) => r.auto).length;
+
+const date = new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium' });
+/** ارجاع‌دهنده به شکل کوتاه: دامنه و ابتدای مسیر */
+const shortRef = (ref: string | null) => {
+  if (!ref) return '—';
+  try {
+    const u = new URL(ref);
+    const path = u.pathname.length > 28 ? u.pathname.slice(0, 28) + '…' : u.pathname;
+    return u.host.replace(/^www\./, '') + (path === '/' ? '' : path);
+  } catch {
+    return ref.slice(0, 40);
+  }
+};
 ---
 <Admin
-  title="ریدایرکت‌ها"
-  lead="انتقال نشانی‌های قدیمی به نشانی تازه، بدون از دست دادن رتبهٔ گوگل."
+  title="ریدایرکت‌ها و ۴۰۴"
+  lead="نشانی‌هایی که بازدیدکننده خواست و وجود نداشتند، و انتقال نشانی‌های قدیمی به نشانی تازه بدون از دست دادن رتبهٔ گوگل."
   roles={['admin', 'editor']}
 >
   {message && <p class={`a-msg a-msg-${message.kind === 'ok' ? 'ok' : 'err'}`}>{message.text}</p>}
+
+  <div class="a-card">
+    <h2>پیوندهای شکسته {brokenTotal > 0 && `(${fa(brokenTotal)})`}</h2>
+    <p class="a-hint" style="margin-bottom:12px">
+      هر ردیف نشانی‌ای است که کسی خواست و به صفحهٔ «پیدا نشد» رسید، به ترتیب تعداد بازدید. برای پرتکرارها
+      ریدایرکت بسازید — هر کدام یعنی بازدیدکننده‌ای که از دست می‌رود و اعتبار پیوندی که هدر می‌شود.
+      کاوش ربات‌ها (مثل wp-login یا ‎.env) ثبت نمی‌شود.
+    </p>
+
+    {broken.length === 0 ? (
+      <p class="a-empty">پیوند شکسته‌ای ثبت نشده است.</p>
+    ) : (
+      <div class="a-table-wrap">
+        <table class="a-table">
+          <thead>
+            <tr><th>نشانی</th><th>بازدید</th><th>آخرین بار</th><th>از کجا آمده</th><th>ریدایرکت به</th><th></th></tr>
+          </thead>
+          <tbody>
+            {broken.map((b) => (
+              <tr>
+                <td dir="ltr" style="text-align:right;word-break:break-all">{b.path}</td>
+                <td class="a-num">{fa(b.hits)}</td>
+                <td>{date.format(b.lastSeen)}</td>
+                <td dir="ltr" style="text-align:right" title={b.referrer ?? ''}>{shortRef(b.referrer)}</td>
+                <td>
+                  <form method="POST" class="nf-fix">
+                    <input type="hidden" name="fromPath" value={b.path} />
+                    <input type="hidden" name="statusCode" value="301" />
+                    <input class="a-input" name="toPath" dir="ltr" placeholder="/new-page" required
+                           aria-label={`مقصد ریدایرکت برای ${b.path}`} />
+                    <button class="a-btn a-btn-sm a-btn-primary" type="submit">ساخت</button>
+                  </form>
+                </td>
+                <td>
+                  <form method="POST">
+                    <input type="hidden" name="_action" value="ignore404" />
+                    <input type="hidden" name="path" value={b.path} />
+                    <button class="a-btn a-btn-sm" type="submit" title="از فهرست برداشته شود">نادیده</button>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
 
   <form class="a-card" method="POST">
     <h2>ریدایرکت تازه</h2>
@@ -106,3 +174,8 @@ const auto = rows.filter((r) => r.auto).length;
     )}
   </div>
 </Admin>
+
+<style>
+  .nf-fix { display: flex; gap: 6px; align-items: center; min-width: 220px; }
+  .nf-fix .a-input { padding: 6px 10px; font-size: 13px; }
+</style>

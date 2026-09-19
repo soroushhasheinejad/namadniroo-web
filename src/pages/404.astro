@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import { getSiteSettings } from '../server/repos/siteSettings';
 import { getPageContent } from '../server/repos/pageContent';
 import { notFoundPage } from '../data/pages';
+import { recordNotFound } from '../server/repos/notFound';
 
 /* سمت سرور رندر می‌شود تا صفحات پویا (محصول و مقاله) بتوانند در نبود
    رکورد به آن rewrite کنند — Astro اجازهٔ rewrite از صفحهٔ پویا به صفحهٔ
@@ -10,6 +11,13 @@ import { notFoundPage } from '../data/pages';
 export const prerender = false;
 
 const [{ nav }, { body: c }] = await Promise.all([getSiteSettings(), getPageContent(notFoundPage)]);
+
+/* هر ۴۰۴ ثبت می‌شود تا در «ریدایرکت‌ها و ۴۰۴» معلوم شود کدام پیوند شکسته
+   واقعاً بازدید دارد. `originPathname` نشانی‌ای است که بازدیدکننده خواسته —
+   صفحهٔ محصول و مقالهٔ ناموجود با rewrite به اینجا می‌رسند و
+   `url.pathname` در آن حالت فقط «/404» است. */
+const requested = Astro.originPathname || Astro.url.pathname;
+if (requested !== '/404') recordNotFound(requested, Astro.request.headers.get('referer'));
 ---
 <Base
   title="صفحه پیدا نشد | نماد نیرو"
