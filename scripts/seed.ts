@@ -16,7 +16,7 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { eq } from 'drizzle-orm';
 import { getDb } from '../src/server/db/client';
-import { leads, products, projects, settings } from '../src/server/db/schema';
+import { leads, products, projects } from '../src/server/db/schema';
 import { ingestImage } from '../src/server/media/store';
 import { normalizePhone } from '../src/lib/phone';
 import { syncArticles } from './articles';
@@ -131,48 +131,11 @@ async function seedProjects(byKey: Map<string, number>): Promise<void> {
   console.log(`پروژه‌ها: ${rows.length} رکورد`);
 }
 
-/* ============================================================
-   متن‌های ثابت سایت
-   ============================================================ */
-
-async function seedSettings(): Promise<void> {
-  const db = await getDb();
-
-  /* از `siteContent` خوانده می‌شود نه `site`: آن یکی تصویر import می‌کند و
-     فقط داخل باندلر Astro قابل بارگذاری است. تصاویر هم اینجا لازم نیستند —
-     در پنل به رکورد رسانه وصل می‌شوند. */
-  const content = await import('../src/data/siteContent');
-
-  const entries: [string, unknown][] = [
-    ['site', content.site],
-    ['nav', content.nav],
-    ['stats', content.stats],
-    ['brands', content.brands],
-    ['clients', content.clients],
-    ['portfolio', content.portfolio],
-    ['areas', content.areas],
-    ['timeline', content.timeline],
-    ['capabilities', content.capabilities],
-    ['heroSlides', content.heroSlides],
-    ['promoSlides', content.promoSlides],
-  ];
-
-  /* فقط کلیدهای غایب را می‌نویسد، هرگز روی موجود. از وقتی سایت واقعاً از
-     این تنظیمات می‌خواند، بازنویسی یعنی پاک‌کردن بی‌صدای هر چیزی که
-     ویراستار در پنل عوض کرده — آن هم با اجرای اسکریپتی که ظاهراً فقط
-     «داده را مقداردهی اولیه می‌کند». */
-  let added = 0;
-  for (const [key, value] of entries) {
-    const inserted = await db
-      .insert(settings)
-      .values({ key, value: value as never })
-      .onConflictDoNothing({ target: settings.key })
-      .returning({ key: settings.key });
-    added += inserted.length;
-  }
-
-  console.log(`تنظیمات: ${added} کلید تازه، ${entries.length - added} کلید موجود دست‌نخورده ماند`);
-}
+/* متن‌های ثابت سایت عمداً اینجا نوشته نمی‌شوند. سایت پیش‌فرض‌ها را از
+   `siteContent` در کد می‌خواند و ردیف `settings` فقط وقتی ساخته می‌شود که
+   کسی در پنل چیزی را ذخیره کند. نوشتن پیش‌فرض‌ها در دیتابیس آن‌ها را منجمد
+   می‌کرد: تغییر بعدی کد (مثلاً منوی بازطراحی‌شده) هرگز روی سایت نمی‌نشست،
+   چون ردیف قدیمیِ ذخیره‌شده بر پیش‌فرض تازه غلبه می‌کرد. */
 
 /* ============================================================
    لیدهای موجود
@@ -250,7 +213,6 @@ async function main(): Promise<void> {
   await seedProducts(byKey);
   await seedProjects(byKey);
   await syncArticles();
-  await seedSettings();
   await importOldLeads();
 
   console.log('\nانتقال داده کامل شد.');
