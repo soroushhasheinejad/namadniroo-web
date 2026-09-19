@@ -1,0 +1,42 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { PAGES } from '../../../data/pages';
+import { isCustomized } from '../../../server/repos/pageContent';
+
+export const prerender = false;
+
+const rows = await Promise.all(PAGES.map(async (p) => ({ page: p, custom: await isCustomized(p) })));
+---
+<Admin
+  title="متن صفحات"
+  lead="عنوان، متن و سرتیترهای هر صفحه. متن‌هایی که در چند صفحه تکرار می‌شوند (تلفن، منو، آمار) در «متن‌های سایت» هستند."
+  roles={['admin', 'editor']}
+>
+  <div class="a-table-wrap">
+    <table class="a-table">
+      <thead>
+        <tr><th>صفحه</th><th>نشانی</th><th>وضعیت</th><th></th></tr>
+      </thead>
+      <tbody>
+        {rows.map(({ page, custom }) => (
+          <tr>
+            <td><b>{page.label}</b></td>
+            <td dir="ltr" style="text-align:right">
+              {page.path === '/404' ? page.path : <a href={page.path} target="_blank" rel="noopener">{page.path}</a>}
+            </td>
+            <td>
+              {custom
+                ? <span class="a-badge a-badge-live">ویرایش‌شده</span>
+                : <span class="a-badge a-badge-draft">متن اصلی</span>}
+            </td>
+            <td><a class="a-btn a-btn-sm" href={`/admin/pages/${page.key}`}>ویرایش</a></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <p class="a-hint" style="margin-top:14px">
+    صفحهٔ اصلی و بقیهٔ صفحات پس از پایان بازطراحی به این فهرست اضافه می‌شوند.
+  </p>
+</Admin>

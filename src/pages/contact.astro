@@ -5,26 +5,28 @@ import QuoteForm from '../components/QuoteForm.astro';
 import Icon from '../components/Icon.astro';
 import { getSiteSettings } from '../server/repos/siteSettings';
 import { breadcrumbSchema } from '../utils';
+import { getPageContent } from '../server/repos/pageContent';
+import { contactPage } from '../data/pages';
 
 /* پویا، تا متنی که در پنل عوض می‌شود بلافاصله دیده شود. خواندن از کش
    درون‌حافظه‌ای است، پس هزینه‌اش ناچیز است. */
 export const prerender = false;
 
-const { site } = await getSiteSettings();
+const [{ site }, c] = await Promise.all([getSiteSettings(), getPageContent(contactPage)]);
 
 const info = [
-  { icon: 'phone', title: 'تماس تلفنی', text: site.phone, href: site.phoneHref, dir: 'ltr' },
-  { icon: 'pin', title: 'محل شرکت', text: site.city },
-  { icon: 'clock', title: 'ساعات پاسخ‌گویی', text: 'شنبه تا چهارشنبه، ۸ تا ۱۷' },
+  { icon: 'phone', title: c.info.phoneTitle, text: site.phone, href: site.phoneHref, dir: 'ltr' },
+  { icon: 'pin', title: c.info.placeTitle, text: site.city },
+  { icon: 'clock', title: c.info.hoursTitle, text: c.info.hours },
 ];
 
 const pageSchema = breadcrumbSchema([{ name: 'تماس با ما', href: '/contact' }]);
 ---
-<Base schema={pageSchema} title="تماس با ما | نماد نیرو" description="راه‌های تماس با نماد نیرو در کرمان — تلفن، فرم درخواست مشاوره و آدرس دفتر مرکزی.">
+<Base schema={pageSchema} title={c.seo.title} description={c.seo.description}>
   <PageHero
     crumb="تماس با ما"
-    title="گفت‌وگو را شروع کنید"
-    lead="چه یک نیروگاه خانگی مدنظرتان باشد چه یک پروژهٔ صنعتی، کارشناسان ما آماده‌ی پاسخ‌گویی‌اند."
+    title={c.hero.title}
+    lead={c.hero.lead}
   />
 
   <section class="about-sec">

@@ -1,13 +1,15 @@
 ---
 import Base from '../layouts/Base.astro';
 import { getSiteSettings } from '../server/repos/siteSettings';
+import { getPageContent } from '../server/repos/pageContent';
+import { notFoundPage } from '../data/pages';
 
 /* سمت سرور رندر می‌شود تا صفحات پویا (محصول و مقاله) بتوانند در نبود
    رکورد به آن rewrite کنند — Astro اجازهٔ rewrite از صفحهٔ پویا به صفحهٔ
    از پیش ساخته‌شده را نمی‌دهد. */
 export const prerender = false;
 
-const { nav } = await getSiteSettings();
+const [{ nav }, { body: c }] = await Promise.all([getSiteSettings(), getPageContent(notFoundPage)]);
 ---
 <Base
   title="صفحه پیدا نشد | نماد نیرو"
@@ -17,19 +19,16 @@ const { nav } = await getSiteSettings();
   <section class="notfound">
     <div class="wrap">
       <p class="nf-code">۴۰۴</p>
-      <h1 class="nf-title">این صفحه پیدا نشد</h1>
-      <p class="nf-lead">
-        ممکن است آدرس تغییر کرده باشد یا صفحه حذف شده باشد.
-        از میان‌برهای زیر ادامه دهید:
-      </p>
+      <h1 class="nf-title">{c.title}</h1>
+      <p class="nf-lead">{c.lead}</p>
 
       <div class="nf-links">
         {nav.map((n) => <a href={n.href}>{n.label}</a>)}
       </div>
 
       <div class="cta-actions nf-actions">
-        <a class="btn btn-solid" href="/">بازگشت به صفحهٔ اصلی</a>
-        <a class="btn btn-ghost" href="/contact">تماس با ما</a>
+        <a class="btn btn-solid" href="/">{c.homeLabel}</a>
+        <a class="btn btn-ghost" href="/contact">{c.contactLabel}</a>
       </div>
     </div>
   </section>

@@ -7,24 +7,28 @@ import PortfolioDownload from '../components/PortfolioDownload.astro';
 import { filters } from '../data/site';
 import { breadcrumbSchema } from '../utils';
 import { listProjects } from '../server/repos/content';
+import { getPageContent } from '../server/repos/pageContent';
+import { projectsPage } from '../data/pages';
 
 export const prerender = false;
 
-const projects = await listProjects();
+const [projects, c] = await Promise.all([listProjects(), getPageContent(projectsPage)]);
 
 const pageSchema = breadcrumbSchema([{ name: 'پروژه‌ها', href: '/projects' }]);
 ---
-<Base schema={pageSchema} title="پروژه‌ها | نماد نیرو" description="نمونه‌ای از پروژه‌های اجراشده و تجهیزشدهٔ نماد نیرو؛ از نیروگاه ۱۰۰ مگاواتی فولاد خوزستان تا هزاران نیروگاه پشت‌بامی خانگی.">
+<Base schema={pageSchema} title={c.seo.title} description={c.seo.description}>
   <PageHero
     crumb="پروژه‌ها"
-    title="از کویر تا خط تولید"
-    lead="نمونه‌ای از نیروگاه‌های خورشیدی و پروژه‌هایی که در سراسر کشور اجرا، تأمین یا سرمایه‌گذاری کرده‌ایم."
+    title={c.hero.title}
+    lead={c.hero.lead}
   >
-    <div class="page-stats">
-      <div class="page-stat"><b>۷۰<i>MW+</i></b><span>مجموع تأمین و اجرا</span></div>
-      <div class="page-stat"><b>۱۰۰<i>MW</i></b><span>بزرگ‌ترین پروژه</span></div>
-      <div class="page-stat"><b>۱۰۰۰<i>+</i></b><span>نیروگاه پشت‌بامی</span></div>
-    </div>
+    {c.stats.length > 0 && (
+      <div class="page-stats">
+        {c.stats.map((s) => (
+          <div class="page-stat"><b>{s.value}{s.unit && <i>{s.unit}</i>}</b><span>{s.caption}</span></div>
+        ))}
+      </div>
+    )}
   </PageHero>
 
   <section class="plist-sec">
@@ -40,9 +44,9 @@ const pageSchema = breadcrumbSchema([{ name: 'پروژه‌ها', href: '/projec
 
   <section class="cta-band">
     <div class="wrap">
-      <h2>پروژهٔ بعدی می‌تواند مال شما باشد</h2>
-      <p>ظرفیت موردنظرتان را بگویید؛ برآورد اولیه را برایتان می‌فرستیم.</p>
-      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+      <h2>{c.cta.title}</h2>
+      <p>{c.cta.text}</p>
+      <a class="btn btn-solid" href={c.cta.href}>{c.cta.label}</a>
     </div>
   </section>
 </Base>

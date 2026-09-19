@@ -8,28 +8,29 @@ import Timeline from '../components/Timeline.astro';
 import PortfolioDownload from '../components/PortfolioDownload.astro';
 import { getSiteSettings } from '../server/repos/siteSettings';
 import { breadcrumbSchema } from '../utils';
+import { getPageContent } from '../server/repos/pageContent';
+import { aboutPage } from '../data/pages';
 
 /* پویا، تا متنی که در پنل عوض می‌شود بلافاصله دیده شود. خواندن از کش
    درون‌حافظه‌ای است، پس هزینه‌اش ناچیز است. */
 export const prerender = false;
 
-const { capabilities, clients } = await getSiteSettings();
+const [{ capabilities, clients }, c] = await Promise.all([getSiteSettings(), getPageContent(aboutPage)]);
 
 const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about' }]);
 ---
-<Base schema={pageSchema} title="درباره ما | نماد نیرو" description="نماد نیرو؛ فعال از سال ۱۳۸۷ در کرمان در حوزهٔ نیروگاه‌های خورشیدی و حرارتی — طراحی مهندسی، تأمین تجهیزات و سرمایه‌گذاری.">
+<Base schema={pageSchema} title={c.seo.title} description={c.seo.description}>
   <PageHero
     crumb="درباره ما"
-    title="از دل کویر، انرژیِ صنعت"
-    lead="نماد نیرو از سال ۱۳۸۷ در کرمان، از یک شرکت مهندسی برق تا شریکی جامع در انرژی خورشیدی رشد کرده است."
+    title={c.hero.title}
+    lead={c.hero.lead}
   />
 
   <section class="about-sec">
     <div class="wrap about-intro is-solo">
       <div>
-        <p class="lead-lg">ما نیروگاه می‌سازیم، تجهیزش می‌کنیم و در آن سرمایه‌گذاری می‌کنیم — همه زیر یک سقف.</p>
-        <p>نماد نیرو کار خود را در سال ۱۳۸۷ در حوزهٔ تولید و توزیع برق صنعتی آغاز کرد و به‌مرور به یکی از فعال‌ترین شرکت‌های انرژی خورشیدی در کرمان و مرکز ایران تبدیل شد.</p>
-        <p>امروز در سه حوزهٔ طراحی مهندسی و احداث نیروگاه، بازرگانی و تأمین تجهیزات، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر فعالیت می‌کنیم؛ از یک کیلووات روی پشت‌بام تا نیروگاه‌های مگاواتی در دشت.</p>
+        {c.intro.lead && <p class="lead-lg">{c.intro.lead}</p>}
+        {c.intro.body.map((para) => <p>{para}</p>)}
       </div>
     </div>
   </section>
@@ -43,8 +44,8 @@ const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about'
   <section class="about-sec">
     <div class="wrap">
       <header class="about-head">
-        <p class="eyebrow">توانمندی‌ها</p>
-        <h2>از طراحی تا بهره‌برداری و پایش</h2>
+        <p class="eyebrow">{c.capabilities.eyebrow}</p>
+        <h2>{c.capabilities.title}</h2>
       </header>
       <div class="cap-grid">
         {capabilities.map((c) => (
@@ -61,8 +62,8 @@ const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about'
   <section class="about-sec alt">
     <div class="wrap">
       <header class="about-head">
-        <p class="eyebrow">برندهای همکار</p>
-        <h2>تجهیزات از سازندگان معتبر جهانی</h2>
+        <p class="eyebrow">{c.brands.eyebrow}</p>
+        <h2>{c.brands.title}</h2>
       </header>
       <BrandMarquee />
     </div>
@@ -71,8 +72,8 @@ const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about'
   <section class="about-sec">
     <div class="wrap">
       <header class="about-head">
-        <p class="eyebrow">کارفرمایان ما</p>
-        <h2>اعتماد صنایع بزرگ کشور</h2>
+        <p class="eyebrow">{c.clients.eyebrow}</p>
+        <h2>{c.clients.title}</h2>
       </header>
       <div class="client-row">
         {clients.map((c) => <span class="client-chip">{c}</span>)}
@@ -82,9 +83,9 @@ const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about'
 
   <section class="cta-band">
     <div class="wrap">
-      <h2>بیایید پروژهٔ بعدی را با هم بسازیم</h2>
-      <p>از مشاورهٔ اولیه تا بهره‌برداری، کنار شما هستیم.</p>
-      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+      <h2>{c.cta.title}</h2>
+      <p>{c.cta.text}</p>
+      <a class="btn btn-solid" href={c.cta.href}>{c.cta.label}</a>
     </div>
   </section>
 </Base>

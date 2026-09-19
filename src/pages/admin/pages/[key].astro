@@ -1,0 +1,132 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import FieldView from '../../../components/admin/FieldView.astro';
+import { type Field, ROOT, parseForm } from '../../../admin/fields';
+import { pageByKey } from '../../../data/pages';
+import { getPageContent, isCustomized, resetPageContent, savePageContent } from '../../../server/repos/pageContent';
+import { listMedia } from '../../../server/media/store';
+
+export const prerender = false;
+
+/**
+ * ویرایش متن یک صفحه.
+ *
+ * فرم از فیلدهایی ساخته می‌شود که صفحه در `src/data/pages.ts` اعلام کرده،
+ * با همان موتوری که «متن‌های سایت» را می‌سازد.
+ */
+
+const page = pageByKey(Astro.params.key ?? '');
+if (!page) return Astro.redirect('/admin/pages');
+
+const user = Astro.locals.user!;
+const root: Field = { kind: 'group', key: '', label: '', fields: page.fields };
+
+let error: string | null = null;
+let rejected: unknown = undefined;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+
+  if (form.get('action') === 'reset') {
+    await resetPageContent(page);
+    return Astro.redirect(`/admin/pages/${page.key}?reset=1`);
+  }
+
+  const value = parseForm(root, form);
+  const problem = validate(value);
+  if (problem) {
+    error = problem;
+    // ورودی ویراستار از دست نرود
+    rejected = value;
+  } else {
+    await savePageContent(page, value, user.id);
+    return Astro.redirect(`/admin/pages/${page.key}?saved=1`);
+  }
+}
+
+/** فقط چیزهایی که صفحه را واقعاً خراب می‌کنند رد می‌شوند */
+function validate(value: unknown): string | null {
+  const v = value as Record<string, Record<string, unknown>>;
+  const href = v.cta?.href;
+  if (typeof href === 'string' && href && !/^(\/|https?:\/\/|#)/.test(href)) {
+    return 'نشانی دکمهٔ پایین صفحه باید با / یا http شروع شود — مثلاً /contact یا /#quote.';
+  }
+  if (v.seo && !v.seo.title) {
+    return 'عنوان صفحه نمی‌تواند خالی باشد — همان متنی است که در نتایج گوگل و زبانهٔ مرورگر دیده می‌شود.';
+  }
+  return null;
+}
+
+const [current, media, custom] = await Promise.all([getPageContent(page), listMedia(), isCustomized(page)]);
+const formValue = rejected !== undefined ? rejected : current;
+
+const saved = Astro.url.searchParams.get('saved') === '1';
+const wasReset = Astro.url.searchParams.get('reset') === '1';
+const hasSeo = page.fields.some((f) => f.key === 'seo');
+const seo = (formValue as { seo?: { title?: string; description?: string } }).seo;
+---
+<Admin title={`متن صفحه: ${page.label}`} lead={`نشانی روی سایت: ${page.path}`} roles={['admin', 'editor']}>
+  <p style="margin:-6px 0 16px"><a href="/admin/pages">→ همهٔ صفحات</a></p>
+
+  {saved && !error && <p class="a-msg a-msg-ok">ذخیره شد و روی سایت اعمال شد.</p>}
+  {wasReset && <p class="a-msg a-msg-ok">متن صفحه به متن اصلی برگشت.</p>}
+  {error && <p class="a-msg a-msg-err">{error} تغییرات ذخیره نشد.</p>}
+
+  {hasSeo && (
+    <div class="a-card">
+      <h2>پیش‌نمایش در نتایج گوگل</h2>
+      <div class="a-serp">
+        <div class="u">namadniroo.ir{page.path}</div>
+        <div class="t" data-serp="title">{seo?.title}</div>
+        <div class="d" data-serp="desc">{seo?.description || 'توضیحی وارد نشده است.'}</div>
+      </div>
+      <p class="a-hint" style="margin-top:10px">
+        عنوان: <span class="a-counter" data-count="title">۰</span> نویسه از حدود ۶۰ ·
+        توضیح: <span class="a-counter" data-count="desc">۰</span> نویسه از حدود ۱۵۵
+      </p>
+    </div>
+  )}
+
+  <form class="a-card" method="POST">
+    <FieldView field={root} value={formValue} name={ROOT} media={media} />
+    <div class="a-actions">
+      <button class="a-btn a-btn-primary" type="submit" name="action" value="save">ذخیرهٔ متن صفحه</button>
+      {page.path !== '/404' && <a class="a-btn" href={page.path} target="_blank" rel="noopener">مشاهدهٔ صفحه ↗</a>}
+    </div>
+  </form>
+
+  {custom && (
+    <form class="a-card" method="POST"
+          onsubmit="return confirm('همهٔ تغییرات این صفحه پاک شود و متن اصلی برگردد؟')">
+      <h2>بازگشت به متن اصلی</h2>
+      <p class="a-hint" style="margin-bottom:12px">
+        همهٔ متن‌هایی که برای این صفحه در پنل نوشته شده پاک می‌شوند و صفحه همان متنی را نشان می‌دهد که پیش از هر ویرایشی داشت.
+      </p>
+      <button class="a-btn a-btn-danger a-btn-sm" type="submit" name="action" value="reset">بازگشت به متن اصلی</button>
+    </form>
+  )}
+</Admin>
+
+<script>
+  /* پیش‌نمایش گوگل و شمارندهٔ نویسه همراه تایپ به‌روز می‌شوند. */
+  const fa = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]!);
+  const LIMITS = { title: 60, desc: 155 } as const;
+
+  const bind = (name: string, which: 'title' | 'desc') => {
+    const input = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`);
+    const preview = document.querySelector<HTMLElement>(`[data-serp="${which}"]`);
+    const counter = document.querySelector<HTMLElement>(`[data-count="${which}"]`);
+    if (!input || !preview || !counter) return;
+    const update = () => {
+      const value = input.value.trim();
+      preview.textContent = value || (which === 'desc' ? 'توضیحی وارد نشده است.' : '');
+      counter.textContent = fa(value.length);
+      counter.classList.toggle('is-over', value.length > LIMITS[which]);
+    };
+    input.addEventListener('input', update);
+    update();
+  };
+
+  bind('v.seo.title', 'title');
+  bind('v.seo.description', 'desc');
+</script>
