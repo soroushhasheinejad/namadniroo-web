@@ -5,6 +5,9 @@ import PageHero from '../components/PageHero.astro';
 import ProjectTile from '../components/ProjectTile.astro';
 import { breadcrumbSchema, toLatinDigits } from '../utils';
 import { listProjects } from '../server/repos/content';
+import { seoProps } from '../server/seo/pageSeo';
+import { getPageContent } from '../server/repos/pageContent';
+import { investmentPage } from '../data/pages';
 
 export const prerender = false;
 
@@ -14,8 +17,10 @@ const totalMW = invested.reduce((sum, p) => sum + (parseFloat(toLatinDigits(p.ca
 const faNum = (n: number) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
 
 const pageSchema = breadcrumbSchema([{ name: 'سرمایه‌گذاری', href: '/investment' }]);
+const seo = await seoProps((await getPageContent(investmentPage)).seo);
+
 ---
-<Base schema={pageSchema} title="سرمایه‌گذاری | نماد نیرو" description="نماد نیرو در نیروگاه‌هایی که می‌سازد، خودش هم سرمایه‌گذار است — مشارکت در انرژی خورشیدی با سابقهٔ اجرایی اثبات‌شده.">
+<Base {...seo} schema={pageSchema}>
   <PageHero
     crumb="سرمایه‌گذاری"
     title="ما فقط نمی‌سازیم؛ خودمان هم سرمایه‌گذاریم"

@@ -9,14 +9,17 @@ import { breadcrumbSchema } from '../utils';
 import { listProjects } from '../server/repos/content';
 import { getPageContent } from '../server/repos/pageContent';
 import { projectsPage } from '../data/pages';
+import { seoProps } from '../server/seo/pageSeo';
 
 export const prerender = false;
 
 const [projects, c] = await Promise.all([listProjects(), getPageContent(projectsPage)]);
 
 const pageSchema = breadcrumbSchema([{ name: 'پروژه‌ها', href: '/projects' }]);
+const seo = await seoProps(c.seo);
+
 ---
-<Base schema={pageSchema} title={c.seo.title} description={c.seo.description}>
+<Base {...seo} schema={pageSchema}>
   <PageHero
     crumb="پروژه‌ها"
     title={c.hero.title}

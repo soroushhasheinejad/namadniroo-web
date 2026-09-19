@@ -20,13 +20,16 @@ import { faqSchema } from '../utils';
 import { getSeoSettings } from '../server/repos/seoSettings';
 import { localBusinessSchema } from '../server/seo/structuredData';
 import { homeFaq } from '../data/site';
+import { seoProps } from '../server/seo/pageSeo';
+import { getPageContent } from '../server/repos/pageContent';
+import { homePage } from '../data/pages';
 
 
 export const prerender = false;
 
 /* سه بخش صفحه به هم وابسته نیستند، پس با هم خوانده می‌شوند نه پشت سر هم —
    وگرنه زمان رندر می‌شد مجموع سه کوئری به‌جای کندترینشان. */
-const [products, projects, articles, images, promos, seo] = await Promise.all([
+const [products, projects, articles, images, promos, seoSettings] = await Promise.all([
   listFeaturedProducts(4),
   listFeaturedProjects(3),
   listArticles().then((all) => all.slice(0, 3)),
@@ -55,13 +58,13 @@ const homeSchema = [
     publisher: { '@id': 'https://namadniroo.ir/#organization' },
   },
   // از «تنظیمات سئو ← اطلاعات کسب‌وکار»
-  localBusinessSchema(seo.business),
+  localBusinessSchema(seoSettings.business),
   faqSchema([...homeFaq]),
 ];
+const seo = await seoProps((await getPageContent(homePage)).seo);
+
 ---
-<Base
-  title="نماد نیرو | راه‌کارهای جامع انرژی پایدار"
-  description="نماد نیرو از سال ۱۳۸۷ در کرمان: احداث نیروگاه خورشیدی، تأمین پنل و اینورتر از برندهای معتبر جهانی، و سرمایه‌گذاری در پروژه‌های تجدیدپذیر."
+<Base {...seo}
   schema={homeSchema}
   preloadImage={lcp ? { src: lcp.url, srcset: buildSrcset(lcp.key, lcp.width), sizes: HERO_SIZES } : undefined}
 >

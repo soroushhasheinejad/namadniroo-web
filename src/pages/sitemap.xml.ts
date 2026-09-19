@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
 import { listArticles, listProducts } from '../server/repos/content';
+import { getPageContent } from '../server/repos/pageContent';
+import { PAGES } from '../data/pages';
 
 export const prerender = false;
 
@@ -25,18 +27,34 @@ interface Entry {
   image?: string;
 }
 
-/** صفحات ثابت سایت */
-const STATIC_PAGES: Entry[] = [
-  { path: '/', changefreq: 'weekly', priority: '1.0' },
-  { path: '/activity', changefreq: 'monthly', priority: '0.8' },
-  { path: '/projects', changefreq: 'weekly', priority: '0.8' },
-  { path: '/shop', changefreq: 'weekly', priority: '0.9' },
-  { path: '/ae-solar', changefreq: 'monthly', priority: '0.7' },
-  { path: '/investment', changefreq: 'monthly', priority: '0.7' },
-  { path: '/magazine', changefreq: 'weekly', priority: '0.8' },
-  { path: '/about', changefreq: 'monthly', priority: '0.6' },
-  { path: '/contact', changefreq: 'yearly', priority: '0.6' },
-];
+/**
+ * بسامد و اولویت هر صفحهٔ ثابت.
+ *
+ * خودِ فهرست صفحات از `src/data/pages.ts` می‌آید، نه از اینجا: پیش‌تر این
+ * فهرست جدا نگه داشته می‌شد و صفحهٔ «برآورد سرمایه‌گذاری» که بعداً اضافه
+ * شد، هرگز واردش نشد. صفحه‌ای که اینجا نباشد با مقادیر معمولی می‌آید.
+ */
+const HINTS: Record<string, Pick<Entry, 'changefreq' | 'priority'>> = {
+  '/': { changefreq: 'weekly', priority: '1.0' },
+  '/shop': { changefreq: 'weekly', priority: '0.9' },
+  '/activity': { changefreq: 'monthly', priority: '0.8' },
+  '/projects': { changefreq: 'weekly', priority: '0.8' },
+  '/magazine': { changefreq: 'weekly', priority: '0.8' },
+  '/solar-calculator': { changefreq: 'monthly', priority: '0.8' },
+  '/ae-solar': { changefreq: 'monthly', priority: '0.7' },
+  '/investment': { changefreq: 'monthly', priority: '0.7' },
+  '/about': { changefreq: 'monthly', priority: '0.6' },
+  '/contact': { changefreq: 'yearly', priority: '0.6' },
+};
+
+/** صفحات ثابتی که باید در نقشه بیایند — بدون ۴۰۴ و بدون آن‌هایی که از گوگل پنهان شده‌اند */
+async function staticPages(): Promise<Entry[]> {
+  const pages = PAGES.filter((p) => p.path !== '/404');
+  const contents = await Promise.all(pages.map((p) => getPageContent(p)));
+  return pages
+    .filter((_, i) => !(contents[i] as { seo?: { noindex?: boolean } }).seo?.noindex)
+    .map((p) => ({ path: p.path, ...(HINTS[p.path] ?? { changefreq: 'monthly', priority: '0.6' }) }));
+}
 
 const escapeXml = (value: string): string =>
   value.replace(/[<>&'"]/g, (c) => `&${{ '<': 'lt', '>': 'gt', '&': 'amp', "'": 'apos', '"': 'quot' }[c]};`);
@@ -56,10 +74,10 @@ function urlEntry({ path, lastmod, changefreq, priority, image }: Entry): string
 }
 
 export const GET: APIRoute = async () => {
-  const [products, articles] = await Promise.all([listProducts(), listArticles()]);
+  const [products, articles, pages] = await Promise.all([listProducts(), listArticles(), staticPages()]);
 
   const entries: Entry[] = [
-    ...STATIC_PAGES,
+    ...pages,
 
     /* صفحاتی که ویراستار `noindex` زده در نقشه نمی‌آیند — فرستادن نشانی‌ای
        که خودمان از گوگل پنهانش کرده‌ایم سیگنال متناقض است. */

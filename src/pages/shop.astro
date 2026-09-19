@@ -7,6 +7,9 @@ import ProductCard from '../components/ProductCard.astro';
 import { filters } from '../data/site';
 import { breadcrumbSchema } from '../utils';
 import { listProducts } from '../server/repos/content';
+import { seoProps } from '../server/seo/pageSeo';
+import { getPageContent } from '../server/repos/pageContent';
+import { shopPage } from '../data/pages';
 
 /* محتوا از دیتابیس می‌آید، پس صفحه باید روی سرور ساخته شود تا تغییرات پنل
    بدون بیلد دوباره دیده شوند. لایهٔ کش باعث می‌شود این کار در عمل هزینهٔ
@@ -16,8 +19,10 @@ export const prerender = false;
 const products = await listProducts();
 
 const pageSchema = breadcrumbSchema([{ name: 'فروشگاه', href: '/shop' }]);
+const seo = await seoProps((await getPageContent(shopPage)).seo);
+
 ---
-<Base schema={pageSchema} title="فروشگاه | نماد نیرو" description="فروشگاه تجهیزات خورشیدی نماد نیرو؛ اینورتر، پنل و ذخیره‌ساز از برندهای معتبر جهانی، در دو دستهٔ محصولات خانگی و صنعتی.">
+<Base {...seo} schema={pageSchema}>
   <PageHero
     crumb="فروشگاه"
     title="تجهیزاتی که پروژه را می‌سازند"

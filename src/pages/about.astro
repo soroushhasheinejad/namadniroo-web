@@ -10,6 +10,7 @@ import { getSiteSettings } from '../server/repos/siteSettings';
 import { breadcrumbSchema } from '../utils';
 import { getPageContent } from '../server/repos/pageContent';
 import { aboutPage } from '../data/pages';
+import { seoProps } from '../server/seo/pageSeo';
 
 /* پویا، تا متنی که در پنل عوض می‌شود بلافاصله دیده شود. خواندن از کش
    درون‌حافظه‌ای است، پس هزینه‌اش ناچیز است. */
@@ -18,8 +19,10 @@ export const prerender = false;
 const [{ capabilities, clients }, c] = await Promise.all([getSiteSettings(), getPageContent(aboutPage)]);
 
 const pageSchema = breadcrumbSchema([{ name: 'درباره ما', href: '/about' }]);
+const seo = await seoProps(c.seo);
+
 ---
-<Base schema={pageSchema} title={c.seo.title} description={c.seo.description}>
+<Base {...seo} schema={pageSchema}>
   <PageHero
     crumb="درباره ما"
     title={c.hero.title}

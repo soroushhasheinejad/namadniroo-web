@@ -6,14 +6,19 @@ import Icon from '../components/Icon.astro';
 import DbImage from '../components/DbImage.astro';
 import { breadcrumbSchema } from '../utils';
 import { areaBlocks } from '../server/repos/slides';
+import { seoProps } from '../server/seo/pageSeo';
+import { getPageContent } from '../server/repos/pageContent';
+import { activityPage } from '../data/pages';
 
 const pageSchema = breadcrumbSchema([{ name: 'حوزه‌های فعالیت', href: '/activity' }]);
 
 export const prerender = false;
 
 const blocks = await areaBlocks();
+const seo = await seoProps((await getPageContent(activityPage)).seo);
+
 ---
-<Base schema={pageSchema} title="حوزه‌های فعالیت | نماد نیرو" description="سه حوزهٔ فعالیت نماد نیرو: طراحی مهندسی نیروگاه، بازرگانی و تأمین تجهیزات خورشیدی، و اجرا و بهره‌برداری پروژه‌های تجدیدپذیر.">
+<Base {...seo} schema={pageSchema}>
   <PageHero
     crumb="حوزه‌های فعالیت"
     title="سه حوزه، یک شریک انرژی"

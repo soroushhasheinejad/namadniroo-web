@@ -3,6 +3,9 @@ import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import { breadcrumbSchema, faqSchema } from '../utils';
 import { ROUTES, SOURCES, UPDATED_AT, YIELD_BY_REGION } from '../data/solarModel';
+import { seoProps } from '../server/seo/pageSeo';
+import { getPageContent } from '../server/repos/pageContent';
+import { calculatorPage } from '../data/pages';
 
 export const prerender = false;
 
@@ -34,11 +37,11 @@ const pageSchema = [
   ]),
   faqSchema(faq),
 ];
+const seo = await seoProps((await getPageContent(calculatorPage)).seo);
+
 ---
-<Base
+<Base {...seo}
   schema={pageSchema}
-  title="برآورد سرمایه‌گذاری نیروگاه خورشیدی | نماد نیرو"
-  description="با سرمایهٔ موردنظرتان چه نیروگاه خورشیدی می‌توان ساخت، چقدر برق تولید می‌کند و در چه مدتی برمی‌گردد — برآورد تقریبی بر پایهٔ نرخ‌های ۱۴۰۵ و سه روش فروش برق."
 >
   <PageHero
     crumb="برآورد سرمایه‌گذاری"

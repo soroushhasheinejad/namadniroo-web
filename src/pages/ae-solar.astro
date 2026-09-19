@@ -5,6 +5,9 @@ import ModuleAnatomy from '../components/ModuleAnatomy.astro';
 import { fa } from '../utils';
 import { ae, aeStats, series, whyUs, techGuide, warranty, datasheets, faq } from '../data/aesolar';
 import { breadcrumbSchema, faqSchema } from '../utils';
+import { seoProps } from '../server/seo/pageSeo';
+import { getPageContent } from '../server/repos/pageContent';
+import { aeSolarPage } from '../data/pages';
 
 /* پویا، تا متنی که در پنل عوض می‌شود بلافاصله دیده شود. خواندن از کش
    درون‌حافظه‌ای است، پس هزینه‌اش ناچیز است. */
@@ -14,10 +17,10 @@ const pageSchema = [
   breadcrumbSchema([{ name: 'AE Solar', href: '/ae-solar' }]),
   faqSchema(faq),
 ];
+const seo = await seoProps((await getPageContent(aeSolarPage)).seo);
+
 ---
-<Base
-  title="AE Solar | نمایندگی رسمی در ایران — نماد نیرو"
-  description="نماد نیرو، نمایندهٔ رسمی AE Solar آلمان در ایران. تأمین ماژول‌های خورشیدی سری Aurora، Meteor، Comet و Eclipse با گارانتی معتبر سازنده."
+<Base {...seo}
   schema={pageSchema}
 >
   <div class="ae-page">

@@ -6,6 +6,9 @@ import ArticleCard from '../components/ArticleCard.astro';
 import { filters } from '../data/site';
 import { breadcrumbSchema } from '../utils';
 import { listArticles } from '../server/repos/content';
+import { seoProps } from '../server/seo/pageSeo';
+import { getPageContent } from '../server/repos/pageContent';
+import { magazinePage } from '../data/pages';
 
 export const prerender = false;
 
@@ -37,11 +40,11 @@ const pageSchema = [
     },
   },
 ];
+const seo = await seoProps((await getPageContent(magazinePage)).seo);
+
 ---
-<Base
+<Base {...seo}
   schema={pageSchema}
-  title="مجله انرژی خورشیدی؛ آموزش نیروگاه خورشیدی | نماد نیرو"
-  description="مقاله‌های کاربردی دربارهٔ نیروگاه خورشیدی: اجزا و اینورتر، آنگرید و آفگرید، نگهداری و O&M، شاخص PR، قرارداد EPC و درآمد و سود نیروگاه خورشیدی."
 >
   <PageHero
     crumb="مجله"
