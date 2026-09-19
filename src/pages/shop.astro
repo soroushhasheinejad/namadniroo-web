@@ -19,14 +19,15 @@ export const prerender = false;
 const products = await listProducts();
 
 const pageSchema = breadcrumbSchema([{ name: 'فروشگاه', href: '/shop' }]);
-const seo = await seoProps((await getPageContent(shopPage)).seo);
+const c = await getPageContent(shopPage);
+const seo = await seoProps(c.seo);
 
 ---
 <Base {...seo} schema={pageSchema}>
   <PageHero
     crumb="فروشگاه"
-    title="تجهیزاتی که پروژه را می‌سازند"
-    lead="اینورتر، پنل و ذخیره‌ساز از برندهای معتبر جهانی؛ برای خانه‌ها و صنایع، همراه با گارانتی و پشتیبانی فنی."
+    title={c.hero.title}
+    lead={c.hero.lead}
   />
 
   <section class="shop-sec">
@@ -40,14 +41,14 @@ const seo = await seoProps((await getPageContent(shopPage)).seo);
 
   <RelatedArticles
     slugs={['inverter-role', 'how-panel-works', 'ongrid-offgrid']}
-    title="راهنمای انتخاب تجهیزات"
+    title={c.related}
   />
 
   <section class="cta-band">
     <div class="wrap">
-      <h2>تجهیز موردنظرتان را پیدا نکردید؟</h2>
-      <p>لیست کامل برندها و مدل‌ها را داریم؛ نیازتان را بگویید تا بهترین گزینه را پیشنهاد دهیم.</p>
-      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+      <h2>{c.cta.title}</h2>
+      <p>{c.cta.text}</p>
+      <a class="btn btn-solid" href={c.cta.href}>{c.cta.label}</a>
     </div>
   </section>
 </Base>

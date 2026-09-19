@@ -15,14 +15,15 @@ const pageSchema = breadcrumbSchema([{ name: 'حوزه‌های فعالیت', h
 export const prerender = false;
 
 const blocks = await areaBlocks();
-const seo = await seoProps((await getPageContent(activityPage)).seo);
+const c = await getPageContent(activityPage);
+const seo = await seoProps(c.seo);
 
 ---
 <Base {...seo} schema={pageSchema}>
   <PageHero
     crumb="حوزه‌های فعالیت"
-    title="سه حوزه، یک شریک انرژی"
-    lead="از طراحی و مهندسی تا تأمین تجهیزات و اجرا و بهره‌برداری نیروگاه؛ نماد نیرو در تمام مسیر همراه شماست."
+    title={c.hero.title}
+    lead={c.hero.lead}
   />
 
   {blocks.map((a, i) => (
@@ -50,14 +51,14 @@ const seo = await seoProps((await getPageContent(activityPage)).seo);
 
   <RelatedArticles
     slugs={['epc-meaning', 'plant-components', 'om-plant']}
-    title="پیش از شروع پروژه بخوانید"
+    title={c.related}
   />
 
   <section class="cta-band">
     <div class="wrap">
-      <h2>مطمئن نیستید کدام مسیر مناسب شماست؟</h2>
-      <p>کارشناسان ما با یک تماس، بهترین حوزه را برای پروژهٔ شما پیشنهاد می‌دهند.</p>
-      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+      <h2>{c.cta.title}</h2>
+      <p>{c.cta.text}</p>
+      <a class="btn btn-solid" href={c.cta.href}>{c.cta.label}</a>
     </div>
   </section>
 </Base>

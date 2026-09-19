@@ -40,7 +40,8 @@ const pageSchema = [
     },
   },
 ];
-const seo = await seoProps((await getPageContent(magazinePage)).seo);
+const c = await getPageContent(magazinePage);
+const seo = await seoProps(c.seo);
 
 ---
 <Base {...seo}
@@ -48,8 +49,8 @@ const seo = await seoProps((await getPageContent(magazinePage)).seo);
 >
   <PageHero
     crumb="مجله"
-    title="مجلهٔ انرژی"
-    lead="راهنمای ساده و کاربردی دربارهٔ نیروگاه خورشیدی، تجهیزات، نگه‌داری و اقتصاد انرژی — برای صاحبان صنایع و علاقه‌مندان."
+    title={c.hero.title}
+    lead={c.hero.lead}
   />
 
   <section class="mag-sec">
@@ -63,9 +64,9 @@ const seo = await seoProps((await getPageContent(magazinePage)).seo);
 
   <section class="cta-band">
     <div class="wrap">
-      <h2>سؤالی دربارهٔ پروژه‌تان دارید؟</h2>
-      <p>کارشناسان ما فراتر از مقاله، مستقیم راهنمایی‌تان می‌کنند.</p>
-      <a class="btn btn-solid" href="/#quote">درخواست مشاوره</a>
+      <h2>{c.cta.title}</h2>
+      <p>{c.cta.text}</p>
+      <a class="btn btn-solid" href={c.cta.href}>{c.cta.label}</a>
     </div>
   </section>
 </Base>
