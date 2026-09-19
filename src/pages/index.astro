@@ -17,6 +17,8 @@ import { promoSlides } from '../server/repos/slides';
 import { homeImages } from '../server/repos/homeMedia';
 import { buildSrcset } from '../server/media/store';
 import { faqSchema } from '../utils';
+import { getSeoSettings } from '../server/repos/seoSettings';
+import { localBusinessSchema } from '../server/seo/structuredData';
 import { homeFaq } from '../data/site';
 
 
@@ -24,12 +26,13 @@ export const prerender = false;
 
 /* سه بخش صفحه به هم وابسته نیستند، پس با هم خوانده می‌شوند نه پشت سر هم —
    وگرنه زمان رندر می‌شد مجموع سه کوئری به‌جای کندترینشان. */
-const [products, projects, articles, images, promos] = await Promise.all([
+const [products, projects, articles, images, promos, seo] = await Promise.all([
   listFeaturedProducts(4),
   listFeaturedProjects(3),
   listArticles().then((all) => all.slice(0, 3)),
   homeImages(),
   promoSlides(),
+  getSeoSettings(),
 ]);
 
 /* عکس هیرو بزرگ‌ترین عنصر قابل مشاهدهٔ صفحه (LCP) است. آدرسش را به Base
@@ -51,22 +54,8 @@ const homeSchema = [
     inLanguage: 'fa-IR',
     publisher: { '@id': 'https://namadniroo.ir/#organization' },
   },
-  {
-    '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    '@id': 'https://namadniroo.ir/#localbusiness',
-    name: 'شرکت کرمان نماد نیرو',
-    url: 'https://namadniroo.ir',
-    image: 'https://namadniroo.ir/assets/logo.png',
-    telephone: '+983432521416',
-    priceRange: '$$',
-    address: {
-      '@type': 'PostalAddress',
-      addressLocality: 'کرمان',
-      addressRegion: 'کرمان',
-      addressCountry: 'IR',
-    },
-  },
+  // از «تنظیمات سئو ← اطلاعات کسب‌وکار»
+  localBusinessSchema(seo.business),
   faqSchema([...homeFaq]),
 ];
 ---

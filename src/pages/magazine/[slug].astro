@@ -69,6 +69,7 @@ const pageSchema = [
   type="article"
   schema={pageSchema}
   noindex={article.noindex}
+  canonical={article.canonicalOverride}
 >
   <Fragment slot="head">
     {published && <meta property="article:published_time" content={published} />}

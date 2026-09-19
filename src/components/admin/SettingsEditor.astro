@@ -1,0 +1,68 @@
+---
+import FieldView from './FieldView.astro';
+import { ROOT } from '../../admin/fields';
+import type { SettingsView } from '../../admin/settingsPage';
+import { listMedia } from '../../server/media/store';
+
+/** فهرست بخش‌ها و فرم بخش فعلی — مشترک بین «متن‌های سایت» و «تنظیمات سئو» */
+interface Props {
+  view: SettingsView;
+  basePath: string;
+}
+
+const { view, basePath } = Astro.props;
+const { sections, current, formValue, error, saved } = view;
+const media = await listMedia();
+---
+<div class="s-layout">
+  <nav class="s-index" aria-label="بخش‌ها">
+    {sections.map((s) => (
+      <a href={`${basePath}?s=${s.key}`} class:list={['s-index-item', s.key === current.key && 'is-current']}
+         aria-current={s.key === current.key ? 'page' : undefined}>
+        {s.title}
+      </a>
+    ))}
+  </nav>
+
+  <form class="a-card s-form" method="POST">
+    <h2>{current.title}</h2>
+    <p class="a-hint s-where">کجا دیده می‌شود: {current.where}</p>
+
+    {saved && <p class="a-msg a-msg-ok">ذخیره شد و روی سایت اعمال شد.</p>}
+    {error && <p class="a-msg a-msg-err">{error} تغییرات ذخیره نشد.</p>}
+
+    <input type="hidden" name="section" value={current.key} />
+    <FieldView field={current.root} value={formValue} name={ROOT} media={media} />
+
+    <div class="a-actions s-actions">
+      <button class="a-btn a-btn-primary" type="submit">ذخیرهٔ «{current.title}»</button>
+    </div>
+  </form>
+</div>
+
+<style>
+  .s-layout { display: grid; grid-template-columns: 210px 1fr; gap: 20px; align-items: start; }
+  .s-index {
+    position: sticky; top: 16px;
+    display: grid; gap: 2px;
+    padding: 8px; border: 1px solid var(--a-line); border-radius: var(--a-r); background: var(--a-panel);
+  }
+  .s-index-item {
+    padding: 8px 12px; border-radius: 7px;
+    color: var(--a-muted); font-size: 14px; text-decoration: none;
+  }
+  .s-index-item:hover { color: var(--a-ink); background: rgba(255,255,255,.04); }
+  .s-index-item.is-current { color: var(--a-ink); background: rgba(255,196,26,.1); box-shadow: inset -2px 0 0 var(--a-yellow); }
+  .s-where { margin: -6px 0 18px !important; }
+  .s-actions {
+    position: sticky; bottom: 0;
+    margin: 18px -18px -18px; padding: 14px 18px;
+    background: var(--a-panel); border-top: 1px solid var(--a-line);
+    border-radius: 0 0 var(--a-r) var(--a-r);
+  }
+  @media (max-width: 860px) {
+    .s-layout { grid-template-columns: 1fr; }
+    .s-index { position: static; grid-auto-flow: column; overflow-x: auto; }
+    .s-index-item { white-space: nowrap; }
+  }
+</style>

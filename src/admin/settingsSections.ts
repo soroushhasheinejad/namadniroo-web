@@ -12,6 +12,10 @@ import { toLatinDigits } from '../utils';
 export interface Section {
   key: string;
   title: string;
+  /** کجای پنل نمایش داده شود — پیش‌فرض «متن‌های سایت» */
+  group?: 'site' | 'seo';
+  /** اگر تعیین شود، فقط این نقش‌ها می‌بینند و ذخیره می‌کنند */
+  roles?: ('admin' | 'editor')[];
   /** یک جمله: این بخش کجای سایت دیده می‌شود */
   where: string;
   root: Field;
@@ -285,8 +289,136 @@ export const SECTIONS: Section[] = [
     },
   },
 
+  /* ============================================================
+     سئو
+     ============================================================ */
+
+  {
+    key: 'seoDefaults',
+    group: 'seo',
+    title: 'پیش‌فرض‌های سئو',
+    where: 'هر صفحه‌ای که توضیح یا تصویر اشتراک خودش را ندارد، از این‌ها استفاده می‌کند.',
+    root: {
+      kind: 'group',
+      key: '',
+      label: '',
+      fields: [
+        {
+          kind: 'textarea',
+          key: 'description',
+          label: 'توضیح پیش‌فرض',
+          rows: 3,
+          hint: 'حدود ۱۲۰ تا ۱۵۵ نویسه. بهتر است هر صفحه توضیح خودش را داشته باشد؛ این فقط جای خالی را پر می‌کند.',
+        },
+        {
+          kind: 'image',
+          key: 'image',
+          label: 'تصویر اشتراک پیش‌فرض',
+          hint: 'تصویری که هنگام فرستادن پیوند در تلگرام، واتساپ و لینکدین دیده می‌شود. اندازهٔ مناسب ۱۲۰۰×۶۳۰.',
+        },
+      ],
+    },
+  },
+
+  {
+    key: 'business',
+    group: 'seo',
+    title: 'اطلاعات کسب‌وکار',
+    where: 'دادهٔ ساختاریافته‌ای که گوگل از آن کارت کسب‌وکار، نشانی و تلفن شرکت را در نتایج می‌سازد.',
+    root: {
+      kind: 'group',
+      key: '',
+      label: '',
+      fields: [
+        { kind: 'text', key: 'legalName', label: 'نام کامل شرکت', placeholder: 'شرکت کرمان نماد نیرو' },
+        { kind: 'text', key: 'alternateName', label: 'نام دیگر', hint: 'نامی که مردم ممکن است با آن جست‌وجو کنند.' },
+        {
+          kind: 'text',
+          key: 'telephone',
+          label: 'تلفن به شکل بین‌المللی',
+          ltr: true,
+          placeholder: '+983432521416',
+          hint: 'با +98 و بدون صفر ابتدایی، فاصله یا خط تیره.',
+        },
+        { kind: 'text', key: 'email', label: 'ایمیل', ltr: true },
+        { kind: 'text', key: 'foundingYear', label: 'سال تأسیس به میلادی', ltr: true, placeholder: '2008' },
+        { kind: 'text', key: 'priceRange', label: 'بازهٔ قیمت', ltr: true, placeholder: '$$', hint: 'نمادی از ارزان ($) تا گران ($$$$).' },
+        {
+          kind: 'group',
+          key: 'address',
+          label: 'نشانی',
+          fields: [
+            { kind: 'text', key: 'street', label: 'خیابان و پلاک' },
+            { kind: 'text', key: 'locality', label: 'شهر' },
+            { kind: 'text', key: 'region', label: 'استان' },
+            { kind: 'text', key: 'postalCode', label: 'کد پستی', ltr: true },
+            { kind: 'text', key: 'country', label: 'کد کشور', ltr: true, placeholder: 'IR' },
+          ],
+        },
+        {
+          kind: 'group',
+          key: 'geo',
+          label: 'مختصات روی نقشه',
+          hint: 'از گوگل‌مپ یا نشان: روی محل راست‌کلیک کنید و دو عدد را بردارید. برای نمایش روی نقشه در نتایج محلی لازم است.',
+          fields: [
+            { kind: 'text', key: 'lat', label: 'عرض جغرافیایی', ltr: true, placeholder: '30.2839' },
+            { kind: 'text', key: 'lng', label: 'طول جغرافیایی', ltr: true, placeholder: '57.0834' },
+          ],
+        },
+        {
+          kind: 'lines',
+          key: 'openingHours',
+          label: 'ساعات کاری',
+          hint: 'هر بازه در یک خط، به شکل انگلیسی: Sa-We 08:00-17:00 (Sa شنبه، Su یکشنبه، Mo دوشنبه، Tu سه‌شنبه، We چهارشنبه، Th پنجشنبه، Fr جمعه).',
+        },
+        {
+          kind: 'lines',
+          key: 'sameAs',
+          label: 'صفحه‌های شرکت در شبکه‌های اجتماعی',
+          hint: 'نشانی کامل هر صفحه در یک خط (اینستاگرام، لینکدین، تلگرام، آپارات). به گوگل می‌گوید این صفحه‌ها مال همین شرکت‌اند.',
+        },
+        { kind: 'lines', key: 'knowsAbout', label: 'حوزه‌های تخصص', hint: 'هر حوزه در یک خط.' },
+      ],
+    },
+  },
+
+  {
+    key: 'webmaster',
+    group: 'seo',
+    title: 'ابزار وبمستر و آمار',
+    where: 'کدهای تأیید مالکیت در کنسول جست‌وجو و ابزار آمار بازدید. در سرصفحهٔ همهٔ صفحات قرار می‌گیرند.',
+    roles: ['admin'],
+    root: {
+      kind: 'group',
+      key: '',
+      label: '',
+      fields: [
+        {
+          kind: 'text',
+          key: 'google',
+          label: 'کد تأیید Google Search Console',
+          ltr: true,
+          hint: 'فقط مقدار content از تگ meta، نه کل تگ. در کنسول: افزودن ملک ← روش تأیید «تگ HTML».',
+        },
+        { kind: 'text', key: 'bing', label: 'کد تأیید Bing Webmaster', ltr: true },
+        { kind: 'text', key: 'yandex', label: 'کد تأیید Yandex Webmaster', ltr: true },
+        { kind: 'text', key: 'ga4', label: 'شناسهٔ Google Analytics', ltr: true, placeholder: 'G-XXXXXXXXXX' },
+        { kind: 'text', key: 'gtm', label: 'شناسهٔ Google Tag Manager', ltr: true, placeholder: 'GTM-XXXXXXX' },
+        {
+          kind: 'textarea',
+          key: 'customHead',
+          label: 'کد دلخواه در سرصفحه',
+          ltr: true,
+          rows: 6,
+          hint: 'برای هر ابزار دیگری (مثلاً آمار داخلی). این کد بدون هیچ بررسی در همهٔ صفحات اجرا می‌شود — فقط کدی بگذارید که منبعش را می‌شناسید.',
+        },
+      ],
+    },
+  },
+
   {
     key: 'robots',
+    group: 'seo',
     title: 'robots.txt',
     where: 'قواعد خزش موتورهای جست‌وجو. مسدودسازی پنل و نشانی نقشهٔ سایت همیشه خودکار اضافه می‌شود.',
     root: { kind: 'textarea', key: '', label: 'قواعد', ltr: true, rows: 10 },

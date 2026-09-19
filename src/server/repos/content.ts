@@ -39,6 +39,8 @@ export interface ProductView {
   seoTitle: string | null;
   seoDescription: string | null;
   noindex: boolean;
+  /** canonical دستی از پنل؛ null یعنی خودکار */
+  canonicalOverride: string | null;
   updatedAt: Date;
 }
 
@@ -64,6 +66,7 @@ export function listProducts(): Promise<ProductView[]> {
         seoTitle: products.seoTitle,
         seoDescription: products.seoDescription,
         noindex: products.noindex,
+        canonicalOverride: products.canonicalOverride,
         updatedAt: products.updatedAt,
         imageKey: media.key,
         imageUrl: media.url,
@@ -106,6 +109,7 @@ function toProductView(row: Record<string, any>): ProductView {
     seoTitle: row.seoTitle,
     seoDescription: row.seoDescription,
     noindex: row.noindex,
+    canonicalOverride: row.canonicalOverride ?? null,
     updatedAt: row.updatedAt,
   };
 }
@@ -192,6 +196,8 @@ export interface ArticleView {
   seoTitle: string | null;
   seoDescription: string | null;
   noindex: boolean;
+  /** canonical دستی از پنل؛ null یعنی خودکار */
+  canonicalOverride: string | null;
   updatedAt: Date;
 }
 
@@ -211,6 +217,7 @@ export function listArticles(): Promise<ArticleView[]> {
         seoTitle: articles.seoTitle,
         seoDescription: articles.seoDescription,
         noindex: articles.noindex,
+        canonicalOverride: articles.canonicalOverride,
         updatedAt: articles.updatedAt,
         imageKey: media.key,
         imageUrl: media.url,
@@ -236,6 +243,7 @@ export function listArticles(): Promise<ArticleView[]> {
       seoTitle: row.seoTitle,
       seoDescription: row.seoDescription,
       noindex: row.noindex,
+      canonicalOverride: row.canonicalOverride ?? null,
       updatedAt: row.updatedAt,
     }));
   });

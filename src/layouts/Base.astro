@@ -6,6 +6,9 @@ import Footer from '../components/Footer.astro';
 import QuoteDialog from '../components/QuoteDialog.astro';
 import MobileBar from '../components/MobileBar.astro';
 import { getSiteSettings } from '../server/repos/siteSettings';
+import { getSeoSettings } from '../server/repos/seoSettings';
+import { organizationSchema } from '../server/seo/structuredData';
+import { mediaIndex, urlFrom } from '../server/media/resolve';
 
 interface Props {
   title: string;
@@ -24,51 +27,53 @@ interface Props {
    * برسد؛ با این، دانلود هم‌زمان با خواندن <head> شروع می‌شود.
    */
   preloadImage?: { src: string; srcset?: string; sizes?: string };
+  /**
+   * نشانی canonical دستی. فقط وقتی لازم است که همین محتوا در نشانی دیگری
+   * هم هست و باید به گوگل گفت کدام اصلی است؛ در حالت عادی خودکار است.
+   */
+  canonical?: string | null;
 }
 
 const {
   title,
-  description = 'نماد نیرو — طراحی، اجرا و بهره‌برداری نیروگاه‌های خورشیدی، تأمین تجهیزات و سرمایه‌گذاری در انرژی‌های تجدیدپذیر.',
-  image = '/assets/og-default.jpg',
+  description,
+  image,
   type = 'website',
   schema,
   noindex = false,
   preloadImage,
+  canonical: canonicalOverride,
 } = Astro.props;
 
-const { site } = await getSiteSettings();
+const SITE = Astro.site ?? 'https://namadniroo.ir';
 
-const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://namadniroo.ir');
-const ogImage = new URL(image, Astro.site ?? 'https://namadniroo.ir');
+const [{ site }, seo, index] = await Promise.all([
+  getSiteSettings(),
+  getSeoSettings(),
+  mediaIndex().catch(() => new Map()),
+]);
 
-/* دادهٔ ساختاریافتهٔ پایه — در همهٔ صفحات تکرار می‌شود.
-   نکته: مقادیر داخل JSON-LD باید با ارقام لاتین باشند، برخلاف UI که فارسی است. */
-const organizationSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  '@id': 'https://namadniroo.ir/#organization',
-  name: site.name,
-  alternateName: 'کرمان نماد نیرو',
-  url: 'https://namadniroo.ir',
-  logo: 'https://namadniroo.ir/assets/logo.png',
-  foundingDate: '2008',
-  telephone: '+983432521416',
-  address: {
-    '@type': 'PostalAddress',
-    addressLocality: 'کرمان',
-    addressCountry: 'IR',
-  },
-  areaServed: 'IR',
-  knowsAbout: [
-    'نیروگاه خورشیدی',
-    'انرژی تجدیدپذیر',
-    'پنل خورشیدی',
-    'اینورتر خورشیدی',
-    'طراحی مهندسی نیروگاه',
-  ],
-};
+/* صفحه‌ای که توضیح یا تصویر خودش را ندارد، از پیش‌فرض‌های «تنظیمات سئو»
+   استفاده می‌کند. */
+const metaDescription = description || seo.defaults.description;
+const shareImage = image || urlFrom(index, seo.defaults.image) || '/assets/og-default.jpg';
 
-const schemas = [organizationSchema, ...(schema ? (Array.isArray(schema) ? schema : [schema]) : [])];
+const canonical = new URL(canonicalOverride || Astro.url.pathname, SITE);
+const ogImage = new URL(shareImage, SITE);
+
+/* دادهٔ ساختاریافتهٔ سازمان در همهٔ صفحات، ساخته از «تنظیمات سئو ←
+   اطلاعات کسب‌وکار». */
+const schemas = [
+  organizationSchema(seo.business, site.name),
+  ...(schema ? (Array.isArray(schema) ? schema : [schema]) : []),
+];
+
+/* `<` داخل JSON به‌صورت \u003c نوشته می‌شود. بدون این، متنی مثل
+   «</script>» در عنوان یک محصول یا نام شرکت، بلوک را زودتر می‌بست و بقیه‌اش
+   به‌عنوان کد اجرا می‌شد. JSON معادل همان متن است، پس گوگل تفاوتی نمی‌بیند. */
+const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
+
+const { webmaster } = seo;
 ---
 <!doctype html>
 <html lang="fa" dir="rtl">
@@ -77,7 +82,7 @@ const schemas = [organizationSchema, ...(schema ? (Array.isArray(schema) ? schem
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <title>{title}</title>
-  <meta name="description" content={description} />
+  <meta name="description" content={metaDescription} />
   <link rel="canonical" href={canonical.href} />
   {noindex
     ? <meta name="robots" content="noindex, nofollow" />
@@ -102,23 +107,46 @@ const schemas = [organizationSchema, ...(schema ? (Array.isArray(schema) ? schem
   <meta property="og:site_name" content={site.name} />
   <meta property="og:locale" content="fa_IR" />
   <meta property="og:title" content={title} />
-  <meta property="og:description" content={description} />
+  <meta property="og:description" content={metaDescription} />
   <meta property="og:url" content={canonical.href} />
   <meta property="og:image" content={ogImage.href} />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content={title} />
-  <meta name="twitter:description" content={description} />
+  <meta name="twitter:description" content={metaDescription} />
   <meta name="twitter:image" content={ogImage.href} />
 
   <meta name="theme-color" content="#0A0A0A" />
+
+  {/* تأیید مالکیت در کنسول‌های جست‌وجو — از «تنظیمات سئو ← ابزار وبمستر» */}
+  {webmaster.google && <meta name="google-site-verification" content={webmaster.google} />}
+  {webmaster.bing && <meta name="msvalidate.01" content={webmaster.bing} />}
+  {webmaster.yandex && <meta name="yandex-verification" content={webmaster.yandex} />}
+
+  {/* شناسه‌ها پیش از ذخیره با الگوی دقیق بررسی می‌شوند، پس درج مستقیمشان امن است */}
+  {webmaster.gtm && (
+    <script is:inline set:html={`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${webmaster.gtm}');`} />
+  )}
+  {webmaster.ga4 && (
+    <>
+      <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${webmaster.ga4}`}></script>
+      <script is:inline set:html={`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${webmaster.ga4}');`} />
+    </>
+  )}
+  {/* کد دلخواه مدیر — عمداً بدون بررسی؛ فقط نقش «مدیر» می‌تواند ویرایشش کند */}
+  {webmaster.customHead && <Fragment set:html={webmaster.customHead} />}
+
   <slot name="head" />
 
   {schemas.map((s) => (
-    <script type="application/ld+json" set:html={JSON.stringify(s)} />
+    <script type="application/ld+json" set:html={jsonLd(s)} />
   ))}
 </head>
 <body id="top">
+  {webmaster.gtm && (
+    <noscript><iframe src={`https://www.googletagmanager.com/ns.html?id=${webmaster.gtm}`}
+      height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  )}
   <Header />
   <main>
     <slot />

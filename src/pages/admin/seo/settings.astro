@@ -1,0 +1,18 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import SettingsEditor from '../../../components/admin/SettingsEditor.astro';
+import { runSettingsPage } from '../../../admin/settingsPage';
+
+export const prerender = false;
+
+/** تنظیمات سئوی سراسری: پیش‌فرض‌ها، اطلاعات کسب‌وکار، ابزار وبمستر، robots */
+const result = await runSettingsPage(Astro, 'seo', '/admin/seo/settings');
+if ('redirect' in result) return Astro.redirect(result.redirect);
+---
+<Admin
+  title="تنظیمات سئو"
+  lead="آنچه در همهٔ صفحات مشترک است: دادهٔ کسب‌وکار برای گوگل، کدهای تأیید و آمار، و قواعد خزش. سئوی هر صفحه در «متن صفحات» است."
+  roles={['admin', 'editor']}
+>
+  <SettingsEditor view={result} basePath="/admin/seo/settings" />
+</Admin>
