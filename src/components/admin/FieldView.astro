@@ -1,0 +1,238 @@
+---
+import type { Media } from '../../server/db/schema';
+import { type Field, childName, newToken, rowName } from '../../admin/fields';
+
+/**
+ * نمایش یک فیلد از موتور فرم پنل، به‌همراه همهٔ فرزندانش.
+ *
+ * خودش را برای گروه‌ها و ردیف‌های فهرست دوباره صدا می‌زند، پس هر ساختار
+ * تو‌در‌تویی که در `src/admin/fields.ts` تعریف شود بدون کد اضافه نمایش
+ * داده می‌شود.
+ */
+interface Props {
+  field: Field;
+  value: unknown;
+  /** نام کامل این فیلد در فرم، مثل `v.site.phone` */
+  name: string;
+  media: Media[];
+  /** عمق فهرست‌های تو‌در‌تو — تا نشانهٔ الگوی هر فهرست یکتا بماند */
+  depth?: number;
+}
+
+const { field, value, name, media, depth = 0 } = Astro.props;
+
+const id = 'f_' + name.replace(/[^a-zA-Z0-9]/g, '_');
+const str = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v));
+const obj = (v: unknown) => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+
+/* ---------- تصویر ---------- */
+const imageValue = str(value);
+const imageMatch =
+  field.kind === 'image' && imageValue
+    ? media.find((m) => m.key === imageValue || m.originalName === imageValue || m.url === imageValue)
+    : undefined;
+/* مقداری که در کتابخانه نیست (مثل لوگوی برندها از پوشهٔ ثابت) باید در
+   فهرست بماند و انتخاب‌شده باشد — وگرنه اولین ذخیره بی‌صدا پاکش می‌کرد. */
+const imageOrphan = field.kind === 'image' && imageValue && !imageMatch ? imageValue : null;
+const previewUrl = imageMatch?.url ?? imageOrphan ?? '';
+
+/* ---------- فهرست ---------- */
+const rows = field.kind === 'list' && Array.isArray(value) ? value : [];
+const tokens = rows.map(() => newToken());
+const placeholder = `__T${depth}__`;
+const rowTitle = (row: unknown) =>
+  (field.kind === 'list' && field.itemTitle ? str(obj(row)[field.itemTitle]) : '') || 'ردیف تازه';
+---
+{field.kind === 'text' && (
+  <div class="a-field">
+    <label for={id}>{field.label}</label>
+    <input class="a-input" id={id} name={name} value={str(value)}
+           dir={field.ltr ? 'ltr' : undefined} placeholder={field.placeholder} />
+    {field.hint && <p class="a-hint">{field.hint}</p>}
+  </div>
+)}
+
+{field.kind === 'textarea' && (
+  <div class="a-field">
+    <label for={id}>{field.label}</label>
+    <textarea class="a-textarea" id={id} name={name} dir={field.ltr ? 'ltr' : undefined}
+              rows={field.rows ?? 4} style="min-height:auto">{str(value)}</textarea>
+    {field.hint && <p class="a-hint">{field.hint}</p>}
+  </div>
+)}
+
+{field.kind === 'lines' && (
+  <div class="a-field">
+    <label for={id}>{field.label}</label>
+    <textarea class="a-textarea" id={id} name={name} rows={Math.max(3, (Array.isArray(value) ? value.length : 0) + 1)}
+              style="min-height:auto">{Array.isArray(value) ? value.join('\n') : str(value)}</textarea>
+    <p class="a-hint">{field.hint ?? 'هر مورد در یک خط.'}</p>
+  </div>
+)}
+
+{field.kind === 'checkbox' && (
+  <div class="a-field">
+    <label class="a-check">
+      <input type="checkbox" name={name} value="1" checked={value === true} />
+      {field.label}
+    </label>
+    {field.hint && <p class="a-hint">{field.hint}</p>}
+  </div>
+)}
+
+{field.kind === 'select' && (
+  <div class="a-field">
+    <label for={id}>{field.label}</label>
+    <select class="a-select" id={id} name={name}>
+      {field.options.map((o) => <option value={o.value} selected={o.value === str(value)}>{o.label}</option>)}
+    </select>
+    {field.hint && <p class="a-hint">{field.hint}</p>}
+  </div>
+)}
+
+{field.kind === 'image' && (
+  <div class="a-field a-image-field">
+    <label for={id}>{field.label}</label>
+    <div class="a-image-row">
+      <img class="a-image-preview" src={previewUrl} alt="" data-image-preview hidden={!previewUrl} />
+      <div class="a-image-pick">
+        <select class="a-select" id={id} name={name} data-image-select>
+          <option value="" data-url="">بدون تصویر</option>
+          {imageOrphan && (
+            <option value={imageOrphan} data-url={imageOrphan} selected>فایل فعلی: {imageOrphan}</option>
+          )}
+          {media.map((m) => (
+            <option value={m.key} data-url={m.url} selected={m === imageMatch}>
+              {m.alt || m.originalName || m.key}{!m.alt && ' — بدون متن جایگزین'}
+            </option>
+          ))}
+        </select>
+        <p class="a-hint">
+          {field.hint ?? ''} تصویر تازه را از <a href="/admin/media" target="_blank">بخش تصاویر</a> آپلود کنید.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
+
+{field.kind === 'group' && (
+  <fieldset class="a-group-set">
+    {field.label && <legend>{field.label}</legend>}
+    {field.hint && <p class="a-hint">{field.hint}</p>}
+    {field.fields.map((f) => (
+      <Astro.self field={f} value={obj(value)[f.key]} name={childName(name, f.key)} media={media} depth={depth} />
+    ))}
+  </fieldset>
+)}
+
+{field.kind === 'list' && (
+  <div class="a-list" data-list data-placeholder={placeholder} data-title-key={field.kind === 'list' ? field.itemTitle : undefined}>
+    {field.hint && <p class="a-hint a-list-hint">{field.hint}</p>}
+
+    <div class="a-list-rows" data-rows>
+      {rows.map((row, i) => (
+        <details class="a-list-row" open={rows.length <= 4}>
+          <summary>
+            <span class="a-list-title" data-row-title>{rowTitle(row)}</span>
+            <span class="a-list-tools">
+              <button type="button" class="a-icon-btn" data-up title="بالا" aria-label="جابه‌جایی به بالا">↑</button>
+              <button type="button" class="a-icon-btn" data-down title="پایین" aria-label="جابه‌جایی به پایین">↓</button>
+              <button type="button" class="a-icon-btn is-danger" data-del title="حذف" aria-label="حذف این ردیف">✕</button>
+            </span>
+          </summary>
+          <div class="a-list-body">
+            {field.item.map((f) => (
+              <Astro.self field={f} value={obj(row)[f.key]} name={childName(rowName(name, tokens[i]!), f.key)}
+                          media={media} depth={depth + 1} />
+            ))}
+          </div>
+        </details>
+      ))}
+    </div>
+
+    <template data-row-template>
+      <details class="a-list-row" open>
+        <summary>
+          <span class="a-list-title" data-row-title>ردیف تازه</span>
+          <span class="a-list-tools">
+            <button type="button" class="a-icon-btn" data-up title="بالا" aria-label="جابه‌جایی به بالا">↑</button>
+            <button type="button" class="a-icon-btn" data-down title="پایین" aria-label="جابه‌جایی به پایین">↓</button>
+            <button type="button" class="a-icon-btn is-danger" data-del title="حذف" aria-label="حذف این ردیف">✕</button>
+          </span>
+        </summary>
+        <div class="a-list-body">
+          {field.item.map((f) => (
+            <Astro.self field={f} value={undefined} name={childName(rowName(name, placeholder), f.key)}
+                        media={media} depth={depth + 1} />
+          ))}
+        </div>
+      </details>
+    </template>
+
+    <button type="button" class="a-btn a-btn-sm a-list-add" data-add>+ {field.addLabel ?? 'افزودن ردیف'}</button>
+  </div>
+)}
+
+<script>
+  /* رفتار فهرست‌ها و تصاویر. یک بار برای کل صفحه بارگذاری می‌شود و با
+     «واگذاری رویداد» کار می‌کند، پس ردیف‌هایی که بعداً اضافه می‌شوند هم
+     بدون ثبت دوباره کار می‌کنند. */
+  const token = () => Math.random().toString(36).slice(2, 8);
+
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const btn = target.closest<HTMLButtonElement>('[data-add],[data-up],[data-down],[data-del]');
+    if (!btn) return;
+    // دکمه‌ها داخل <summary>اند؛ بدون این، هر کلیک ردیف را باز و بسته هم می‌کرد
+    e.preventDefault();
+
+    if (btn.hasAttribute('data-add')) {
+      const list = btn.closest<HTMLElement>('[data-list]')!;
+      const tpl = list.querySelector<HTMLTemplateElement>(':scope > template[data-row-template]')!;
+      const placeholder = list.dataset.placeholder!;
+      // فقط نشانهٔ همین عمق عوض می‌شود؛ الگوی فهرست‌های تو‌در‌تو دست‌نخورده می‌ماند
+      const html = tpl.innerHTML.split(placeholder).join(token());
+      const rows = list.querySelector<HTMLElement>(':scope > [data-rows]')!;
+      rows.insertAdjacentHTML('beforeend', html);
+      rows.lastElementChild?.querySelector<HTMLElement>('input, textarea, select')?.focus();
+      return;
+    }
+
+    const row = btn.closest<HTMLElement>('.a-list-row');
+    if (!row) return;
+
+    if (btn.hasAttribute('data-up') && row.previousElementSibling) {
+      row.parentElement!.insertBefore(row, row.previousElementSibling);
+    } else if (btn.hasAttribute('data-down') && row.nextElementSibling) {
+      row.parentElement!.insertBefore(row.nextElementSibling, row);
+    } else if (btn.hasAttribute('data-del')) {
+      const title = row.querySelector('[data-row-title]')?.textContent ?? 'این ردیف';
+      if (confirm(`«${title}» حذف شود؟ تا وقتی «ذخیره» نزده‌اید، با بارگذاری دوبارهٔ صفحه برمی‌گردد.`)) {
+        row.remove();
+      }
+    }
+  });
+
+  /* عنوان ردیف بسته‌شده همراه تایپ به‌روز می‌شود، تا ویراستار در فهرست بلند
+     بداند هر ردیف چیست. */
+  document.addEventListener('input', (e) => {
+    const input = e.target as HTMLInputElement;
+    const row = input.closest<HTMLElement>('.a-list-row');
+    const list = row?.closest<HTMLElement>('[data-list]');
+    const key = list?.dataset.titleKey;
+    if (!row || !key || input.closest('.a-list-row') !== row) return;
+    if (!input.name?.endsWith(`.${key}`)) return;
+    const title = row.querySelector('[data-row-title]');
+    if (title) title.textContent = input.value.trim() || 'ردیف تازه';
+  });
+
+  document.addEventListener('change', (e) => {
+    const select = e.target as HTMLSelectElement;
+    if (!select.matches('[data-image-select]')) return;
+    const preview = select.closest('.a-image-field')?.querySelector<HTMLImageElement>('[data-image-preview]');
+    if (!preview) return;
+    const url = select.selectedOptions[0]?.dataset.url ?? '';
+    preview.src = url;
+    preview.hidden = !url;
+  });
+</script>

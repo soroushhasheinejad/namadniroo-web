@@ -1,8 +1,13 @@
 ---
 import { getSiteSettings } from '../server/repos/siteSettings';
+import { mediaIndex, urlFrom } from '../server/media/resolve';
 
-const { brands } = await getSiteSettings();
-const loop = [...brands, ...brands];
+const [{ brands }, index] = await Promise.all([getSiteSettings(), mediaIndex().catch(() => new Map())]);
+
+/* لوگو یا کلید تصویری است که از پنل انتخاب شده، یا مسیر فایل ثابتی که از
+   قبل بوده. هر دو به نشانی تبدیل می‌شوند. */
+const resolved = brands.map((b) => ({ name: b.name, logo: urlFrom(index, b.logo) }));
+const loop = [...resolved, ...resolved];
 ---
 <div class="marquee" aria-label="برندهای همکار">
   <div class="marquee-track">

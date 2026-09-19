@@ -234,3 +234,52 @@ a { color: inherit; }
   .a-main { padding: 18px 16px 50px; }
   .a-row, .a-row-3 { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   موتور فرم: گروه، فهرست تکرارشونده، انتخاب تصویر
+   ============================================================ */
+.a-group-set {
+  margin: 4px 0 16px; padding: 14px 16px 2px;
+  border: 1px solid var(--a-line); border-radius: var(--a-r);
+}
+.a-group-set > legend { padding: 0 6px; font-size: 13px; font-weight: 700; color: var(--a-muted); }
+.a-group-set > .a-hint { margin: 0 0 12px; color: var(--a-faint); font-size: 12.5px; }
+
+.a-list-hint { margin: 0 0 12px; color: var(--a-faint); font-size: 12.5px; }
+.a-list-rows { display: grid; gap: 10px; margin-bottom: 12px; }
+.a-list-row {
+  border: 1px solid var(--a-line); border-radius: var(--a-r);
+  background: var(--a-panel-2);
+}
+.a-list-row[open] { border-color: var(--a-line-2); }
+.a-list-row > summary {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; cursor: pointer; list-style: none;
+}
+.a-list-row > summary::-webkit-details-marker { display: none; }
+.a-list-row > summary::before {
+  content: "›"; color: var(--a-faint); font-size: 16px; transition: transform .15s;
+}
+.a-list-row[open] > summary::before { transform: rotate(90deg); }
+.a-list-title { flex: 1; font-size: 14px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a-list-tools { display: flex; gap: 4px; }
+.a-icon-btn {
+  width: 28px; height: 28px; display: grid; place-items: center; padding: 0;
+  border: 1px solid var(--a-line); border-radius: 6px;
+  background: transparent; color: var(--a-muted); font: inherit; font-size: 13px; cursor: pointer;
+}
+.a-icon-btn:hover { color: var(--a-ink); border-color: var(--a-line-2); }
+.a-icon-btn.is-danger:hover { color: var(--a-red); border-color: rgba(212,84,76,.5); }
+.a-list-body { padding: 4px 16px 4px; border-top: 1px solid var(--a-line); padding-top: 14px; }
+.a-list-add { margin-top: 2px; }
+
+.a-image-row { display: flex; gap: 14px; align-items: flex-start; }
+.a-image-preview {
+  width: 120px; aspect-ratio: 4 / 3; flex: none; object-fit: cover;
+  border-radius: 8px; border: 1px solid var(--a-line); background: #000;
+}
+.a-image-pick { flex: 1; min-width: 0; }
+
+@media (max-width: 640px) {
+  .a-image-row { flex-direction: column; }
+}

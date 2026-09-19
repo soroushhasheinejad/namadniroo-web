@@ -91,6 +91,15 @@ export async function ingestImage(
 
   const [existing] = await db.select().from(media).where(eq(media.key, key)).limit(1);
   if (existing) {
+    /* رکورد هست، ولی فایل‌ها ممکن است نباشند — مثلاً دیتابیس از پشتیبان
+       روی دیسکی تازه بازگردانده شده. قبلاً همین‌جا «تکراری» اعلام و خارج
+       می‌شدیم، و تصویر برای همیشه ۴۰۴ می‌ماند: هر بار آپلود دوباره هم به
+       همین رکورد می‌رسید و فایلی نمی‌نوشت. */
+    const missing = variantWidths(existing.width).some(
+      (w) => !existsSync(path.join(mediaDir(), key, `${w}.webp`)),
+    );
+    if (missing) await writeVariants(buffer, key, existing.width);
+
     // فقط متن جایگزین را به‌روز می‌کنیم، اگر تازه‌ای داده شده
     if (options.alt && options.alt !== existing.alt) {
       const [updated] = await db
@@ -105,25 +114,11 @@ export async function ingestImage(
   }
 
   const sharp = (await import('sharp')).default;
-  const image = sharp(buffer, { animated: options.mime === 'image/gif' });
-  const meta = await image.metadata();
+  const meta = await sharp(buffer, { animated: options.mime === 'image/gif' }).metadata();
 
   const width = meta.width ?? null;
   const height = meta.height ?? null;
-  const dir = path.join(mediaDir(), key);
-  await mkdir(dir, { recursive: true });
-
-  /* همهٔ اندازه‌ها با هم ساخته می‌شوند. sharp کار را روی رشتهٔ جداگانه‌ای
-     انجام می‌دهد، پس این‌ها واقعاً موازی‌اند و آپلود منتظر یکی‌یکی نمی‌ماند. */
-  await Promise.all(
-    variantWidths(width).map(async (w) => {
-      const out = await sharp(buffer)
-        .resize({ width: w, withoutEnlargement: true })
-        .webp({ quality: 80 })
-        .toBuffer();
-      await writeFile(path.join(dir, `${w}.webp`), out);
-    }),
-  );
+  await writeVariants(buffer, key, width);
 
   const largest = variantWidths(width).at(-1)!;
 
@@ -144,6 +139,28 @@ export async function ingestImage(
 
   invalidate(TAGS.media);
   return { media: row!, duplicate: false };
+}
+
+/**
+ * نسخه‌های WebP یک تصویر را روی دیسک می‌نویسد.
+ *
+ * همهٔ اندازه‌ها با هم ساخته می‌شوند. sharp کار را روی رشتهٔ جداگانه‌ای
+ * انجام می‌دهد، پس این‌ها واقعاً موازی‌اند و آپلود منتظر یکی‌یکی نمی‌ماند.
+ */
+async function writeVariants(buffer: Buffer, key: string, width: number | null): Promise<void> {
+  const sharp = (await import('sharp')).default;
+  const dir = path.join(mediaDir(), key);
+  await mkdir(dir, { recursive: true });
+
+  await Promise.all(
+    variantWidths(width).map(async (w) => {
+      const out = await sharp(buffer)
+        .resize({ width: w, withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+      await writeFile(path.join(dir, `${w}.webp`), out);
+    }),
+  );
 }
 
 /* ============================================================

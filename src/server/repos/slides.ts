@@ -1,5 +1,5 @@
 import { getSetting, type ImageRef } from './content';
-import { mediaByName } from '../media/store';
+import { mediaIndex, refFrom } from '../media/resolve';
 import * as fallback from '../../data/siteContent';
 
 /**
@@ -44,26 +44,10 @@ export interface AreaBlock {
 }
 
 /** نام فایل پیش‌فرض هر اسلاید، وقتی تنظیمات چیزی نگفته باشد */
-const DEFAULT_HERO_IMAGES = ['activity-1.jpg', 'activity-2.jpg', 'activity-3.jpg'];
-const DEFAULT_PROMO_IMAGES = ['banner-1.jpg', 'banner-2.jpg'];
-const DEFAULT_AREA_IMAGES = ['area-1.jpg', 'area-2.jpg', 'area-3.jpg'];
+export const DEFAULT_HERO_IMAGES = ['activity-1.jpg', 'activity-2.jpg', 'activity-3.jpg'];
+export const DEFAULT_PROMO_IMAGES = ['banner-1.jpg', 'banner-2.jpg'];
+export const DEFAULT_AREA_IMAGES = ['area-1.jpg', 'area-2.jpg', 'area-3.jpg'];
 
-function toRef(
-  byName: Map<string, { key: string; url: string; alt: string | null; width: number | null; height: number | null }>,
-  filename: string | undefined,
-  fallbackAlt: string,
-): ImageRef | null {
-  if (!filename) return null;
-  const row = byName.get(filename);
-  if (!row) return null;
-  return {
-    key: row.key,
-    url: row.url,
-    alt: row.alt || fallbackAlt,
-    width: row.width,
-    height: row.height,
-  };
-}
 
 export async function heroSlides(): Promise<HeroSlide[]> {
   const [config, byName] = await Promise.all([
@@ -71,13 +55,13 @@ export async function heroSlides(): Promise<HeroSlide[]> {
       'heroSlides',
       fallback.heroSlides as never,
     ),
-    mediaByName(),
+    mediaIndex(),
   ]);
 
   return config.map((slide, i) => ({
     label: slide.label,
     icon: slide.icon,
-    image: toRef(byName, slide.image ?? DEFAULT_HERO_IMAGES[i], slide.label),
+    image: refFrom(byName, slide.image ?? DEFAULT_HERO_IMAGES[i], slide.label),
   }));
 }
 
@@ -87,13 +71,13 @@ export async function promoSlides(): Promise<PromoSlide[]> {
       'promoSlides',
       fallback.promoSlides as never,
     ),
-    mediaByName(),
+    mediaIndex(),
   ]);
 
   return config.map((slide, i) => ({
     href: slide.href,
     alt: slide.alt,
-    image: toRef(byName, slide.image ?? DEFAULT_PROMO_IMAGES[i], slide.alt),
+    image: refFrom(byName, slide.image ?? DEFAULT_PROMO_IMAGES[i], slide.alt),
   }));
 }
 
@@ -103,11 +87,11 @@ export async function areaBlocks(): Promise<AreaBlock[]> {
       'areas',
       fallback.areas as never,
     ),
-    mediaByName(),
+    mediaIndex(),
   ]);
 
   return config.map((area, i) => ({
     ...area,
-    image: toRef(byName, (area as { image?: string }).image ?? DEFAULT_AREA_IMAGES[i], area.title),
+    image: refFrom(byName, (area as { image?: string }).image ?? DEFAULT_AREA_IMAGES[i], area.title),
   }));
 }

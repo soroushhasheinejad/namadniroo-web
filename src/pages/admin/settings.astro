@@ -1,97 +1,167 @@
 ---
 import Admin from '../../layouts/Admin.astro';
+import FieldView from '../../components/admin/FieldView.astro';
+import { ROOT, parseForm } from '../../admin/fields';
+import { SECTIONS, sectionByKey } from '../../admin/settingsSections';
 import { getAllSettings, setSetting } from '../../server/repos/content';
+import { resolveSiteSettings } from '../../server/repos/siteSettings';
+import { DEFAULT_AREA_IMAGES, DEFAULT_PROMO_IMAGES } from '../../server/repos/slides';
+import { listMedia } from '../../server/media/store';
+import * as defaults from '../../data/siteContent';
 
 export const prerender = false;
 
-const user = Astro.locals.user!;
-
 /**
- * ویرایش متن‌های ثابت سایت.
+ * ویرایش متن‌های سراسری سایت — با فرم، نه JSON.
  *
- * هر کلید یک ساختار متفاوت دارد (فهرست منو، آرایهٔ آمار، متن ساده)، پس
- * به‌جای ساختن فرم اختصاصی برای هر کدام، محتوا به‌صورت JSON ویرایش می‌شود
- * و پیش از ذخیره اعتبارسنجی می‌گردد. برای این تعداد کلید و این تیم، فرم
- * اختصاصی ساختن هزینه‌ای بود که ارزشش را نداشت — ولی ورودی خراب هرگز
- * ذخیره نمی‌شود.
+ * هر بخش در `src/admin/settingsSections.ts` تعریف شده؛ این صفحه فقط آن
+ * تعریف را نمایش می‌دهد و ورودی را از همان راه برمی‌گرداند.
  */
 
-const LABELS: Record<string, { title: string; hint: string }> = {
-  site: { title: 'اطلاعات شرکت', hint: 'نام، تلفن، شهر و سال تأسیس — در سرصفحه و پابرگ استفاده می‌شود.' },
-  nav: { title: 'منوی اصلی', hint: 'ترتیب همین فهرست، ترتیب منوی سایت است.' },
-  stats: { title: 'آمار صفحهٔ اصلی', hint: 'چهار عدد بزرگ زیر اسلایدر.' },
-  heroSlides: { title: 'اسلایدر صفحهٔ اصلی', hint: 'برچسب و آیکن هر اسلاید.' },
-  promoSlides: { title: 'بنرهای صفحهٔ اصلی', hint: 'نشانی مقصد و توضیح هر بنر.' },
-  areas: { title: 'حوزه‌های فعالیت', hint: 'محتوای صفحهٔ «حوزه‌های فعالیت».' },
-  timeline: { title: 'مسیر رشد شرکت', hint: 'خط زمانی صفحهٔ «درباره ما».' },
-  capabilities: { title: 'توانمندی‌ها', hint: 'کارت‌های صفحهٔ «درباره ما».' },
-  brands: { title: 'برندها', hint: 'لوگوهای نوار برندها.' },
-  clients: { title: 'کارفرمایان', hint: 'فهرست نام کارفرمایان.' },
-  portfolio: { title: 'پرتفولیو', hint: 'نشانی و حجم فایل PDF.' },
-  robots: { title: 'robots.txt', hint: 'قواعد خزش. مسدودسازی پنل و نشانی نقشهٔ سایت همیشه خودکار اضافه می‌شود.' },
-};
+const user = Astro.locals.user!;
+let current = sectionByKey(Astro.url.searchParams.get('s') ?? '') ?? SECTIONS[0]!;
 
-let message: { kind: 'ok' | 'err'; text: string } | null = null;
+let error: string | null = null;
+/** ورودی ردشده؛ فرم با همین دوباره نمایش داده می‌شود نه با مقدار ذخیره‌شده */
+let rejected: unknown = undefined;
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
-  const key = String(form.get('key') ?? '');
-  const raw = String(form.get('value') ?? '');
+  const section = sectionByKey(String(form.get('section') ?? ''));
 
-  try {
-    // robots یک متن ساده است، بقیه ساختار JSON دارند
-    const value = key === 'robots' ? raw : JSON.parse(raw);
-    await setSetting(key, value, user.id);
-    message = { kind: 'ok', text: `«${LABELS[key]?.title ?? key}» ذخیره شد و در سایت اعمال شد.` };
-  } catch (err) {
-    message = {
-      kind: 'err',
-      text:
-        err instanceof SyntaxError
-          ? 'ساختار واردشده معتبر نیست؛ تغییرات ذخیره نشد. احتمالاً یک ویرگول یا کروشه جا افتاده است.'
-          : 'ذخیره ناموفق بود.',
-    };
+  if (!section) {
+    error = 'بخش نامعتبر است.';
+  } else {
+    current = section;
+    const parsed = parseForm(section.root, form);
+    const value = section.fromForm ? section.fromForm(parsed) : parsed;
+
+    const problem = validate(section.key, value);
+    if (problem) {
+      error = problem;
+      /* اگر فرم با مقدار ذخیره‌شده دوباره ساخته می‌شد، هر چیزی که ویراستار
+         تایپ کرده بود از بین می‌رفت — ده تغییر به‌خاطر یک پیوند نادرست. */
+      rejected = value;
+    } else {
+      await setSetting(section.key, value, user.id);
+      /* پس از ذخیره به همان صفحه برمی‌گردیم با یک GET تازه. بدون این،
+         بارگذاری دوبارهٔ صفحه فرم را دوباره ارسال می‌کرد. */
+      return Astro.redirect(`/admin/settings?s=${section.key}&saved=1`);
+    }
   }
 }
 
-const settings = await getAllSettings();
+/** بررسی‌هایی که اگر رد شوند، ذخیره نمی‌شود — چون سایت را خراب می‌کنند */
+function validate(key: string, value: unknown): string | null {
+  if (key === 'nav') {
+    const bad = (value as { label: string; href: string }[]).find(
+      (n) => !n.label || !/^(\/|https?:\/\/|#)/.test(n.href),
+    );
+    if (bad) {
+      return `پیوند «${bad.label || 'بی‌نام'}» ناقص است. هر پیوند منو عنوان لازم دارد و نشانی‌اش باید با / یا http شروع شود.`;
+    }
+  }
+  if (key === 'site') {
+    const site = value as { name: string; phoneHref: string };
+    if (!site.name) return 'نام شرکت نمی‌تواند خالی باشد — در عنوان همهٔ صفحات استفاده می‌شود.';
+    if (site.phoneHref && !/^tel:\+?\d+$/.test(site.phoneHref)) {
+      return 'پیوند تماس باید به شکل tel:03432521416 باشد — بدون فاصله و خط تیره.';
+    }
+  }
+  return null;
+}
 
-// کلیدهای شناخته‌شده اول، به ترتیب فهرست بالا
-const keys = [
-  ...Object.keys(LABELS).filter((k) => k in settings || k === 'robots'),
-  ...Object.keys(settings).filter((k) => !(k in LABELS)),
-];
+/* ---------- مقدار فعلی هر بخش ---------- */
 
-const asText = (key: string): string => {
-  const value = settings[key];
-  if (key === 'robots') return typeof value === 'string' ? value : 'User-agent: *\nAllow: /';
-  return JSON.stringify(value ?? null, null, 2);
-};
+const [stored, media] = await Promise.all([getAllSettings(), listMedia()]);
+
+/** تصویر پیش‌فرض را در ردیف‌هایی که هنوز تصویری انتخاب نکرده‌اند می‌نشاند،
+    تا انتخابگر همان تصویری را نشان دهد که الان روی سایت است. */
+function withImages<T extends Record<string, unknown>>(rows: T[], fallbacks: string[]): T[] {
+  return rows.map((r, i) => ({ ...r, image: (r.image as string) || fallbacks[i] || '' }));
+}
+
+function currentValue(key: string): unknown {
+  const merged = resolveSiteSettings(stored);
+  switch (key) {
+    case 'site':
+    case 'portfolio':
+    case 'nav':
+    case 'stats':
+    case 'timeline':
+    case 'capabilities':
+    case 'brands':
+    case 'clients':
+      return merged[key];
+    case 'promoSlides':
+      return withImages((stored.promoSlides as never) ?? [...defaults.promoSlides], DEFAULT_PROMO_IMAGES);
+    case 'areas':
+      return withImages((stored.areas as never) ?? defaults.areas, DEFAULT_AREA_IMAGES);
+    case 'robots':
+      return typeof stored.robots === 'string' ? stored.robots : 'User-agent: *\nAllow: /';
+  }
+  return stored[key];
+}
+
+const raw = rejected !== undefined ? rejected : currentValue(current.key);
+const formValue = current.toForm ? current.toForm(raw) : raw;
+const saved = Astro.url.searchParams.get('saved') === '1';
 ---
 <Admin
   title="متن‌های سایت"
-  lead="منو، آمار، حوزه‌ها، برندها و بقیهٔ متن‌های ثابت. هر تغییر بلافاصله در سایت دیده می‌شود."
+  lead="اطلاعات شرکت، منو، اسلایدها، آمار و بقیهٔ متن‌هایی که در چند صفحه تکرار می‌شوند. هر تغییر بلافاصله در سایت دیده می‌شود."
   roles={['admin', 'editor']}
 >
-  {message && <p class={`a-msg a-msg-${message.kind === 'ok' ? 'ok' : 'err'}`}>{message.text}</p>}
+  <div class="s-layout">
+    <nav class="s-index" aria-label="بخش‌ها">
+      {SECTIONS.map((s) => (
+        <a href={`/admin/settings?s=${s.key}`} class:list={['s-index-item', s.key === current.key && 'is-current']}
+           aria-current={s.key === current.key ? 'page' : undefined}>
+          {s.title}
+        </a>
+      ))}
+    </nav>
 
-  <p class="a-msg a-msg-warn">
-    ساختار هر بخش را دست‌نخورده نگه دارید و فقط متن‌های داخل گیومه را عوض کنید.
-    اگر ساختار خراب شود، ذخیره انجام نمی‌شود و پیام خطا می‌بینید — پس سایت از کار نمی‌افتد.
-  </p>
+    <form class="a-card s-form" method="POST">
+      <h2>{current.title}</h2>
+      <p class="a-hint s-where">کجا دیده می‌شود: {current.where}</p>
 
-  {keys.map((key) => (
-    <form class="a-card" method="POST">
-      <h2>{LABELS[key]?.title ?? key}</h2>
-      <p class="a-hint" style="margin-bottom:12px">{LABELS[key]?.hint ?? `کلید: ${key}`}</p>
+      {saved && !error && <p class="a-msg a-msg-ok">ذخیره شد و روی سایت اعمال شد.</p>}
+      {error && <p class="a-msg a-msg-err">{error} تغییرات ذخیره نشد.</p>}
 
-      <input type="hidden" name="key" value={key} />
-      <textarea class="a-textarea is-tall" name="value" spellcheck="false"
-                style="min-height:220px" dir={key === 'robots' ? 'ltr' : 'rtl'}>{asText(key)}</textarea>
+      <input type="hidden" name="section" value={current.key} />
+      <FieldView field={current.root} value={formValue} name={ROOT} media={media} />
 
-      <div class="a-actions">
-        <button class="a-btn a-btn-primary a-btn-sm" type="submit">ذخیرهٔ این بخش</button>
+      <div class="a-actions s-actions">
+        <button class="a-btn a-btn-primary" type="submit">ذخیرهٔ «{current.title}»</button>
       </div>
     </form>
-  ))}
+  </div>
 </Admin>
+
+<style>
+  .s-layout { display: grid; grid-template-columns: 210px 1fr; gap: 20px; align-items: start; }
+  .s-index {
+    position: sticky; top: 16px;
+    display: grid; gap: 2px;
+    padding: 8px; border: 1px solid var(--a-line); border-radius: var(--a-r); background: var(--a-panel);
+  }
+  .s-index-item {
+    padding: 8px 12px; border-radius: 7px;
+    color: var(--a-muted); font-size: 14px; text-decoration: none;
+  }
+  .s-index-item:hover { color: var(--a-ink); background: rgba(255,255,255,.04); }
+  .s-index-item.is-current { color: var(--a-ink); background: rgba(255,196,26,.1); box-shadow: inset -2px 0 0 var(--a-yellow); }
+  .s-where { margin: -6px 0 18px !important; }
+  .s-actions {
+    position: sticky; bottom: 0;
+    margin: 18px -18px -18px; padding: 14px 18px;
+    background: var(--a-panel); border-top: 1px solid var(--a-line);
+    border-radius: 0 0 var(--a-r) var(--a-r);
+  }
+  @media (max-width: 860px) {
+    .s-layout { grid-template-columns: 1fr; }
+    .s-index { position: static; grid-auto-flow: column; overflow-x: auto; }
+    .s-index-item { white-space: nowrap; }
+  }
+</style>
