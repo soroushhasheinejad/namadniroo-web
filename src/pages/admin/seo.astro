@@ -2,17 +2,29 @@
 import Admin from '../../layouts/Admin.astro';
 import { auditSeo, summarize } from '../../server/services/seoAudit';
 import { listArticles, listProducts } from '../../server/repos/content';
+import { getPageContent } from '../../server/repos/pageContent';
+import { PAGES } from '../../data/pages';
 import { fa } from '../../utils';
 
 export const prerender = false;
 
-const [findings, products, articles] = await Promise.all([
+const sitePages = PAGES.filter((p) => p.path !== '/404');
+const [findings, products, articles, siteContents] = await Promise.all([
   auditSeo(),
   listProducts(),
   listArticles(),
+  Promise.all(sitePages.map((p) => getPageContent(p))),
 ]);
 
-const summary = summarize(findings, products.length + articles.length + 9);
+/* فقط صفحاتی که واقعاً به گوگل عرضه می‌شوند — همان‌هایی که در نقشهٔ سایت‌اند.
+   قبلاً عدد ثابت ۹ برای صفحات سایت جمع زده می‌شد و صفحات پنهان‌شده هم
+   شمرده می‌شدند. */
+const indexable =
+  products.filter((p) => !p.noindex).length +
+  articles.filter((a) => !a.noindex).length +
+  siteContents.filter((c) => !(c as { seo?: { noindex?: boolean } }).seo?.noindex).length;
+
+const summary = summarize(findings, indexable);
 ---
 <Admin
   title="سلامت سئو"
@@ -74,11 +86,12 @@ const summary = summarize(findings, products.length + articles.length + 9);
       این موارد نیازی به کار دستی ندارند و همیشه درست‌اند:
     </p>
     <ul class="a-hint" style="margin:8px 0 0;padding-inline-start:18px;line-height:2">
-      <li>نشانی canonical هر صفحه</li>
-      <li>دادهٔ ساختاریافته: شرکت، کسب‌وکار محلی، محصول، مقاله و مسیر راهنما</li>
-      <li>نقشهٔ سایت با تاریخ واقعی آخرین ویرایش هر صفحه</li>
-      <li>تگ‌های اشتراک‌گذاری در واتساپ، تلگرام و لینکدین</li>
+      <li>نشانی canonical هر صفحه (با امکان تعیین دستی برای محصول و مقاله)</li>
+      <li>دادهٔ ساختاریافته از «تنظیمات سئو»: شرکت، کسب‌وکار محلی، محصول، مقاله و مسیر راهنما</li>
+      <li>نقشهٔ سایت با تاریخ آخرین ویرایش — صفحهٔ تازه خودکار وارد و صفحهٔ پنهان‌شده خودکار خارج می‌شود</li>
+      <li>تگ‌های اشتراک‌گذاری در واتساپ، تلگرام و لینکدین، با تصویر پیش‌فرض برای صفحهٔ بی‌تصویر</li>
       <li>ریدایرکت ۳۰۱ هنگام تغییر نشانی یک مطلب</li>
+      <li>ثبت هر پیوند شکسته (۴۰۴) با تعداد بازدید و منبع، در «ریدایرکت‌ها و ۴۰۴»</li>
       <li>ابعاد تصاویر، تا چیدمان صفحه هنگام لود نپرد</li>
     </ul>
   </div>

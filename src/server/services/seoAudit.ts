@@ -1,7 +1,10 @@
-import { asc } from 'drizzle-orm';
+import { asc, desc, gte } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { articles, media, products, projects } from '../db/schema';
+import { articles, media, notFound, products, projects } from '../db/schema';
 import { fa } from '../../utils';
+import { PAGES } from '../../data/pages';
+import { getPageContent } from '../repos/pageContent';
+import { getSeoSettings } from '../repos/seoSettings';
 
 /**
  * بررسی سلامت سئوی محتوا.
@@ -28,21 +31,42 @@ export interface Finding {
 /* گوگل بر اساس پهنای پیکسلی می‌بُرد نه تعداد نویسه؛ این اعداد تقریبی و
    محافظه‌کارانه‌اند. */
 const TITLE_MAX = 60;
+/** پیوند شکسته‌ای با کمتر از این بازدید معمولاً اتفاقی است، نه پیوند واقعی */
+const BROKEN_MIN_HITS = 3;
 const DESC_MIN = 70;
 const DESC_MAX = 155;
 
 export async function auditSeo(): Promise<Finding[]> {
   const db = await getDb();
 
-  const [productRows, projectRows, articleRows, mediaRows] = await Promise.all([
-    db.select().from(products).orderBy(asc(products.id)),
-    db.select().from(projects).orderBy(asc(projects.id)),
-    db.select().from(articles).orderBy(asc(articles.id)),
-    db.select().from(media).orderBy(asc(media.id)),
-  ]);
+  /* صفحات ثابت (اصلی، درباره، فروشگاه…) هم بررسی می‌شوند، نه فقط محصول و
+     مقاله — سئوی آن‌ها هم حالا از پنل عوض می‌شود و همان خطاها را می‌گیرد. */
+  const sitePages = PAGES.filter((p) => p.path !== '/404');
+
+  const [productRows, projectRows, articleRows, mediaRows, siteContents, seoSettings, brokenRows] =
+    await Promise.all([
+      db.select().from(products).orderBy(asc(products.id)),
+      db.select().from(projects).orderBy(asc(projects.id)),
+      db.select().from(articles).orderBy(asc(articles.id)),
+      db.select().from(media).orderBy(asc(media.id)),
+      Promise.all(sitePages.map((p) => getPageContent(p))),
+      getSeoSettings(),
+      db.select().from(notFound).where(gte(notFound.hits, BROKEN_MIN_HITS)).orderBy(desc(notFound.hits)).limit(20),
+    ]);
 
   /** هر چیزی که صفحهٔ عمومی دارد */
   const pages = [
+    ...sitePages.map((p, i) => {
+      const seo = (siteContents[i] as { seo: { title: string; description: string; noindex: boolean } }).seo;
+      return {
+        label: p.label,
+        href: `/admin/pages/${p.key}`,
+        title: seo.title,
+        // توضیح خالی یعنی پیش‌فرض سراسری — که بین چند صفحه تکراری است
+        description: seo.description || null,
+        noindex: seo.noindex,
+      };
+    }),
     ...productRows
       .filter((p) => p.published)
       .map((p) => ({
@@ -168,6 +192,44 @@ export async function auditSeo(): Promise<Finding[]> {
       title: 'صفحهٔ منتشرشده ولی پنهان از گوگل',
       why: 'این صفحات در سایت دیده می‌شوند ولی عمداً از نتایج جست‌وجو کنار گذاشته شده‌اند. اگر عمدی نبوده، تیک noindex را بردارید.',
       items: hidden.map((p) => ({ label: p.label, href: p.href })),
+    });
+  }
+
+  /* --- پیوندهای شکسته‌ای که بازدید واقعی دارند --- */
+  if (brokenRows.length > 0) {
+    findings.push({
+      severity: 'warning',
+      title: `پیوند شکسته با بازدید (${fa(brokenRows.length)})`,
+      why:
+        'این نشانی‌ها چند بار خواسته شده‌اند و به صفحهٔ «پیدا نشد» رسیده‌اند — هر کدام بازدیدکننده‌ای است که از دست رفته. با یک ریدایرکت به صفحهٔ مرتبط، هم بازدیدکننده می‌ماند و هم اعتبار پیوند.',
+      items: brokenRows.map((b) => ({ label: `${b.path} — ${fa(b.hits)} بازدید`, href: '/admin/redirects' })),
+    });
+  }
+
+  /* --- کنسول جست‌وجوی گوگل --- */
+  if (!seoSettings.webmaster.google) {
+    findings.push({
+      severity: 'warning',
+      title: 'سایت در Google Search Console تأیید نشده',
+      why:
+        'بدون کنسول، نمی‌بینید گوگل کدام صفحات را ایندکس کرده، با چه جست‌وجوهایی نمایش می‌دهد و چه خطایی گرفته — و نقشهٔ سایت را هم نمی‌شود به گوگل معرفی کرد.',
+      items: [{ label: 'افزودن کد تأیید', href: '/admin/seo/settings?s=webmaster' }],
+    });
+  }
+
+  /* --- اطلاعات کسب‌وکار محلی --- */
+  const b = seoSettings.business;
+  const missingLocal = [
+    !b.address.street && 'نشانی خیابان',
+    !(b.geo.lat && b.geo.lng) && 'مختصات روی نقشه',
+    b.openingHours.length === 0 && 'ساعات کاری',
+  ].filter(Boolean) as string[];
+  if (missingLocal.length > 0) {
+    findings.push({
+      severity: 'warning',
+      title: 'اطلاعات کسب‌وکار ناقص است',
+      why: `برای نمایش در جست‌وجوهای محلی مثل «نیروگاه خورشیدی کرمان» گوگل به این‌ها نیاز دارد: ${missingLocal.join('، ')}.`,
+      items: [{ label: 'تکمیل اطلاعات کسب‌وکار', href: '/admin/seo/settings?s=business' }],
     });
   }
 
