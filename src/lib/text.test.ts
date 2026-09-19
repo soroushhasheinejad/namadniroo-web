@@ -41,3 +41,26 @@ describe('latinParts', () => {
     expect(latinParts('<script>').map((p) => p.text).join('')).toBe('<script>');
   });
 });
+
+import { markedParts } from './text';
+
+describe('markedParts', () => {
+  it('تکهٔ بین ستاره‌ها را نشان‌دار می‌کند', () => {
+    expect(markedParts('هر سری برای *یک شرایط*')).toEqual([
+      { text: 'هر سری برای ', marked: false },
+      { text: 'یک شرایط', marked: true },
+    ]);
+  });
+
+  it('متن بی‌ستاره یک تکهٔ عادی است', () => {
+    expect(markedParts('کدام تکنولوژی')).toEqual([{ text: 'کدام تکنولوژی', marked: false }]);
+  });
+
+  it('ستارهٔ تنها را به همان شکل نگه می‌دارد', () => {
+    expect(markedParts('نرخ * ساتبا').map((p) => p.text).join('')).toBe('نرخ * ساتبا');
+  });
+
+  it('چند تکهٔ نشان‌دار در یک خط', () => {
+    expect(markedParts('*الف* و *ب*').filter((p) => p.marked).map((p) => p.text)).toEqual(['الف', 'ب']);
+  });
+});

@@ -1,5 +1,6 @@
 import type { Field } from '../admin/fields';
 import { audiences, homeFaq, processSteps } from './siteContent';
+import * as aeData from './aesolar';
 
 /**
  * متن صفحات، قابل ویرایش از پنل.
@@ -515,13 +516,224 @@ export const activityPage = listingPage('activity', 'حوزه‌های فعال�
   },
 });
 
-export const aeSolarPage = seoOnly(
-  'aeSolar',
-  'AE Solar',
-  '/ae-solar',
-  'AE Solar | نمایندگی رسمی در ایران — نماد نیرو',
-  'نماد نیرو، نمایندهٔ رسمی AE Solar آلمان در ایران. تأمین ماژول‌های خورشیدی سری Aurora، Meteor، Comet و Eclipse با گارانتی معتبر سازنده.',
-);
+/* ============================================================
+   AE Solar
+   ============================================================ */
+
+/** تیتر دوخطی صفحهٔ AE Solar: برچسب کوچک، خط اول، خط دوم مورب، متن زیر */
+const twoLine = (key: string, label: string, withSub = true): Field => ({
+  kind: 'group',
+  key,
+  label,
+  hint: 'در خط اول، واژه‌ای که بین دو ستاره بیاید (مثل *یک شرایط*) قرمز نمایش داده می‌شود.',
+  fields: [
+    { kind: 'text', key: 'kicker', label: 'برچسب کوچک' },
+    { kind: 'text', key: 'line1', label: 'خط اول تیتر' },
+    { kind: 'text', key: 'line2', label: 'خط دوم تیتر (مورب)' },
+    ...(withSub ? [{ kind: 'textarea', key: 'sub', label: 'متن زیر تیتر', rows: 2 } as Field] : []),
+  ],
+});
+
+export const aeSolarPage = {
+  key: 'aeSolar',
+  label: 'AE Solar',
+  path: '/ae-solar',
+  fields: [
+    seoGroup,
+    {
+      kind: 'group',
+      key: 'hero',
+      label: 'سرصفحه',
+      hint: 'در متن زیر تیتر، «{since}» با سال تأسیس AE Solar جایگزین می‌شود.',
+      fields: [
+        { kind: 'text', key: 'badge', label: 'نشان بالای تیتر' },
+        { kind: 'text', key: 'line1', label: 'خط اول تیتر' },
+        { kind: 'text', key: 'line2', label: 'خط دوم (قرمز)' },
+        { kind: 'text', key: 'line3', label: 'خط سوم (کم‌رنگ)' },
+        { kind: 'textarea', key: 'lead', label: 'متن زیر تیتر', rows: 3 },
+        { kind: 'text', key: 'primaryLabel', label: 'متن دکمهٔ اصلی' },
+        { kind: 'text', key: 'primaryHref', label: 'نشانی دکمهٔ اصلی', ltr: true },
+        { kind: 'text', key: 'secondaryLabel', label: 'متن دکمهٔ «سری‌ها»' },
+      ],
+    },
+    {
+      kind: 'list',
+      key: 'stats',
+      label: 'نوار آمار',
+      itemTitle: 'label',
+      addLabel: 'افزودن آمار',
+      item: [
+        { kind: 'text', key: 'value', label: 'عدد' },
+        { kind: 'text', key: 'unit', label: 'واحد' },
+        { kind: 'checkbox', key: 'plus', label: 'علامت + بعد از عدد' },
+        { kind: 'text', key: 'label', label: 'توضیح' },
+      ],
+    },
+    twoLine('anatomyHead', 'تیتر «آنچه داخل ماژول است»'),
+    twoLine('seriesHead', 'تیتر سری‌ها'),
+    {
+      kind: 'list',
+      key: 'series',
+      label: 'سری‌های ماژول',
+      itemTitle: 'name',
+      addLabel: 'افزودن سری',
+      item: [
+        { kind: 'text', key: 'name', label: 'نام سری', ltr: true },
+        { kind: 'text', key: 'fa', label: 'نام فارسی' },
+        { kind: 'text', key: 'tech', label: 'تکنولوژی', ltr: true },
+        { kind: 'text', key: 'tagline', label: 'شعار کوتاه' },
+        { kind: 'textarea', key: 'desc', label: 'توضیح', rows: 2 },
+        { kind: 'text', key: 'power', label: 'بازهٔ توان (وات)', hint: 'اگر «—» بگذارید، «بنا به سفارش» نمایش داده می‌شود.' },
+        { kind: 'checkbox', key: 'stocked', label: 'موجود در ایران' },
+      ],
+    },
+    twoLine('techHead', 'تیتر راهنمای انتخاب'),
+    {
+      kind: 'list',
+      key: 'techGuide',
+      label: 'جدول تکنولوژی‌ها',
+      itemTitle: 'tech',
+      addLabel: 'افزودن ردیف',
+      item: [
+        { kind: 'text', key: 'tech', label: 'تکنولوژی', ltr: true },
+        { kind: 'text', key: 'series', label: 'سری', ltr: true },
+        { kind: 'text', key: 'best', label: 'مناسب برای' },
+        { kind: 'text', key: 'eff', label: 'بازده ماژول' },
+        { kind: 'text', key: 'temp', label: 'ضریب دمایی' },
+        { kind: 'textarea', key: 'note', label: 'توضیح', rows: 2 },
+      ],
+    },
+    twoLine('warrantyHead', 'تیتر تضمین‌ها', false),
+    {
+      kind: 'list',
+      key: 'warranty',
+      label: 'تضمین‌ها',
+      itemTitle: 'label',
+      addLabel: 'افزودن تضمین',
+      item: [
+        { kind: 'text', key: 'value', label: 'عدد' },
+        { kind: 'text', key: 'unit', label: 'واحد' },
+        { kind: 'text', key: 'label', label: 'عنوان' },
+        { kind: 'text', key: 'note', label: 'توضیح' },
+      ],
+    },
+    twoLine('whyHead', 'تیتر «چرا از نماد نیرو»', false),
+    {
+      kind: 'list',
+      key: 'whyUs',
+      label: 'دلیل‌ها',
+      itemTitle: 'title',
+      addLabel: 'افزودن دلیل',
+      hint: 'شماره‌گذاری خودکار است.',
+      item: [
+        { kind: 'text', key: 'title', label: 'عنوان' },
+        { kind: 'textarea', key: 'desc', label: 'توضیح', rows: 2 },
+      ],
+    },
+    twoLine('datasheetsHead', 'تیتر دیتاشیت‌ها'),
+    {
+      kind: 'list',
+      key: 'datasheets',
+      label: 'دیتاشیت‌ها',
+      itemTitle: 'series',
+      addLabel: 'افزودن دیتاشیت',
+      item: [
+        { kind: 'text', key: 'series', label: 'سری', ltr: true },
+        { kind: 'text', key: 'tech', label: 'تکنولوژی', ltr: true },
+        { kind: 'text', key: 'power', label: 'بازهٔ توان (وات)' },
+        { kind: 'text', key: 'file', label: 'نشانی فایل PDF', ltr: true },
+        { kind: 'text', key: 'size', label: 'حجم فایل' },
+      ],
+    },
+    twoLine('faqHead', 'تیتر پرسش‌ها', false),
+    {
+      kind: 'list',
+      key: 'faq',
+      label: 'پرسش‌ها',
+      itemTitle: 'q',
+      addLabel: 'افزودن پرسش',
+      hint: 'همین پرسش‌ها به‌صورت دادهٔ ساختاریافته به گوگل هم داده می‌شوند.',
+      item: [
+        { kind: 'text', key: 'q', label: 'پرسش' },
+        { kind: 'textarea', key: 'a', label: 'پاسخ', rows: 3 },
+      ],
+    },
+    {
+      kind: 'group',
+      key: 'pact',
+      label: 'نشان شراکت',
+      fields: [
+        { kind: 'text', key: 'us', label: 'نقش ما' },
+        { kind: 'text', key: 'them', label: 'نقش AE Solar' },
+      ],
+    },
+    { kind: 'text', key: 'related', label: 'عنوان «مقاله‌های مرتبط»' },
+    ctaGroup,
+  ],
+  defaults: {
+    seo: seo(
+      'AE Solar | نمایندگی رسمی در ایران — نماد نیرو',
+      'نماد نیرو، نمایندهٔ رسمی AE Solar آلمان در ایران. تأمین ماژول‌های خورشیدی سری Aurora، Meteor، Comet و Eclipse با گارانتی معتبر سازنده.',
+    ),
+    hero: {
+      badge: 'نمایندهٔ رسمی در ایران',
+      line1: 'ماژول‌های خورشیدی',
+      line2: 'مهندسی آلمان',
+      line3: 'حالا از انبار کرمان',
+      lead: 'AE Solar از سال {since} در آلمان ماژول تولید می‌کند. ما نمایندهٔ رسمی آن در ایران هستیم — یعنی همان کیفیت، با گارانتی معتبر سازنده و تحویل از موجودی داخلی.',
+      primaryLabel: 'استعلام قیمت و موجودی',
+      primaryHref: '/#quote',
+      secondaryLabel: 'مشاهدهٔ سری‌ها',
+    },
+    stats: aeData.aeStats.map((st) => ({
+      value: st.value,
+      unit: 'unit' in st ? st.unit : '',
+      plus: 'plus' in st ? st.plus : false,
+      label: st.label,
+    })),
+    anatomyHead: {
+      kicker: 'آنچه داخل ماژول است',
+      line1: 'کیفیت را نمی‌شود دید.',
+      line2: 'مگر اینکه بازش کنی.',
+      sub: 'هر ماژول از شش لایه ساخته شده و عمر واقعی آن را همین لایه‌ها تعیین می‌کنند، نه برچسب روی جعبه. روی هر لایه نگه دارید تا جای آن را ببینید.',
+    },
+    seriesHead: {
+      kicker: 'سری‌های ماژول',
+      line1: 'هر سری برای *یک شرایط*',
+      line2: 'ساخته شده است.',
+      sub: 'AE Solar نام هر سری را از یک پدیدهٔ کیهانی یا طبیعی گرفته است. تفاوت‌شان تزئینی نیست — هر کدام تکنولوژی سلول متفاوتی دارد و برای اقلیم و نوع پروژهٔ مشخصی بهینه شده.',
+    },
+    series: aeData.series.map(({ name, fa, tech, tagline, desc, power, stocked }) => ({ name, fa, tech, tagline, desc, power, stocked })),
+    techHead: {
+      kicker: 'راهنمای انتخاب',
+      line1: 'کدام تکنولوژی',
+      line2: 'برای پروژهٔ شما؟',
+      sub: 'تفاوت PERC، TOPCon، HJT و بک‌کنتکت در بازده و رفتار دمایی است. برای اقلیم گرم، ضریب دمایی از خودِ بازده مهم‌تر است.',
+    },
+    techGuide: aeData.techGuide.map((t) => ({ ...t })),
+    warrantyHead: { kicker: 'تضمین‌ها', line1: 'ماژول را برای سی سال', line2: 'می‌خرید، نه برای امروز.' },
+    warranty: aeData.warranty.map((w) => ({ value: w.value, unit: 'unit' in w ? w.unit : '', label: w.label, note: w.note })),
+    whyHead: { kicker: 'خرید از کانال رسمی', line1: 'چرا از نماد نیرو', line2: 'و نه از بازار آزاد؟' },
+    whyUs: aeData.whyUs.map((w) => ({ ...w })),
+    datasheetsHead: {
+      kicker: 'مشخصات فنی',
+      line1: 'دیتاشیت رسمی',
+      line2: 'مستقیم از سازنده.',
+      sub: 'همان فایلی که مهندس طراح شما برای محاسبات لازم دارد — بدون واسطه و بدون ثبت‌نام.',
+    },
+    datasheets: aeData.datasheets.map((d) => ({ ...d })),
+    faqHead: { kicker: 'پیش از تماس', line1: 'سؤالی دارید؟', line2: 'احتمالاً جوابش اینجاست.' },
+    faq: aeData.faq.map((f) => ({ ...f })),
+    pact: { us: 'نمایندهٔ رسمی در ایران', them: `سازنده · ${aeData.ae.origin}` },
+    related: 'دربارهٔ پنل خورشیدی',
+    cta: {
+      title: 'ظرفیت پروژه‌تان را بگویید',
+      text: 'سری مناسب اقلیم و طرح شما را پیشنهاد می‌دهیم و موجودی و قیمت روز را می‌فرستیم.',
+      label: 'درخواست استعلام',
+      href: '/#quote',
+    },
+  },
+} satisfies PageDef;
 
 export const investmentPage = {
   key: 'investment',

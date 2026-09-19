@@ -40,3 +40,29 @@ export function latinParts(text: string): TextPart[] {
   if (last < text.length) parts.push({ text: text.slice(last), latin: false });
   return parts;
 }
+
+export interface MarkedPart {
+  text: string;
+  marked: boolean;
+}
+
+/**
+ * متن را به تکه‌های عادی و «نشان‌دار» می‌شکند؛ نشان‌دار آن است که بین دو
+ * ستاره آمده: «هر سری برای *یک شرایط*».
+ *
+ * برای تیترهایی که یک واژه‌شان رنگ دیگری دارد. ویراستار HTML نمی‌نویسد —
+ * فقط ستاره — و قالب تکهٔ نشان‌دار را خودش می‌پیچد. ستارهٔ تنها (بی‌جفت)
+ * به همان شکل نمایش داده می‌شود.
+ */
+export function markedParts(text: string): MarkedPart[] {
+  const parts: MarkedPart[] = [];
+  const re = /\*([^*]+)\*/g;
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    if (m.index! > last) parts.push({ text: text.slice(last, m.index), marked: false });
+    parts.push({ text: m[1]!, marked: true });
+    last = m.index! + m[0].length;
+  }
+  if (last < text.length) parts.push({ text: text.slice(last), marked: false });
+  return parts;
+}
