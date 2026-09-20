@@ -39,7 +39,10 @@ export const businessDefaults = {
 };
 
 export const webmasterDefaults = {
-  google: '',
+  /* کد تأیید مالکیت در Google Search Console (روش «تگ HTML»).
+     اینجا پیش‌فرض است تا با هر انتشار همراه کد برود و گم نشود؛ اگر روزی در
+     پنل مقدار دیگری ذخیره شود، همان اولویت دارد. */
+  google: 'd42MH3b7_CHMI9mHSJM4---Y3kM4yw5FBd_-fP5bEKA',
   bing: '',
   yandex: '',
   ga4: '',
