@@ -1,6 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import { readSessionCookie, resolveSession } from './server/auth/session';
 import { lookupRedirect } from './server/repos/redirects';
+import { legacyPrefixRedirects } from './data/legacyRedirects';
 import { startOutboxWorker } from './server/services/outbox';
 
 /**
@@ -49,6 +50,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (/^\/\d{4}\/\d{2}\/\d{2}\//.test(pathname)) {
     return context.redirect('/magazine', 301);
   }
+
+  const prefix = legacyPrefixRedirects.find(([from]) => pathname.toLowerCase().startsWith(from));
+  if (prefix) return context.redirect(prefix[1], 301);
 
   /* شناسایی کاربر فقط برای مسیرهای پنل. صفحات عمومی نه به آن نیاز دارند
      نه باید هزینهٔ کوئری‌اش را بدهند. */

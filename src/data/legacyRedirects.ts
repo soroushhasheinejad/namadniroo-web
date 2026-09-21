@@ -35,6 +35,22 @@ export const legacyRedirects: Record<string, string> = {
   '/en': '/',
   '/fa': '/',
 
+  '/academy': '/magazine',
+
   /* نوشته‌هایی که معادل دقیق دارند */
   '/2024/06/01/the-golden-secrets-of-maintaining-solar-panels': '/magazine/panel-washing',
 };
+
+/**
+ * نشانی‌هایی که با یک پیشوند شروع می‌شوند.
+ *
+ * جدول ریدایرکت فقط تطبیق دقیق دارد و این‌ها ده‌ها نشانی‌اند: نمونه‌کارهای
+ * وردپرس (`/portfolio/...`)، محصولات ووکامرس در نسخهٔ فارسی (`/fa/product/...`)
+ * و کل نسخهٔ انگلیسی. ترتیب مهم است — بلندترین پیشوند اول می‌آید.
+ */
+export const legacyPrefixRedirects: [prefix: string, to: string][] = [
+  ['/fa/product/', '/shop'],
+  ['/portfolio/', '/projects'],
+  ['/fa/', '/'],
+  ['/en/', '/'],
+];
