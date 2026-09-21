@@ -42,6 +42,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect(redirect.toPath, redirect.statusCode as 301 | 302);
   }
 
+  /* پیوندهای تاریخ‌دار وردپرس (`/۱۴۰۴/۰۶/۰۱/عنوان`). تک‌تکشان را نمی‌شود
+     در جدول ریدایرکت نوشت — ده‌ها نوشته بودند و فهرستشان جایی نمانده. هر
+     کدام که معادل دقیقی دارد در `legacyRedirects` آمده و بالاتر گرفته
+     می‌شود؛ بقیه به جای صفحهٔ «پیدا نشد» به مجله می‌روند. */
+  if (/^\/\d{4}\/\d{2}\/\d{2}\//.test(pathname)) {
+    return context.redirect('/magazine', 301);
+  }
+
   /* شناسایی کاربر فقط برای مسیرهای پنل. صفحات عمومی نه به آن نیاز دارند
      نه باید هزینهٔ کوئری‌اش را بدهند. */
   if (pathname.startsWith('/admin')) {
