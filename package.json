@@ -11,6 +11,7 @@
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:articles": "tsx scripts/articles.ts",
+    "db:media": "tsx scripts/media.ts",
     "db:redirects": "tsx scripts/redirects.ts",
     "db:admin": "tsx scripts/create-admin.ts",
     "db:backup": "tsx scripts/backup.ts"

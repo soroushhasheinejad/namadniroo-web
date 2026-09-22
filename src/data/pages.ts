@@ -455,7 +455,7 @@ export const homePage = {
       proofLabel: 'نمایندهٔ رسمی',
       proofText: 'AE Solar و Fronius در ایران',
       clientsLabel: 'کارفرمایان',
-      image: 'area-3.jpg',
+      image: 'home-hero.jpg',
     },
     doors: {
       title: 'از کجا شروع کنیم؟',

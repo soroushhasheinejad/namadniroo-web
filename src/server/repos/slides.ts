@@ -45,7 +45,7 @@ export interface AreaBlock {
 
 /** نام فایل پیش‌فرض هر اسلاید، وقتی تنظیمات چیزی نگفته باشد */
 export const DEFAULT_HERO_IMAGES = ['activity-1.jpg', 'activity-2.jpg', 'activity-3.jpg'];
-export const DEFAULT_PROMO_IMAGES = ['banner-1.jpg', 'banner-2.jpg'];
+export const DEFAULT_PROMO_IMAGES = ['banner-1.jpg', 'shop-banner.jpg'];
 export const DEFAULT_AREA_IMAGES = ['area-1.jpg', 'area-2.jpg', 'area-3.jpg'];
 
 

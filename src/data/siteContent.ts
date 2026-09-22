@@ -159,7 +159,7 @@ export const capabilities = [
 export const brands = [
   { name: 'FRONIUS', logo: '/assets/brands/fronius.png' },
   { name: 'SUNGROW', logo: '/assets/brands/sungrow.png' },
-  { name: 'SUNWAYS', logo: null },
+  { name: 'SUNWAYS', logo: '/assets/brands/sunways.png' },
   { name: 'DEYE', logo: '/assets/brands/deye.png' },
   { name: 'GOODWE', logo: '/assets/brands/goodwe.png' },
   { name: 'SINENG', logo: '/assets/brands/sineng.png' },
