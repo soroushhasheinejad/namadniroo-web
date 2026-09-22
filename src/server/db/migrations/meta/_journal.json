@@ -36,6 +36,13 @@
       "when": 1790080943798,
       "tag": "0004_redundant_runaways",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790080943799,
+      "tag": "0005_drop_seeded_settings",
+      "breakpoints": true
     }
   ]
 }
