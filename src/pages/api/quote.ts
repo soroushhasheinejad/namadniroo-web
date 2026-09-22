@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { clientIp, rateLimit } from '../../lib/rateLimit';
 import { clean, validateQuote } from '../../server/validation/quote';
 import { submitQuote } from '../../server/services/quote';
+import { readIdentity } from '../../server/analytics/identity';
 
 export const prerender = false;
 
@@ -20,7 +21,7 @@ const json = (body: unknown, status = 200, headers: Record<string, string> = {})
     headers: { 'Content-Type': 'application/json; charset=utf-8', ...headers },
   });
 
-export const POST: APIRoute = async ({ request, clientAddress }) => {
+export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
   const ip = clientIp(request, clientAddress);
   const limit = rateLimit(`quote:${ip}`, MAX_PER_IP, WINDOW_MS);
   if (!limit.ok) {
@@ -51,7 +52,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   if (!parsed.ok) return json({ success: false, message: parsed.message }, parsed.status);
 
   try {
-    await submitQuote(parsed.value);
+    /* شناسهٔ بازدیدکننده از کوکی خوانده می‌شود، نه از بدنهٔ درخواست: بدنه
+       را می‌شود جعل کرد و آن‌وقت لید به مسیر آدم دیگری وصل می‌شد. */
+    await submitQuote(parsed.value, readIdentity(cookies));
     return json({ success: true });
   } catch (err) {
     console.error('[quote] ثبت درخواست ناموفق بود:', err);

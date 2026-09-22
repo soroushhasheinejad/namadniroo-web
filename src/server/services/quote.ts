@@ -1,5 +1,8 @@
 import { createLead, recentDuplicate } from '../repos/leads';
 import { enqueueEmail } from './outbox';
+import { getVisitor, lastTouch, linkVisitorToLead, trackEvent } from '../analytics/track';
+import { channelLabel } from '../analytics/channel';
+import { logActivity } from '../repos/leadActivity';
 import type { QuoteInput } from '../validation/quote';
 
 /**
@@ -15,7 +18,21 @@ export interface QuoteResult {
   leadId: number;
 }
 
-export async function submitQuote(input: QuoteInput): Promise<QuoteResult> {
+/**
+ * شناسهٔ بازدیدکننده‌ای که فرم را فرستاده، از کوکی درخواست.
+ *
+ * اختیاری است: اگر مرورگر کوکی نگیرد، لید همچنان ثبت می‌شود و فقط مسیرش
+ * را نداریم. هیچ‌وقت نباید ثبت درخواست به ردیابی گره بخورد.
+ */
+export interface VisitorContext {
+  visitorId: string;
+  sessionId: string;
+}
+
+export async function submitQuote(
+  input: QuoteInput,
+  visitor?: VisitorContext | null,
+): Promise<QuoteResult> {
   /* ارسال دوباره در فاصلهٔ کوتاه رکورد تازه نمی‌سازد. از دید کاربر تفاوتی
      ندارد (پیام موفقیت را می‌بیند) ولی تیم فروش یک نفر را دو بار در فهرست
      نمی‌بیند. */
@@ -23,6 +40,18 @@ export async function submitQuote(input: QuoteInput): Promise<QuoteResult> {
   if (duplicate) {
     return { created: false, leadId: duplicate.id };
   }
+
+  /* مسیر کاربر پیش از فرم: اولین برخوردش از پروندهٔ بازدیدکننده و آخرین
+     مبدأش از رویدادها. این دو با هم چیزی را می‌گویند که خود فرم هرگز
+     نمی‌گوید — این آدم از کجا ما را شناخت و چه چیزی او را برگرداند.
+     خطای این بخش نباید ثبت لید را خراب کند، پس هر کدام جداگانه مهار
+     می‌شود. */
+  const [profile, touch] = visitor
+    ? await Promise.all([
+        getVisitor(visitor.visitorId).catch(() => null),
+        lastTouch(visitor.visitorId).catch(() => null),
+      ])
+    : [null, null];
 
   const lead = await createLead({
     name: input.name,
@@ -36,7 +65,42 @@ export async function submitQuote(input: QuoteInput): Promise<QuoteResult> {
     utmMedium: input.utmMedium ?? null,
     utmCampaign: input.utmCampaign ?? null,
     estimate: input.estimate ?? null,
+    visitorId: visitor?.visitorId ?? null,
+    /* utm فرستاده‌شده از مرورگر فقط وقتی استفاده می‌شود که رویدادی در کار
+       نباشد؛ سرور بهتر از خود صفحه می‌داند کاربر از کجا آمده. */
+    channel: touch?.channel ?? null,
+    firstChannel: profile?.firstChannel ?? touch?.channel ?? null,
+    firstUtmSource: profile?.firstUtmSource ?? null,
+    firstUtmMedium: profile?.firstUtmMedium ?? null,
+    firstUtmCampaign: profile?.firstUtmCampaign ?? null,
+    firstReferrer: profile?.firstReferrer ?? null,
+    landingPage: profile?.firstLanding ?? null,
   });
+
+  if (visitor) {
+    /* از اینجا به بعد، پروندهٔ فروش و مسیر رفتاری یک چیزند. */
+    void linkVisitorToLead(visitor.visitorId, lead.id).catch((err) =>
+      console.error('[quote] اتصال بازدیدکننده به لید ناموفق:', err),
+    );
+    trackEvent({
+      visitorId: visitor.visitorId,
+      sessionId: visitor.sessionId,
+      type: 'lead_submit',
+      path: input.source || null,
+      props: { leadId: lead.id, area: input.area || '—' },
+    });
+  }
+
+  /* اولین سطر خط زمانی پرونده. بدون آن، کارشناسی که فردا پرونده را باز
+     می‌کند نمی‌داند این لید از کجا آمده — فقط یک شماره تلفن می‌بیند. */
+  void logActivity({
+    leadId: lead.id,
+    kind: 'system',
+    body:
+      `درخواست از ${input.source || 'سایت'} ثبت شد` +
+      (touch?.channel ? ` · کانال: ${channelLabel(touch.channel)}` : '') +
+      (profile ? ` · ${profile.pageviews} بازدید پیش از این فرم` : ''),
+  }).catch((err) => console.error('[quote] ثبت خط زمانی ناموفق:', err));
 
   /* لید ذخیره شده است؛ ایمیل فقط اطلاع‌رسانی است و اگر صف خطا بدهد نباید
      پاسخ فرم را خراب کند. */
@@ -53,7 +117,8 @@ export async function submitQuote(input: QuoteInput): Promise<QuoteResult> {
         `راه تماس دلخواه: ${input.contactVia || 'تماس تلفنی'}\n` +
         `صفحهٔ مبدأ: ${input.source || '—'}\n` +
         (input.estimate ? `\nبرآوردی که کاربر دیده بود:\n${input.estimate}\n` : '') +
-        `\nمشاهده در پنل: https://namadniroo.ir/admin/leads\n`,
+        (touch?.channel ? `کانال ورود: ${channelLabel(touch.channel)}\n` : '') +
+        `\nپروندهٔ کامل و مسیر کاربر: https://namadniroo.ir/admin/leads/${lead.id}\n`,
     });
   } catch (err) {
     console.error('[quote] افزودن به صف ایمیل ناموفق بود:', err);

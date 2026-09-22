@@ -1,0 +1,385 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { assignableUsers, getLead } from '../../../server/repos/leads';
+import { ACTIVITY_LABELS, leadTimeline } from '../../../server/repos/leadActivity';
+import { applyLeadUpdate, LOST_REASONS, responseHours, STATUS_LABELS } from '../../../server/services/crm';
+import { getVisitor, visitorJourney } from '../../../server/analytics/track';
+import { channelLabel, sourceLabel } from '../../../server/analytics/channel';
+import { eventLabel } from '../../../server/analytics/events';
+import { displayPhone } from '../../../lib/phone';
+import { fa, toLatinDigits } from '../../../utils';
+import type { ActivityKind, LeadStatus } from '../../../server/db/schema';
+
+export const prerender = false;
+
+/**
+ * پروندهٔ یک درخواست.
+ *
+ * سه چیز در یک صفحه: مشخصات تماس، خط زمانی پیگیری، و مسیری که این آدم
+ * پیش از پر کردن فرم در سایت طی کرده. سومی همان چیزی است که این صفحه را
+ * از یک فهرست تماس معمولی جدا می‌کند — کارشناس پیش از برداشتن گوشی
+ * می‌داند طرف چه صفحه‌هایی دیده، چه ظرفیتی حساب کرده و از کجا آمده.
+ */
+
+const id = Number(Astro.params.id);
+if (!Number.isInteger(id) || id < 1) return Astro.redirect('/admin/leads');
+
+const user = Astro.locals.user!;
+let saved = false;
+
+/** ورودی تاریخ مرورگر (YYYY-MM-DD) به تاریخ؛ خالی یعنی قرار حذف شود */
+const parseDate = (value: string): Date | null => {
+  const s = toLatinDigits(value.trim());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const d = new Date(`${s}T09:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+/** عدد فارسی یا لاتین با جداکننده → عدد؛ خالی یعنی مقدار پاک شود */
+const parseNumber = (value: string): number | null => {
+  const s = toLatinDigits(value).replace(/[^\d]/g, '');
+  return s ? Number(s) : null;
+};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const status = String(form.get('status') ?? 'new') as LeadStatus;
+  const activityBody = String(form.get('activity_body') ?? '').trim();
+
+  await applyLeadUpdate({
+    id,
+    userId: user.id,
+    patch: {
+      status,
+      notes: String(form.get('notes') ?? '').slice(0, 2000) || null,
+      assignedTo: Number(form.get('assigned_to')) || null,
+      nextFollowUpAt: parseDate(String(form.get('next_follow_up') ?? '')),
+      dealValue: parseNumber(String(form.get('deal_value') ?? '')),
+      capacityKw: parseNumber(String(form.get('capacity_kw') ?? '')),
+      lostReason: String(form.get('lost_reason') ?? '') || null,
+    },
+    activity: activityBody
+      ? { kind: String(form.get('activity_kind') ?? 'note') as ActivityKind, body: activityBody }
+      : null,
+  });
+  saved = true;
+}
+
+const lead = await getLead(id);
+if (!lead) return Astro.redirect('/admin/leads');
+
+/* مسیر کاربر فقط وقتی معنا دارد که فرم از مرورگری آمده باشد که کوکی
+   گرفته. لیدهای قدیمی‌تر از راه‌اندازی آنالیتیکس، این بخش را ندارند. */
+const [timeline, team, visitor, journey] = await Promise.all([
+  leadTimeline(id),
+  assignableUsers(),
+  lead.visitorId ? getVisitor(lead.visitorId) : null,
+  lead.visitorId ? visitorJourney(lead.visitorId) : [],
+]);
+
+const hours = responseHours(lead);
+const dateValue = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '');
+const when = (d: Date) => d.toLocaleString('fa-IR', { dateStyle: 'short', timeStyle: 'short' });
+
+/** جزئیات رویداد («kw: 120 · mount: ground») در یک خط کوتاه */
+const propsLine = (props: unknown): string =>
+  props && typeof props === 'object'
+    ? Object.entries(props as Record<string, unknown>)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(' · ')
+    : '';
+
+/* خط زمانی سایت می‌تواند ده‌ها بازدید باشد. بازدیدهای پشت‌سرهم یک صفحه
+   فشرده می‌شوند تا مسیر خوانا بماند. */
+const journeySteps = journey.reduce<{ event: (typeof journey)[number]; count: number }[]>((acc, e) => {
+  const last = acc[acc.length - 1];
+  if (last && last.event.type === e.type && last.event.path === e.path) {
+    last.count++;
+    return acc;
+  }
+  acc.push({ event: e, count: 1 });
+  return acc;
+}, []);
+---
+<Admin title={lead.name} lead={`پروندهٔ درخواست شمارهٔ ${fa(lead.id)}`}>
+  <a slot="actions" class="a-btn" href="/admin/leads">بازگشت به فهرست</a>
+
+  {saved && <p class="a-msg a-msg-ok">پرونده به‌روز شد.</p>}
+
+  <div class="a-stats">
+    <div class="a-stat">
+      <b><span class={`a-badge a-badge-${lead.status}`}>{STATUS_LABELS[lead.status]}</span></b>
+      <span>وضعیت</span>
+    </div>
+    <div class="a-stat">
+      <b>{hours === null ? '—' : fa(hours.toFixed(1))}</b>
+      <span>ساعت تا اولین تماس</span>
+    </div>
+    <div class="a-stat">
+      <b>{fa(visitor?.pageviews ?? 0)}</b>
+      <span>بازدید پیش از فرم</span>
+    </div>
+    <div class="a-stat">
+      <b>{channelLabel(lead.firstChannel ?? lead.channel)}</b>
+      <span>کانال ورود</span>
+    </div>
+  </div>
+
+  <div class="lead-grid">
+    <div>
+      {/* ---------- تماس ---------- */}
+      <div class="a-card">
+        <h2>تماس</h2>
+        <p style="margin:0 0 6px">
+          <a href={`tel:${lead.phoneNormalized ?? lead.phone}`} dir="ltr" style="font-size:16px">
+            {lead.phoneNormalized ? displayPhone(lead.phoneNormalized) : lead.phone}
+          </a>
+          {lead.phoneNormalized && (
+            <>
+              {' · '}
+              <a href={`https://wa.me/${lead.phoneNormalized.replace(/^\+/, '')}`} target="_blank" rel="noopener">واتساپ</a>
+            </>
+          )}
+        </p>
+        <p class="a-hint" style="margin:0">
+          ثبت: {when(lead.createdAt)}
+          {lead.contactVia && <> · ترجیح تماس: <b>{lead.contactVia}</b></>}
+        </p>
+        <dl class="facts">
+          {lead.area && <><dt>حوزه</dt><dd>{lead.area}</dd></>}
+          {lead.capacity && <><dt>ظرفیت موردنظر</dt><dd>{lead.capacity}</dd></>}
+          {lead.source && <><dt>صفحهٔ ارسال</dt><dd dir="ltr">{lead.source}</dd></>}
+          {lead.landingPage && <><dt>صفحهٔ ورود به سایت</dt><dd dir="ltr">{lead.landingPage}</dd></>}
+          {(lead.firstUtmSource || lead.firstUtmCampaign) && (
+            <><dt>کمپین</dt><dd dir="ltr">{[lead.firstUtmSource, lead.firstUtmMedium, lead.firstUtmCampaign].filter(Boolean).join(' / ')}</dd></>
+          )}
+          {lead.firstReferrer && (
+            <><dt>ارجاع‌دهنده</dt><dd dir="ltr">{sourceLabel({ utmSource: lead.firstUtmSource, referrer: lead.firstReferrer, channel: (lead.firstChannel ?? 'direct') as never })}</dd></>
+          )}
+        </dl>
+        {lead.estimate && (
+          <p class="a-estimate">
+            <span>برآوردی که خودش در ماشین‌حساب دیده بود</span>
+            {lead.estimate}
+          </p>
+        )}
+      </div>
+
+      {/* ---------- خط زمانی پیگیری ---------- */}
+      <div class="a-card">
+        <h2>خط زمانی پیگیری</h2>
+        {timeline.length === 0 ? (
+          <p class="a-empty">هنوز چیزی ثبت نشده.</p>
+        ) : (
+          <ol class="tl">
+            {timeline.map((a) => (
+              <li class:list={[`tl-${a.kind}`]}>
+                <b>{ACTIVITY_LABELS[a.kind]}</b>
+                {a.kind === 'status' && a.statusTo && (
+                  <span class="tl-status">
+                    {STATUS_LABELS[a.statusFrom as LeadStatus] ?? a.statusFrom} ←
+                    {' '}{STATUS_LABELS[a.statusTo as LeadStatus] ?? a.statusTo}
+                  </span>
+                )}
+                {a.body && <p>{a.body}</p>}
+                <time>{when(a.createdAt)}{a.userName && <> · {a.userName}</>}</time>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
+      {/* ---------- مسیر در سایت ---------- */}
+      <div class="a-card">
+        <h2>مسیر این آدم در سایت</h2>
+        {journeySteps.length === 0 ? (
+          <p class="a-empty">
+            برای این درخواست مسیری ثبت نشده — یا پیش از راه‌اندازی آنالیتیکس بوده، یا مرورگرش کوکی
+            نگرفته است.
+          </p>
+        ) : (
+          <>
+            <p class="a-hint" style="margin-top:-8px">
+              از قدیمی‌ترین به تازه‌ترین. اولین بازدید: {visitor && when(visitor.firstSeen)}
+            </p>
+            <ol class="path">
+              {journeySteps.map(({ event, count }) => (
+                <li class:list={[event.type !== 'pageview' && 'is-event']}>
+                  <span class="path-when">{when(event.createdAt)}</span>
+                  <span class="path-what">
+                    {event.type === 'pageview' ? (
+                      <a href={event.path ?? '/'} target="_blank" rel="noopener" dir="ltr">{event.path}</a>
+                    ) : (
+                      <b>{eventLabel(event.type)}</b>
+                    )}
+                    {count > 1 && <i class="path-n">×{fa(count)}</i>}
+                    {propsLine(event.props) && <em>{propsLine(event.props)}</em>}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+      </div>
+    </div>
+
+    {/* ---------- ستون پیگیری ---------- */}
+    <form method="POST" class="a-card lead-form">
+      <h2>به‌روزرسانی پرونده</h2>
+
+      <div class="a-field">
+        <label for="status">وضعیت</label>
+        <select class="a-select" id="status" name="status">
+          {(Object.keys(STATUS_LABELS) as LeadStatus[]).map((s) => (
+            <option value={s} selected={s === lead.status}>{STATUS_LABELS[s]}</option>
+          ))}
+        </select>
+      </div>
+
+      <div class="a-field">
+        <label for="lost_reason">دلیل ازدست‌رفتن</label>
+        <select class="a-select" id="lost_reason" name="lost_reason">
+          <option value="">—</option>
+          {LOST_REASONS.map((r) => (
+            <option value={r} selected={r === lead.lostReason}>{r}</option>
+          ))}
+        </select>
+        <p class="a-hint">فقط وقتی وضعیت «از دست رفت» باشد ذخیره می‌شود.</p>
+      </div>
+
+      <div class="a-field">
+        <label for="assigned_to">کارشناس پیگیری</label>
+        <select class="a-select" id="assigned_to" name="assigned_to">
+          <option value="">تعیین‌نشده</option>
+          {team.map((u) => (
+            <option value={u.id} selected={u.id === lead.assignedTo}>{u.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div class="a-field">
+        <label for="next_follow_up">قرار پیگیری بعدی</label>
+        <input
+          class="a-input"
+          type="date"
+          id="next_follow_up"
+          name="next_follow_up"
+          dir="ltr"
+          value={dateValue(lead.nextFollowUpAt)}
+        />
+        <p class="a-hint">
+          اگر تاریخش برسد و پرونده هنوز باز باشد، یادآوری ایمیل می‌شود.
+        </p>
+      </div>
+
+      <div class="a-row">
+        <div class="a-field">
+          <label for="deal_value">مبلغ قرارداد (تومان)</label>
+          <input class="a-input" type="text" id="deal_value" name="deal_value" dir="ltr"
+            value={lead.dealValue ? lead.dealValue.toLocaleString('en-US') : ''} />
+        </div>
+        <div class="a-field">
+          <label for="capacity_kw">ظرفیت (کیلووات)</label>
+          <input class="a-input" type="text" id="capacity_kw" name="capacity_kw" dir="ltr"
+            value={lead.capacityKw ?? ''} />
+        </div>
+      </div>
+      <p class="a-hint" style="margin-top:-8px">
+        این دو عدد فقط برای پرونده‌های برنده معنا دارند و مستقیم به گزارش مدیریت می‌روند — بدون
+        آن‌ها «درآمد به تفکیک کانال» قابل محاسبه نیست.
+      </p>
+
+      <hr class="sep" />
+
+      <div class="a-field">
+        <label for="activity_kind">ثبت پیگیری تازه</label>
+        <select class="a-select" id="activity_kind" name="activity_kind">
+          <option value="call">تماس تلفنی</option>
+          <option value="note">یادداشت</option>
+          <option value="message">پیام (واتساپ، بله، پیامک)</option>
+          <option value="meeting">جلسه / بازدید</option>
+        </select>
+      </div>
+      <div class="a-field">
+        <label for="activity_body">شرح</label>
+        <textarea class="a-textarea" id="activity_body" name="activity_body" style="min-height:90px"
+          placeholder="نتیجهٔ تماس، چیزی که گفت، قرار بعدی…"></textarea>
+        <p class="a-hint">خالی بگذارید اگر فقط می‌خواهید وضعیت را عوض کنید.</p>
+      </div>
+
+      <div class="a-field">
+        <label for="notes">خلاصهٔ پرونده</label>
+        <textarea class="a-textarea" id="notes" name="notes" style="min-height:80px"
+          placeholder="یک جمله که هر کس پرونده را باز کرد بداند کجاست">{lead.notes ?? ''}</textarea>
+      </div>
+
+      <button class="a-btn a-btn-primary" type="submit">ذخیره</button>
+    </form>
+  </div>
+</Admin>
+
+<style>
+  .lead-grid { display: grid; grid-template-columns: 1fr 360px; gap: 18px; align-items: start; }
+  @media (max-width: 1000px) { .lead-grid { grid-template-columns: 1fr; } }
+  .lead-form { position: sticky; top: 20px; }
+
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 16px 0 0; font-size: 13px; }
+  .facts dt { color: var(--a-faint); }
+  .facts dd { margin: 0; }
+
+  .a-estimate {
+    margin: 14px 0 0;
+    padding: 8px 10px;
+    border-inline-start: 2px solid var(--a-yellow);
+    background: rgba(255,196,26,.05);
+    border-radius: 6px;
+    color: var(--a-muted);
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+  .a-estimate span { display: block; color: var(--a-faint); font-size: 11px; margin-bottom: 2px; }
+
+  /* خط زمانی: خط عمودی کم‌رنگ با نقطه روی هر رویداد */
+  .tl { list-style: none; margin: 0; padding: 0 16px 0 0; position: relative; }
+  .tl::before {
+    content: '';
+    position: absolute;
+    inset-block: 6px;
+    inset-inline-start: calc(100% - 4px);
+    width: 1px;
+    background: var(--a-line);
+  }
+  .tl li { position: relative; padding: 0 0 18px 0; font-size: 13.5px; }
+  .tl li::before {
+    content: '';
+    position: absolute;
+    inset-inline-end: -20px;
+    top: 6px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--a-line-2);
+  }
+  .tl-status::before, .tl-call::before { background: var(--a-yellow); }
+  .tl li b { font-weight: 600; }
+  .tl li p { margin: 4px 0 0; color: var(--a-muted); white-space: pre-wrap; }
+  .tl li time { display: block; margin-top: 3px; color: var(--a-faint); font-size: 11.5px; }
+  .tl-status { color: var(--a-muted); margin-inline-start: 6px; font-size: 12.5px; }
+
+  /* مسیر سایت: فهرست فشرده‌ای که باید در یک نگاه خوانده شود */
+  .path { list-style: none; margin: 10px 0 0; padding: 0; font-size: 13px; }
+  .path li {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--a-line);
+  }
+  .path li:last-child { border-bottom: 0; }
+  .path-when { color: var(--a-faint); font-size: 11.5px; }
+  .path li.is-event .path-what b { color: var(--a-yellow); }
+  .path-n { font-style: normal; color: var(--a-faint); margin-inline-start: 6px; font-size: 11.5px; }
+  .path-what em { display: block; color: var(--a-faint); font-size: 11.5px; font-style: normal; }
+
+  .sep { border: 0; border-top: 1px solid var(--a-line); margin: 20px 0; }
+</style>

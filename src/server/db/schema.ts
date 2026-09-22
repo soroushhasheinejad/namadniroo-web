@@ -216,11 +216,48 @@ export const leads = sqliteTable(
     utmSource: text('utm_source'),
     utmMedium: text('utm_medium'),
     utmCampaign: text('utm_campaign'),
+    /**
+     * شناسهٔ بازدیدکننده‌ای که این فرم را فرستاد.
+     *
+     * همان کوکی اول‌شخصی که میدل‌ور می‌گذارد. کلید اتصال لید به مسیری است
+     * که کاربر پیش از فرم طی کرده — بدون آن، «این مشتری از کجا آمد» فقط
+     * حدس است.
+     */
+    visitorId: text('visitor_id'),
+    /** کانال دسته‌بندی‌شدهٔ همین ارسال — آخرین برخورد */
+    channel: text('channel'),
+    /* --- اولین برخورد: از کجا این آدم اولین بار ما را شناخت --- */
+    firstChannel: text('first_channel'),
+    firstUtmSource: text('first_utm_source'),
+    firstUtmMedium: text('first_utm_medium'),
+    firstUtmCampaign: text('first_utm_campaign'),
+    firstReferrer: text('first_referrer'),
+    /** اولین صفحه‌ای که با آن وارد سایت شد */
+    landingPage: text('landing_page'),
     status: text('status', { enum: ['new', 'contacted', 'won', 'lost'] })
       .notNull()
       .default('new'),
     assignedTo: integer('assigned_to').references(() => users.id, { onDelete: 'set null' }),
     notes: text('notes'),
+    /* --- پیگیری فروش --- */
+    /**
+     * زمان اولین تماس واقعی تیم فروش.
+     *
+     * جدا از `updatedAt` نگه داشته می‌شود چون «سرعت پاسخ» مهم‌ترین عددی
+     * است که روی نرخ بستن قرارداد اثر می‌گذارد، و `updatedAt` با هر
+     * ویرایش کوچکی عوض می‌شود.
+     */
+    firstContactAt: timestamp('first_contact_at'),
+    /** قرار پیگیری بعدی — مبنای هشدار «امروز باید تماس بگیری» */
+    nextFollowUpAt: timestamp('next_follow_up_at'),
+    /** زمان بسته‌شدن (برنده یا بازنده) — مبنای محاسبهٔ طول چرخهٔ فروش */
+    closedAt: timestamp('closed_at'),
+    /** مبلغ قرارداد به تومان؛ فقط برای لیدهای برنده معنا دارد */
+    dealValue: integer('deal_value'),
+    /** ظرفیت قرارداد به کیلووات — واحدی که مدیریت با آن فکر می‌کند */
+    capacityKw: integer('capacity_kw'),
+    /** چرا از دست رفت: قیمت، زمان‌بندی، رقیب، … */
+    lostReason: text('lost_reason'),
     /**
      * خلاصهٔ برآوردی که کاربر در ماشین‌حساب دیده بود.
      *
@@ -238,6 +275,10 @@ export const leads = sqliteTable(
     index('leads_created_idx').on(t.createdAt),
     index('leads_status_idx').on(t.status),
     index('leads_phone_idx').on(t.phoneNormalized),
+    // صفحهٔ مسیر کاربر، لید را از روی شناسهٔ بازدیدکننده پیدا می‌کند
+    index('leads_visitor_idx').on(t.visitorId),
+    // هشدار پیگیری، هر بار قرارهای سررسیدشده را می‌خواند
+    index('leads_followup_idx').on(t.nextFollowUpAt),
   ],
 );
 
@@ -257,7 +298,13 @@ export const outbox = sqliteTable(
   'outbox',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    kind: text('kind', { enum: ['email'] }).notNull().default('email'),
+    /**
+     * `sms` و `webhook` هنوز فرستنده ندارند و ردیفشان در صف می‌ماند.
+     * عمداً همین حالا در اسکیما هستند: اتوماسیون‌ها از امروز ردیف ثبت
+     * می‌کنند و روزی که پنل پیامکی وصل شد، همان ردیف‌ها فرستاده می‌شوند
+     * بدون این‌که چیزی در منطق اتوماسیون عوض شود.
+     */
+    kind: text('kind', { enum: ['email', 'sms', 'webhook'] }).notNull().default('email'),
     payload: text('payload', { mode: 'json' }).notNull(),
     attempts: integer('attempts').notNull().default(0),
     /** قبل از این زمان تلاش نمی‌شود — مبنای backoff */
@@ -335,6 +382,153 @@ export const auditLog = sqliteTable(
 );
 
 /* ============================================================
+   رفتار بازدیدکننده
+   ============================================================ */
+
+/**
+ * هر بازدیدکننده یک ردیف — ساخته‌شده از کوکی اول‌شخصی که میدل‌ور می‌گذارد.
+ *
+ * جدول رویدادها همهٔ حرکت‌ها را دارد، پس این جدول از نظر داده تکراری است.
+ * دلیل بودنش دو چیز است: اول اینکه «اولین برخورد» باید دقیقاً یک بار و
+ * برای همیشه ثبت شود (اگر از رویدادها استخراجش کنیم، با پاک‌شدن
+ * رویدادهای قدیمی از بین می‌رود)، دوم اینکه صفحهٔ فروش باید بدون کوئری
+ * سنگین روی میلیون‌ها رویداد بداند این آدم چند بار آمده.
+ *
+ * هیچ اطلاعات شخصی اینجا نیست؛ شناسه عددی تصادفی است و تا وقتی فرم پر
+ * نشود به هیچ آدمی وصل نمی‌شود.
+ */
+export const visitors = sqliteTable(
+  'visitors',
+  {
+    /** شناسهٔ تصادفی کوکی */
+    id: text('id').primaryKey(),
+    firstSeen: timestamp('first_seen').notNull().default(now()),
+    lastSeen: timestamp('last_seen').notNull().default(now()),
+    /* --- اولین برخورد؛ بعد از ثبت هرگز به‌روز نمی‌شود --- */
+    firstChannel: text('first_channel'),
+    firstUtmSource: text('first_utm_source'),
+    firstUtmMedium: text('first_utm_medium'),
+    firstUtmCampaign: text('first_utm_campaign'),
+    firstReferrer: text('first_referrer'),
+    firstLanding: text('first_landing'),
+    /** آخرین کانالی که با آن برگشت */
+    lastChannel: text('last_channel'),
+    pageviews: integer('pageviews').notNull().default(0),
+    sessions: integer('sessions').notNull().default(0),
+    device: text('device', { enum: ['mobile', 'desktop', 'tablet'] }),
+    /** تا وقتی فرم پر نشده خالی است؛ بعد از آن، پل بین رفتار و پروندهٔ فروش */
+    leadId: integer('lead_id'),
+  },
+  (t) => [index('visitors_last_seen_idx').on(t.lastSeen), index('visitors_lead_idx').on(t.leadId)],
+);
+
+/**
+ * رویدادها — ستون فقرات آنالیتیکس.
+ *
+ * بازدید صفحه سمت سرور در میدل‌ور ثبت می‌شود و نه با اسکریپت مرورگر:
+ * افزونه‌های مسدودکنندهٔ تبلیغات نمی‌توانند جلویش را بگیرند، سرعت صفحه را
+ * کم نمی‌کند، و به VPN داشتن یا نداشتن کاربر حساس نیست. فقط رویدادهایی
+ * که سرور اصلاً نمی‌بیند (کلیک، اسکرول، مرحلهٔ ماشین‌حساب) از مرورگر
+ * می‌آیند.
+ *
+ * ردیف‌های خام بعد از مدتی پاک می‌شوند و خلاصه‌شان در `daily_stats`
+ * می‌ماند — وگرنه این جدول تنها چیزی می‌شد که بی‌انتها رشد می‌کند.
+ */
+export const events = sqliteTable(
+  'events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    createdAt: timestamp('created_at').notNull().default(now()),
+    visitorId: text('visitor_id').notNull(),
+    /** بازدیدهای پشت‌سرهم با فاصلهٔ کمتر از ۳۰ دقیقه، یک نشست‌اند */
+    sessionId: text('session_id').notNull(),
+    /** `pageview`، `calc_result`، `lead_submit`، … — فهرست در analytics/events.ts */
+    type: text('type').notNull(),
+    path: text('path'),
+    referrer: text('referrer'),
+    /** ارجاع‌دهنده و utm، دسته‌بندی‌شده به یک کانال خوانا */
+    channel: text('channel'),
+    utmSource: text('utm_source'),
+    utmMedium: text('utm_medium'),
+    utmCampaign: text('utm_campaign'),
+    device: text('device', { enum: ['mobile', 'desktop', 'tablet'] }),
+    /** هر چیز مخصوص همان رویداد: ظرفیت محاسبه‌شده، عمق اسکرول، … */
+    props: text('props', { mode: 'json' }),
+  },
+  (t) => [
+    index('events_created_idx').on(t.createdAt),
+    index('events_visitor_idx').on(t.visitorId, t.createdAt),
+    index('events_type_idx').on(t.type, t.createdAt),
+  ],
+);
+
+/**
+ * خلاصهٔ روزانه.
+ *
+ * داشبورد نباید روی جدول خام رویدادها کوئری بزند: با گذشت زمان کند
+ * می‌شود و بدتر از آن، بعد از پاک‌شدن ردیف‌های قدیمی دیگر تاریخچه‌ای
+ * نمی‌ماند. یک جاب شبانه روز گذشته را جمع می‌بندد و اینجا می‌نویسد.
+ *
+ * ساختار عمداً عمومی است (سنجه + کلید + مقدار) نه یک ستون برای هر عدد،
+ * چون سنجه‌های تازه مدام اضافه می‌شوند و هر کدام نباید مایگریشن بخواهد.
+ */
+export const dailyStats = sqliteTable(
+  'daily_stats',
+  {
+    /** تاریخ میلادی به شکل YYYY-MM-DD — مرتب‌سازی متنی‌اش درست است */
+    day: text('day').notNull(),
+    /** `visits` · `pageviews` · `leads` · `channel` · `path` · `event` · `device` */
+    metric: text('metric').notNull(),
+    /** بعد سنجه: نام کانال، نشانی صفحه، نوع رویداد — یا `_` برای سنجهٔ تک‌مقداری */
+    key: text('key').notNull().default('_'),
+    value: integer('value').notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex('daily_stats_idx').on(t.day, t.metric, t.key),
+    index('daily_stats_day_idx').on(t.day),
+  ],
+);
+
+/* ============================================================
+   پروندهٔ فروش
+   ============================================================ */
+
+/**
+ * تاریخچهٔ هر لید — تماس‌ها، یادداشت‌ها، تغییر وضعیت.
+ *
+ * ستون `notes` روی خود لید یک متن است که با هر ویرایش قبلی را پاک می‌کند.
+ * برای پیگیری فروش کافی نیست: باید معلوم باشد چه کسی، کِی، چه کرد و
+ * نتیجه چه شد. این جدول همان دفترچهٔ پیگیری است و `notes` به «خلاصهٔ
+ * فعلی پرونده» تبدیل می‌شود.
+ *
+ * تغییر وضعیت هم همین‌جا ثبت می‌شود و نه فقط در `audit_log`: آن یکی برای
+ * ممیزی فنی است و تیم فروش نمی‌بیندش، این یکی بخشی از خط زمانی پرونده
+ * است که کارشناس هر بار باز می‌کند.
+ */
+export const leadActivity = sqliteTable(
+  'lead_activity',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    leadId: integer('lead_id')
+      .notNull()
+      .references(() => leads.id, { onDelete: 'cascade' }),
+    /** کاربری که ثبتش کرده؛ خالی یعنی خود سیستم نوشته */
+    userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+    kind: text('kind', {
+      enum: ['note', 'call', 'meeting', 'message', 'status', 'system'],
+    })
+      .notNull()
+      .default('note'),
+    body: text('body'),
+    /** فقط برای kind = status */
+    statusFrom: text('status_from'),
+    statusTo: text('status_to'),
+    createdAt: timestamp('created_at').notNull().default(now()),
+  },
+  (t) => [index('lead_activity_lead_idx').on(t.leadId, t.createdAt)],
+);
+
+/* ============================================================
    تایپ‌های استخراج‌شده
    ============================================================ */
 
@@ -349,3 +543,8 @@ export type NewLead = typeof leads.$inferInsert;
 export type Redirect = typeof redirects.$inferSelect;
 export type NotFound = typeof notFound.$inferSelect;
 export type LeadStatus = Lead['status'];
+export type Visitor = typeof visitors.$inferSelect;
+export type AnalyticsEvent = typeof events.$inferSelect;
+export type NewAnalyticsEvent = typeof events.$inferInsert;
+export type LeadActivity = typeof leadActivity.$inferSelect;
+export type ActivityKind = LeadActivity['kind'];

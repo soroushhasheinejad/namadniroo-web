@@ -5,6 +5,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import QuoteDialog from '../components/QuoteDialog.astro';
 import MobileBar from '../components/MobileBar.astro';
+import Analytics from '../components/Analytics.astro';
 import { getSiteSettings } from '../server/repos/siteSettings';
 import { getSeoSettings } from '../server/repos/seoSettings';
 import { organizationSchema } from '../server/seo/structuredData';
@@ -154,6 +155,7 @@ const { webmaster } = seo;
   <Footer />
   <MobileBar />
   <QuoteDialog />
+  <Analytics />
 
   <script>
     // منوی موبایل

@@ -72,6 +72,50 @@ export function jalaliToISO(input: string): string | undefined {
   return `${gy}-${pad(gm + 1)}-${pad(gd)}`;
 }
 
+/** نام ماه‌های شمسی، برای عنوان گزارش‌ها */
+export const JALALI_MONTHS = [
+  'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+  'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند',
+] as const;
+
+/**
+ * سال و ماه شمسی یک تاریخ.
+ *
+ * از تقویم خود مرورگر/نود گرفته می‌شود و نه از محاسبهٔ دستی: تبدیل تاریخ
+ * جایی است که خطاهای یک‌روزه راحت پنهان می‌مانند، و این تبدیل در
+ * پیاده‌سازی استاندارد هست و آزموده شده. زبان `en` انتخاب شده تا ارقام
+ * لاتین برگردد و نیازی به تبدیل دوباره نباشد.
+ */
+export function jalaliYearMonth(date: Date): { year: number; month: number } {
+  const parts = new Intl.DateTimeFormat('en-u-ca-persian', {
+    year: 'numeric',
+    month: 'numeric',
+    timeZone: 'Asia/Tehran',
+  }).formatToParts(date);
+
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  return { year: get('year'), month: get('month') };
+}
+
+/**
+ * مرز شروع یک ماه شمسی، به وقت ایران.
+ *
+ * گزارش ماهانه باید با ماهی بسته شود که مدیر با آن فکر می‌کند. بدون این،
+ * «گزارش شهریور» بازه‌ای از دهم شهریور تا دهم مهر را نشان می‌داد — که هم
+ * غلط است هم توضیح‌دادنی نیست.
+ */
+export function jalaliMonthStart(year: number, month: number): Date {
+  /* سرریز ماه به سال قبل/بعد، همین‌جا و یک بار حل می‌شود تا صداکننده
+     مجبور نباشد هر بار حسابش را نگه دارد. */
+  let y = year;
+  let m = month;
+  while (m < 1) { m += 12; y -= 1; }
+  while (m > 12) { m -= 12; y += 1; }
+
+  const iso = jalaliToISO(`${y}/${String(m).padStart(2, '0')}/01`);
+  return new Date(`${iso}T00:00:00+03:30`);
+}
+
 /**
  * ساخت BreadcrumbList برای داده‌های ساختاریافته.
  * ترتیب ورودی از کلی به جزئی است؛ «خانه» خودکار اول اضافه می‌شود.

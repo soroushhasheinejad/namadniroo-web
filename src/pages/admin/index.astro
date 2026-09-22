@@ -1,6 +1,7 @@
 ---
 import Admin from '../../layouts/Admin.astro';
-import { leadStats, listLeads } from '../../server/repos/leads';
+import { dueFollowUps, leadStats, listLeads } from '../../server/repos/leads';
+import { overview } from '../../server/analytics/reports';
 import { outboxStatus } from '../../server/services/outbox';
 import { listArticles, listProducts, listProjects } from '../../server/repos/content';
 import { fa } from '../../utils';
@@ -13,7 +14,12 @@ const denied = Astro.url.searchParams.get('denied') === '1';
 
 /* همهٔ بخش‌های داشبورد مستقل‌اند، پس با هم خوانده می‌شوند. اگر پشت سر هم
    بودند، زمان باز شدن صفحه مجموع همه می‌شد. */
-const [stats, recent, outbox, products, projects, articles] = user
+/* آمار هفتهٔ اخیر کنار لیدها می‌آید تا داشبورد هر دو سرِ ماجرا را نشان
+   دهد: چند نفر آمدند و چند نفرشان تماس گرفتند. دیدن تعداد لید بدون
+   تعداد بازدید، هیچ‌وقت نمی‌گوید اوضاع خوب است یا بد. */
+const weekAgo = new Date(Date.now() - 7 * 86_400_000);
+
+const [stats, recent, outbox, products, projects, articles, traffic, due] = user
   ? await Promise.all([
       leadStats(),
       listLeads({ perPage: 8 }),
@@ -21,8 +27,10 @@ const [stats, recent, outbox, products, projects, articles] = user
       listProducts(),
       listProjects(),
       listArticles(),
+      overview({ from: weekAgo, to: new Date() }).catch(() => null),
+      dueFollowUps(5).catch(() => []),
     ])
-  : [null, null, null, [], [], []];
+  : [null, null, null, [], [], [], null, []];
 
 const statusLabel: Record<string, string> = {
   new: 'جدید',
@@ -42,6 +50,35 @@ const statusLabel: Record<string, string> = {
         <div class="a-stat"><b>{fa(stats.total)}</b><span>کل درخواست‌ها</span></div>
         <div class="a-stat"><b>{fa(stats.byStatus.new ?? 0)}</b><span>در انتظار پیگیری</span></div>
       </div>
+
+      {traffic && (
+        <div class="a-stats">
+          <div class="a-stat"><b>{fa(traffic.visitors.toLocaleString('en-US'))}</b><span>بازدیدکنندهٔ هفتهٔ اخیر</span></div>
+          <div class="a-stat"><b>{fa(traffic.pageviews.toLocaleString('en-US'))}</b><span>بازدید صفحه</span></div>
+          <div class="a-stat">
+            <b>{traffic.visitors > 0 ? `${fa(traffic.conversion.toFixed(1))}٪` : '—'}</b>
+            <span>نرخ تبدیل به درخواست</span>
+          </div>
+          <div class="a-stat">
+            <b><a href="/admin/analytics" style="color:inherit">آنالیتیکس ↗</a></b>
+            <span>قیف، کانال‌ها و مسیر کاربران</span>
+          </div>
+        </div>
+      )}
+
+      {due.length > 0 && (
+        <div class="a-msg a-msg-warn">
+          <b>{fa(due.length)} پرونده قرار پیگیری‌شان سررسید شده:</b>
+          {' '}
+          {due.map((l, i) => (
+            <>
+              {i > 0 && '، '}
+              <a href={`/admin/leads/${l.id}`}>{l.name}</a>
+            </>
+          ))}
+          {' · '}<a href="/admin/leads?due=1">همه</a>
+        </div>
+      )}
 
       {outbox && outbox.failed > 0 && (
         <p class="a-msg a-msg-err">
@@ -64,7 +101,7 @@ const statusLabel: Record<string, string> = {
               <tbody>
                 {recent.rows.map((l) => (
                   <tr>
-                    <td><a href={`/admin/leads?q=${encodeURIComponent(l.phone)}`}>{l.name}</a></td>
+                    <td><a href={`/admin/leads/${l.id}`}>{l.name}</a></td>
                     <td class="a-num" dir="ltr">
                       {l.phoneNormalized ? displayPhone(l.phoneNormalized) : l.phone}
                     </td>

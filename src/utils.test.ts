@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fa, jalaliToISO, toLatinDigits } from './utils';
+import { fa, jalaliMonthStart, jalaliToISO, jalaliYearMonth, toLatinDigits } from './utils';
 
 describe('fa', () => {
   it('ارقام را فارسی می‌کند', () => {
@@ -43,5 +43,22 @@ describe('jalaliToISO', () => {
     for (const bad of ['', 'سلام', '1404', '1404/13/01', '99/1/1']) {
       expect(jalaliToISO(bad), bad).toBeUndefined();
     }
+  });
+});
+
+describe('ماه شمسی', () => {
+  it('سال و ماه شمسی را درست می‌دهد', () => {
+    // ۱ مهر ۱۴۰۴ برابر ۲۳ سپتامبر ۲۰۲۵
+    expect(jalaliYearMonth(new Date('2025-09-23T09:00:00Z'))).toEqual({ year: 1404, month: 7 });
+  });
+
+  it('مرز شروع ماه شمسی، نیمه‌شب به وقت ایران است', () => {
+    const start = jalaliMonthStart(1404, 7);
+    expect(start.toISOString()).toBe('2025-09-22T20:30:00.000Z');
+  });
+
+  it('ماه صفر و سیزده به سال قبل و بعد سر می‌خورند', () => {
+    expect(jalaliMonthStart(1405, 0).toISOString()).toBe(jalaliMonthStart(1404, 12).toISOString());
+    expect(jalaliMonthStart(1404, 13).toISOString()).toBe(jalaliMonthStart(1405, 1).toISOString());
   });
 });

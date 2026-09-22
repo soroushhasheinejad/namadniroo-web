@@ -1,8 +1,13 @@
 import { defineMiddleware } from 'astro:middleware';
+import type { APIContext } from 'astro';
 import { readSessionCookie, resolveSession } from './server/auth/session';
 import { lookupRedirect } from './server/repos/redirects';
 import { legacyPrefixRedirects } from './data/legacyRedirects';
 import { startOutboxWorker } from './server/services/outbox';
+import { startAnalyticsWorker } from './server/services/rollup';
+import { identify } from './server/analytics/identity';
+import { attributionFrom, deviceFrom, isBot } from './server/analytics/channel';
+import { trackVisit } from './server/analytics/track';
 
 /**
  * کارهایی که پیش از رسیدن درخواست به صفحه انجام می‌شود: اعمال ریدایرکت‌های
@@ -32,6 +37,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (!workerStarted && !import.meta.env.DEV) {
     workerStarted = true;
     startOutboxWorker();
+    startAnalyticsWorker();
   }
 
   /* ریدایرکت‌های مدیریت‌شده از پنل. پیش از هر کار دیگری بررسی می‌شوند تا
@@ -71,5 +77,41 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
+  /* ثبت بازدید — بعد از ریدایرکت‌ها و پیش از رسیدن به صفحه.
+     ترتیبش مهم است: نشانی‌ای که ۳۰۱ می‌خورد نباید به‌عنوان بازدید ثبت
+     شود، وگرنه هر لینک قدیمی وردپرس دو بازدید می‌ساخت. */
+  trackPageview(context);
+
   return next();
 });
+
+/**
+ * بازدیدها سمت سرور ثبت می‌شوند و نه با اسکریپت مرورگر.
+ *
+ * سه مزیت دارد: افزونه‌های مسدودکننده نمی‌توانند خاموشش کنند، هیچ
+ * جاوااسکریپتی به صفحه اضافه نمی‌شود، و آماری که می‌بینیم همان چیزی است
+ * که سرور واقعاً سرو کرده.
+ */
+function trackPageview(context: APIContext): void {
+  const { url, request, cookies } = context;
+
+  /* فقط صفحه‌های واقعی: مسیرهای API، پنل و هر چیزی جز GET بازدید نیستند.
+     (پنل عمداً ردیابی نمی‌شود — آمار سایت نباید با رفت‌وآمد خودمان در
+     پنل مخلوط شود.) */
+  if (request.method !== 'GET') return;
+  if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/api')) return;
+  if (/^\/(health|ping|robots\.txt|sitemap\.xml|leads)$/.test(url.pathname)) return;
+
+  const ua = request.headers.get('user-agent');
+  if (isBot(ua)) return;
+
+  const { visitorId, sessionId, newSession } = identify(cookies, url);
+  trackVisit({
+    visitorId,
+    sessionId,
+    newSession,
+    path: url.pathname,
+    device: deviceFrom(ua),
+    attribution: attributionFrom(url, request.headers.get('referer'), url.hostname),
+  });
+}

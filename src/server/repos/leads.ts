@@ -1,6 +1,6 @@
-import { and, count, desc, eq, gte, like, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, isNotNull, like, lte, or, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { leads, type Lead, type LeadStatus, type NewLead } from '../db/schema';
+import { leads, users, type Lead, type LeadStatus, type NewLead } from '../db/schema';
 import { normalizePhone } from '../../lib/phone';
 
 /**
@@ -21,6 +21,10 @@ export interface LeadQuery {
   status?: LeadStatus | 'all';
   /** جست‌وجو در نام و شمارهٔ تماس */
   q?: string;
+  /** فقط پرونده‌هایی که قرار پیگیری‌شان رسیده یا گذشته است */
+  due?: boolean;
+  /** فقط پرونده‌های یک کارشناس */
+  assignedTo?: number;
 }
 
 export interface LeadPage {
@@ -55,6 +59,16 @@ function buildFilter(query: LeadQuery) {
     else matches.push(like(leads.phoneNormalized, term));
 
     clauses.push(or(...matches));
+  }
+
+  /* «سررسید» یعنی قراری ثبت شده و زمانش رسیده — پرونده‌های بی‌قرار اینجا
+     نمی‌آیند، چون چیزی برای یادآوری ندارند. */
+  if (query.due) {
+    clauses.push(and(isNotNull(leads.nextFollowUpAt), lte(leads.nextFollowUpAt, new Date()))!);
+  }
+
+  if (query.assignedTo) {
+    clauses.push(eq(leads.assignedTo, query.assignedTo));
   }
 
   return clauses.length ? and(...clauses) : undefined;
@@ -95,12 +109,51 @@ export async function createLead(lead: NewLead): Promise<Lead> {
   return row!;
 }
 
-export async function updateLead(
-  id: number,
-  patch: Partial<Pick<Lead, 'status' | 'assignedTo' | 'notes'>>,
-): Promise<void> {
+/** فیلدهایی که تیم فروش می‌تواند عوض کند */
+export type LeadPatch = Partial<
+  Pick<
+    Lead,
+    | 'status'
+    | 'assignedTo'
+    | 'notes'
+    | 'nextFollowUpAt'
+    | 'firstContactAt'
+    | 'closedAt'
+    | 'dealValue'
+    | 'capacityKw'
+    | 'lostReason'
+  >
+>;
+
+export async function updateLead(id: number, patch: LeadPatch): Promise<void> {
   const db = await getDb();
   await db.update(leads).set({ ...patch, updatedAt: new Date() }).where(eq(leads.id, id));
+}
+
+export async function getLead(id: number): Promise<Lead | null> {
+  const db = await getDb();
+  const [row] = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
+  return row ?? null;
+}
+
+/** کارشناسانی که می‌شود پرونده را به آن‌ها سپرد */
+export async function assignableUsers() {
+  const db = await getDb();
+  return db
+    .select({ id: users.id, name: users.name, role: users.role })
+    .from(users)
+    .where(eq(users.active, true));
+}
+
+/** پرونده‌هایی که قرار پیگیری‌شان رسیده — برای هشدار داشبورد */
+export async function dueFollowUps(limit = 20): Promise<Lead[]> {
+  const db = await getDb();
+  return db
+    .select()
+    .from(leads)
+    .where(and(isNotNull(leads.nextFollowUpAt), lte(leads.nextFollowUpAt, new Date())))
+    .orderBy(leads.nextFollowUpAt)
+    .limit(limit);
 }
 
 /**

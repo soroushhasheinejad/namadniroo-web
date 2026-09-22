@@ -1,6 +1,8 @@
 ---
 import Admin from '../../layouts/Admin.astro';
-import { allLeads, listLeads, updateLead } from '../../server/repos/leads';
+import { allLeads, listLeads } from '../../server/repos/leads';
+import { applyLeadUpdate, STATUS_LABELS } from '../../server/services/crm';
+import { channelLabel } from '../../server/analytics/channel';
 import { fa } from '../../utils';
 import { displayPhone } from '../../lib/phone';
 import type { LeadStatus } from '../../server/db/schema';
@@ -9,10 +11,7 @@ export const prerender = false;
 
 const STATUSES: { key: LeadStatus | 'all'; label: string }[] = [
   { key: 'all', label: 'همه' },
-  { key: 'new', label: 'جدید' },
-  { key: 'contacted', label: 'تماس گرفته شده' },
-  { key: 'won', label: 'برنده' },
-  { key: 'lost', label: 'بازنده' },
+  ...(Object.keys(STATUS_LABELS) as LeadStatus[]).map((key) => ({ key, label: STATUS_LABELS[key] })),
 ];
 
 let saved = false;
@@ -23,9 +22,16 @@ if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   const id = Number(form.get('id'));
   if (id) {
-    await updateLead(id, {
-      status: String(form.get('status') ?? 'new') as LeadStatus,
-      notes: String(form.get('notes') ?? '').slice(0, 2000) || null,
+    /* از سرویس CRM می‌گذرد و نه مستقیم از مخزن: تغییر وضعیت باید زمان
+       اولین تماس را مهر بزند و در خط زمانی ثبت شود، چه از این فهرست
+       انجام شود چه از خود پرونده. */
+    await applyLeadUpdate({
+      id,
+      userId: Astro.locals.user?.id,
+      patch: {
+        status: String(form.get('status') ?? 'new') as LeadStatus,
+        notes: String(form.get('notes') ?? '').slice(0, 2000) || null,
+      },
     });
     saved = true;
   }
@@ -35,16 +41,19 @@ const params = Astro.url.searchParams;
 const status = (params.get('status') ?? 'all') as LeadStatus | 'all';
 const q = params.get('q') ?? '';
 const page = Number(params.get('page') ?? 1) || 1;
+const due = params.get('due') === '1';
 
 /* خروجی CSV همان فیلتر فعلی را دنبال می‌کند، پس آنچه روی صفحه دیده می‌شود
    همان چیزی است که دانلود می‌شود. */
 if (params.get('export') === 'csv') {
-  const rows = await allLeads({ status, q });
+  const rows = await allLeads({ status, q, due });
   const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const csv =
     '﻿' + // تا اکسل فارسی را درست باز کند
     [
-      ['تاریخ ثبت', 'نام', 'تلفن', 'تلفن یکتا', 'ظرفیت', 'برآورد', 'حوزه', 'راه تماس', 'مبدأ', 'وضعیت', 'یادداشت'],
+      ['تاریخ ثبت', 'نام', 'تلفن', 'تلفن یکتا', 'ظرفیت', 'برآورد', 'حوزه', 'راه تماس', 'مبدأ',
+       'کانال ورود', 'کمپین', 'وضعیت', 'اولین تماس', 'بسته‌شده', 'مبلغ قرارداد', 'ظرفیت قرارداد (kW)',
+       'دلیل باخت', 'یادداشت'],
       ...rows.map((l) => [
         l.createdAt.toISOString(),
         l.name,
@@ -55,7 +64,14 @@ if (params.get('export') === 'csv') {
         l.area,
         l.contactVia,
         l.source,
+        channelLabel(l.firstChannel ?? l.channel),
+        [l.firstUtmSource, l.firstUtmMedium, l.firstUtmCampaign].filter(Boolean).join(' / '),
         l.status,
+        l.firstContactAt?.toISOString() ?? '',
+        l.closedAt?.toISOString() ?? '',
+        l.dealValue ?? '',
+        l.capacityKw ?? '',
+        l.lostReason ?? '',
         l.notes,
       ]),
     ]
@@ -70,7 +86,7 @@ if (params.get('export') === 'csv') {
   });
 }
 
-const result = await listLeads({ status, q, page });
+const result = await listLeads({ status, q, page, due });
 
 /** حفظ فیلترهای فعلی هنگام ساخت لینک صفحه */
 const pageLink = (n: number) => {
@@ -111,7 +127,12 @@ const statusLabel = Object.fromEntries(STATUSES.map((s) => [s.key, s.label]));
       ))}
     </select>
     <button class="a-btn" type="submit">اعمال</button>
-    {(q || status !== 'all') && <a class="a-btn a-btn-sm" href="/admin/leads">حذف فیلترها</a>}
+    {/* سررسید همراه بقیهٔ فیلترها می‌رود تا با یک کلیک برداشته شود */}
+    <input type="hidden" name="due" value={due ? '1' : ''} />
+    <a class:list={['a-btn', 'a-btn-sm', due && 'a-btn-primary']} href={due ? '/admin/leads' : '?due=1'}>
+      فقط سررسیدشده‌ها
+    </a>
+    {(q || status !== 'all' || due) && <a class="a-btn a-btn-sm" href="/admin/leads">حذف فیلترها</a>}
   </form>
 
   {result.rows.length === 0 ? (
@@ -121,7 +142,9 @@ const statusLabel = Object.fromEntries(STATUSES.map((s) => [s.key, s.label]));
       <div class="a-card">
         <div class="a-row">
           <div>
-            <h2 style="margin-bottom:6px">{l.name}</h2>
+            <h2 style="margin-bottom:6px">
+              <a href={`/admin/leads/${l.id}`} class="lead-link">{l.name}</a>
+            </h2>
             <p style="margin:0">
               <a href={`tel:${l.phoneNormalized ?? l.phone}`} dir="ltr">
                 {l.phoneNormalized ? displayPhone(l.phoneNormalized) : l.phone}
@@ -147,9 +170,18 @@ const statusLabel = Object.fromEntries(STATUSES.map((s) => [s.key, s.label]));
                 {l.estimate}
               </p>
             )}
-            {(l.utmSource || l.utmCampaign) && (
-              <p class="a-hint" dir="ltr" style="margin-top:2px">
-                کمپین: {[l.utmSource, l.utmMedium, l.utmCampaign].filter(Boolean).join(' / ')}
+            {(l.firstChannel || l.channel) && (
+              <p class="a-hint" style="margin-top:2px">
+                کانال ورود: <b>{channelLabel(l.firstChannel ?? l.channel)}</b>
+                {(l.firstUtmSource || l.firstUtmCampaign) && (
+                  <span dir="ltr"> · {[l.firstUtmSource, l.firstUtmMedium, l.firstUtmCampaign].filter(Boolean).join(' / ')}</span>
+                )}
+              </p>
+            )}
+            {l.nextFollowUpAt && (
+              <p class:list={['a-hint', 'follow', l.nextFollowUpAt <= new Date() && 'is-due']} style="margin-top:2px">
+                قرار پیگیری: {l.nextFollowUpAt.toLocaleDateString('fa-IR')}
+                {l.nextFollowUpAt <= new Date() && ' — سررسید شده'}
               </p>
             )}
           </div>
@@ -174,6 +206,7 @@ const statusLabel = Object.fromEntries(STATUSES.map((s) => [s.key, s.label]));
                 placeholder="نتیجهٔ تماس، قرار بعدی، …">{l.notes ?? ''}</textarea>
             </div>
             <button class="a-btn a-btn-primary a-btn-sm" type="submit">ذخیره</button>
+            <a class="a-btn a-btn-sm" href={`/admin/leads/${l.id}`}>پرونده و مسیر ↗</a>
             <span class={`a-badge a-badge-${l.status}`} style="margin-inline-start:8px">
               {statusLabel[l.status]}
             </span>
@@ -195,6 +228,13 @@ const statusLabel = Object.fromEntries(STATUSES.map((s) => [s.key, s.label]));
 </Admin>
 
 <style>
+  .lead-link { color: inherit; text-decoration: none; border-bottom: 1px dashed var(--a-line-2); }
+  .lead-link:hover { color: var(--a-yellow); border-color: currentColor; }
+
+  /* قراری که زمانش گذشته باید در فهرست به چشم بیاید، نه اینکه لای بقیهٔ
+     سطرهای خاکستری گم شود. */
+  .follow.is-due { color: var(--a-yellow); font-weight: 600; }
+
   /* برآوردی که خود کاربر در ماشین‌حساب دیده بود — عمداً از یادداشت تیم
      فروش جدا و کم‌رنگ‌تر است تا معلوم باشد این متن را کاربر تولید کرده. */
   .a-estimate {

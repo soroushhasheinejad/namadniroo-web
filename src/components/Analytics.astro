@@ -1,0 +1,127 @@
+---
+/**
+ * ردیاب سمت مرورگر.
+ *
+ * بازدید صفحه اینجا نیست — آن را سرور در میدل‌ور ثبت می‌کند. این اسکریپت
+ * فقط کارهایی را می‌فرستد که هیچ درخواستی به سرور نمی‌سازند و در غیر این
+ * صورت نامرئی می‌ماندند: کلیک روی شماره تماس، باز کردن فرم، رها کردنش،
+ * دانلود فایل، خواندن کامل مقاله.
+ *
+ * عمداً کوچک و بدون وابستگی است و هیچ‌چیز را در حافظهٔ مرورگر نگه
+ * نمی‌دارد؛ شناسهٔ بازدیدکننده در کوکی httpOnly است و این اسکریپت اصلاً
+ * آن را نمی‌بیند.
+ */
+---
+<script>
+  type Props = Record<string, string | number | boolean>;
+
+  /**
+   * ارسال با `sendBeacon`: درخواست به صف مرورگر سپرده می‌شود و حتی اگر
+   * کاربر همان لحظه صفحه را ترک کند می‌رسد. برای رویدادهایی مثل «کلیک روی
+   * لینک بیرونی» تنها راهی است که جواب می‌دهد — `fetch` معمولی با بسته
+   * شدن صفحه لغو می‌شود.
+   */
+  const send = (type: string, props?: Props) => {
+    const body = JSON.stringify({ type, path: location.pathname, props });
+    try {
+      const blob = new Blob([body], { type: 'application/json' });
+      if (navigator.sendBeacon?.('/api/track', blob)) return;
+    } catch { /* مرورگر قدیمی یا beacon مسدود — از fetch استفاده می‌کنیم */ }
+    fetch('/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  };
+
+  /* هر رویداد در هر صفحه فقط یک بار. بدون این، کاربری که سه بار روی شماره
+     تماس می‌زند سه «قصد تماس» می‌ساخت و نرخ‌ها را به‌هم می‌ریخت. */
+  const fired = new Set<string>();
+  const once = (type: string, props?: Props) => {
+    if (fired.has(type)) return;
+    fired.add(type);
+    send(type, props);
+  };
+
+  /* در دسترس بقیهٔ صفحه‌ها — ماشین‌حساب از همین استفاده می‌کند */
+  (window as any).nnTrack = send;
+  (window as any).nnTrackOnce = once;
+
+  /* --- کلیک‌ها --- */
+  document.addEventListener(
+    'click',
+    (e) => {
+      const el = (e.target as HTMLElement | null)?.closest?.('a, [data-quote]');
+      if (!el) return;
+
+      if (el.hasAttribute('data-quote')) {
+        once('form_open', { from: location.pathname });
+        return;
+      }
+
+      const href = (el as HTMLAnchorElement).getAttribute('href') ?? '';
+      if (href.startsWith('tel:')) once('click_phone');
+      else if (/wa\.me|whatsapp/.test(href)) once('click_whatsapp');
+      else if (/\.(pdf|zip|docx?|xlsx?)($|\?)/i.test(href) || href.startsWith('/downloads/'))
+        send('download', { file: href.slice(0, 120) });
+      else if (/^https?:\/\//.test(href) && !href.includes(location.host))
+        send('outbound', { to: href.slice(0, 120) });
+    },
+    { capture: true },
+  );
+
+  /* --- فرم مشاوره --- */
+  let formTouched = false;
+  let formSent = false;
+
+  document.addEventListener('change', (e) => {
+    const el = e.target as HTMLElement;
+    if (!el.closest?.('form[data-quote-form]')) return;
+    formTouched = true;
+    once('form_start', { from: location.pathname });
+  });
+
+  document.addEventListener(
+    'submit',
+    (e) => {
+      if ((e.target as HTMLElement)?.closest?.('form[data-quote-form]')) formSent = true;
+    },
+    { capture: true },
+  );
+
+  /**
+   * فرمی که شروع شد و فرستاده نشد.
+   *
+   * مهم‌ترین رویداد این فایل است: تفاوت «کسی فرم را ندید» با «کسی شروع کرد
+   * و جا زد» دو تصمیم کاملاً متفاوت می‌سازد — یکی جای دکمه را عوض می‌کند،
+   * دیگری خود فرم را.
+   *
+   * `pagehide` به‌جای `beforeunload`: در سافاری موبایل تنها رویدادی است که
+   * قابل اتکاست.
+   */
+  addEventListener('pagehide', () => {
+    if (formTouched && !formSent) send('form_abandon', { from: location.pathname });
+  });
+
+  /* --- خواندن کامل مقاله --- */
+  if (location.pathname.startsWith('/magazine/')) {
+    const article = document.querySelector('article, main');
+    if (article) {
+      const watcher = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((en) => en.isIntersecting)) return;
+          once('read_complete', { article: location.pathname.slice(0, 120) });
+          watcher.disconnect();
+        },
+        /* وقتی انتهای متن به میدان دید رسید. آستانهٔ اسکرول درصدی نمی‌گیریم
+           چون طول مقاله‌ها خیلی فرق دارد و ۷۵٪ یک مقالهٔ بلند با ۷۵٪ یک
+           مقالهٔ کوتاه اصلاً یک معنی ندارد. */
+        { rootMargin: '0px 0px -25% 0px' },
+      );
+      const end = document.createElement('div');
+      article.append(end);
+      watcher.observe(end);
+    }
+  }
+</script>

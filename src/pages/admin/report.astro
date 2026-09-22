@@ -1,0 +1,366 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { byChannel, funnel, overview, salesKpis, lostReasons, assistingContent } from '../../server/analytics/reports';
+import { activityCounts } from '../../server/repos/leadActivity';
+import { rollupDayKey, summaryFromRollup, withinRetention } from '../../server/services/rollup';
+import { channelLabel } from '../../server/analytics/channel';
+import { fa, jalaliMonthStart, jalaliYearMonth, JALALI_MONTHS } from '../../utils';
+
+export const prerender = false;
+
+/**
+ * گزارش دوره‌ای برای مدیریت.
+ *
+ * عمداً با داشبورد فرق دارد. داشبورد ابزار کار روزانه است و پر از عدد؛
+ * این صفحه یک روایت کوتاه است که باید در سه دقیقه خوانده شود و به یک
+ * تصمیم برسد: بودجه کجا برود.
+ *
+ * پس فقط عددهایی می‌آیند که مدیر با آن‌ها تصمیم می‌گیرد — درخواست،
+ * قرارداد، سرعت پاسخ، سهم هر کانال — و هر کدام کنار دورهٔ قبل. عددهای
+ * ترافیکی جزئی (نرخ پرش، مدت بازدید) اینجا نیستند: هیچ تصمیمی از آن‌ها
+ * بیرون نمی‌آید.
+ *
+ * برای چاپ یا PDF گرفتن، از همین صفحه Ctrl+P کافی است؛ استایل چاپ جوری
+ * تنظیم شده که منوی پنل و فرم‌ها حذف شوند.
+ */
+
+/* بازه بر اساس ماه شمسی بسته می‌شود، نه میلادی: گزارش برای کسی است که
+   «شهریور» را یک واحد می‌بیند. اگر مرز ماه میلادی بماند، «گزارش شهریور»
+   بازه‌ای از دهم شهریور تا دهم مهر را نشان می‌دهد که نه درست است نه
+   توضیح‌دادنی. */
+const offset = Math.min(Math.max(Number(Astro.url.searchParams.get('back')) || 0, 0), 24);
+const now = new Date();
+const current = jalaliYearMonth(now);
+
+const from = jalaliMonthStart(current.year, current.month - offset);
+const monthEnd = jalaliMonthStart(current.year, current.month - offset + 1);
+/* ماه جاری تا همین لحظه گزارش می‌شود، نه تا آخر ماهی که هنوز نیامده */
+const range = { from, to: offset === 0 ? now : monthEnd };
+
+const previous = {
+  from: jalaliMonthStart(current.year, current.month - offset - 1),
+  to: from,
+};
+
+/** نام ماه شمسی این گزارش — از خود بازه، نه از تاریخ امروز */
+const title = (() => {
+  const { year, month } = jalaliYearMonth(new Date(from.getTime() + 86_400_000));
+  return `${JALALI_MONTHS[month - 1]} ${fa(year)}`;
+})();
+
+/* رویدادهای خام ۱۲۰ روز می‌مانند. برای ماه‌های قدیمی‌تر، عددهای ترافیکی
+   از خلاصهٔ روزانه خوانده می‌شوند — که جمع شمارش روزانه است، نه آدم
+   یکتا. این تفاوت پایین گزارش صریح نوشته می‌شود؛ عددی که معنایش
+   توضیح داده نشود، بدتر از نبودنش است.
+   عددهای فروش از این ماجرا مستثناست: جدول لیدها هیچ‌وقت پاک نمی‌شود. */
+const archived = !withinRetention(from);
+const rolled = archived
+  ? await summaryFromRollup(rollupDayKey(from), rollupDayKey(range.to)).catch(() => null)
+  : null;
+
+const [nowStats, beforeStats, nowSales, beforeSales, steps, channels, lost, content, activity] =
+  await Promise.all([
+    overview(range),
+    overview(previous),
+    salesKpis(range),
+    salesKpis(previous),
+    funnel(range),
+    byChannel(range),
+    lostReasons(range),
+    assistingContent(range, 5),
+    activityCounts(from),
+  ]);
+
+const pct = (v: number) => `${fa(v.toFixed(v < 10 ? 1 : 0))}٪`;
+const num = (v: number) => fa(v.toLocaleString('en-US'));
+const toman = (v: number) =>
+  v >= 1_000_000_000
+    ? `${fa((v / 1_000_000_000).toFixed(1))} میلیارد`
+    : v >= 1_000_000
+      ? `${fa(Math.round(v / 1_000_000))} میلیون`
+      : num(v);
+
+const delta = (current: number, past: number): string => {
+  if (past === 0) return current > 0 ? 'دورهٔ قبل صفر بود' : '—';
+  const change = ((current - past) / past) * 100;
+  return `${change >= 0 ? '▲' : '▼'} ${pct(Math.abs(change))} نسبت به دورهٔ قبل`;
+};
+
+/* جمع تماس‌ها و پیگیری‌های ثبت‌شده — نشان می‌دهد تیم چقدر کار کرده، جدا
+   از اینکه نتیجه چه شد. */
+/* نمای ترافیک: زنده از رویدادها، یا از خلاصه اگر بازه بایگانی شده باشد */
+const traffic = rolled
+  ? { visitors: rolled.visitorDays, pageviews: rolled.pageviews }
+  : { visitors: nowStats.visitors, pageviews: nowStats.pageviews };
+
+const conversion = traffic.visitors > 0 ? (nowSales.leads / traffic.visitors) * 100 : 0;
+
+/* جدول کانال‌ها هم همین‌طور. تعداد قرارداد و مبلغ در هر دو حالت از جدول
+   لیدها می‌آید، پس فقط ستون بازدیدکننده منبعش عوض می‌شود. */
+const channelRows = rolled
+  ? rolled.channels.map((c) => ({
+      channel: c.channel,
+      visitors: c.visitorDays,
+      leads: c.leads,
+      conversion: c.visitorDays > 0 ? (c.leads / c.visitorDays) * 100 : 0,
+      won: channels.find((x) => x.channel === c.channel)?.won ?? 0,
+      value: channels.find((x) => x.channel === c.channel)?.value ?? 0,
+    }))
+  : channels;
+
+const touches = activity
+  .filter((a) => a.kind !== 'system')
+  .reduce((sum, a) => sum + a.value, 0);
+
+const paidChannels = channelRows.filter((c) => c.channel === 'paid');
+const bestChannel = channelRows.filter((c) => c.leads > 0)[0] ?? null;
+/* نشتی‌ترین مرحله، فقط میان مرحله‌هایی که نسبتشان تعریف‌شده است — مرحله‌ای
+   که قبلی‌اش هیچ‌کس نداشته، نشتی ندارد، داده ندارد. */
+const leakiest = steps
+  .slice(1)
+  .filter((s) => s.fromPrevious !== null)
+  .reduce<(typeof steps)[number] | null>(
+    (worst, s) => (worst === null || s.fromPrevious! < worst.fromPrevious! ? s : worst),
+    null,
+  );
+---
+<Admin title="گزارش مدیریت" lead={`${title} — خلاصه‌ای که در سه دقیقه خوانده می‌شود.`} roles={['admin', 'editor']}>
+  <div slot="actions" class="a-actions" style="margin:0">
+    <a class="a-btn a-btn-sm" href={`?back=${offset + 1}`}>ماه قبل</a>
+    {offset > 0 && <a class="a-btn a-btn-sm" href={`?back=${offset - 1}`}>ماه بعد</a>}
+    <button class="a-btn a-btn-primary a-btn-sm" type="button" id="printBtn">چاپ / PDF</button>
+  </div>
+
+  <div class="report">
+    <header class="rep-head">
+      <h2>گزارش عملکرد دیجیتال — {title}</h2>
+      <p>
+        بازه: {from.toLocaleDateString('fa-IR')} تا {range.to.toLocaleDateString('fa-IR')}
+        {offset === 0 && ' (ماه جاری، تا امروز)'}
+      </p>
+    </header>
+
+    {/* ---------- خلاصهٔ مدیریتی ---------- */}
+    <section class="a-card">
+      <h2>در یک نگاه</h2>
+      <ul class="summary">
+        <li>
+          <b>{num(traffic.visitors)}</b> {archived ? 'بازدیدکننده‌روز' : 'بازدیدکننده'} وارد سایت شدند و
+          <b> {num(nowSales.leads)}</b> درخواست مشاوره ثبت شد — نرخ تبدیل
+          <b> {pct(conversion)}</b>. ({delta(nowSales.leads, beforeSales.leads)})
+        </li>
+        <li>
+          {nowSales.won > 0 ? (
+            <>
+              <b>{num(nowSales.won)}</b> قرارداد بسته شد
+              {nowSales.capacityKw > 0 && <> به مجموع ظرفیت <b>{num(nowSales.capacityKw)} کیلووات</b></>}
+              {nowSales.dealValue > 0 && <> و ارزش <b>{toman(nowSales.dealValue)} تومان</b></>}.
+            </>
+          ) : (
+            <>در این بازه قراردادی در سیستم ثبت نشده — اگر قراردادی بسته شده، وضعیت پرونده‌اش در پنل باید «قرارداد بسته شد» شود تا در گزارش بیاید.</>
+          )}
+        </li>
+        <li>
+          میانگین فاصلهٔ ثبت درخواست تا اولین تماس:
+          <b> {nowSales.responseHours === null ? 'ثبت نشده' : `${fa(nowSales.responseHours.toFixed(1))} ساعت`}</b>
+          {nowSales.untouched > 0 && (
+            <>؛ <b>{num(nowSales.untouched)}</b> درخواست هنوز هیچ تماسی نگرفته است.</>
+          )}
+        </li>
+        {bestChannel && (
+          <li>
+            بیشترین درخواست از <b>{channelLabel(bestChannel.channel)}</b> آمد
+            ({num(bestChannel.leads)} درخواست از {num(bestChannel.visitors)} بازدیدکننده).
+          </li>
+        )}
+        {leakiest && leakiest.fromPrevious! < 100 && (
+          <li>
+            بیشترین ریزش در مرحلهٔ <b>{leakiest.label}</b> است: تنها
+            <b> {pct(leakiest.fromPrevious!)}</b> از مرحلهٔ قبل به اینجا می‌رسند.
+          </li>
+        )}
+        {touches > 0 && <li>تیم فروش <b>{num(touches)}</b> پیگیری (تماس، پیام، جلسه) ثبت کرده است.</li>}
+      </ul>
+    </section>
+
+    {/* ---------- عددهای اصلی ---------- */}
+    <section class="a-card">
+      <h2>سنجه‌های اصلی</h2>
+      <div class="a-table-wrap">
+        <table class="a-table">
+          <thead><tr><th>سنجه</th><th>این دوره</th><th>دورهٔ قبل</th><th>تغییر</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>{archived ? 'بازدیدکننده‌روز' : 'بازدیدکننده'}</td>
+              <td class="a-num">{num(traffic.visitors)}</td>
+              <td class="a-num">{archived ? '—' : num(beforeStats.visitors)}</td>
+              <td>{archived ? '—' : delta(nowStats.visitors, beforeStats.visitors)}</td>
+            </tr>
+            <tr>
+              <td>درخواست مشاوره</td><td class="a-num">{num(nowSales.leads)}</td>
+              <td class="a-num">{num(beforeSales.leads)}</td><td>{delta(nowSales.leads, beforeSales.leads)}</td>
+            </tr>
+            <tr>
+              <td>نرخ تبدیل بازدید به درخواست</td><td class="a-num">{pct(conversion)}</td>
+              <td class="a-num">{archived ? '—' : pct(beforeStats.conversion)}</td><td>—</td>
+            </tr>
+            <tr>
+              <td>قرارداد بسته‌شده</td><td class="a-num">{num(nowSales.won)}</td>
+              <td class="a-num">{num(beforeSales.won)}</td><td>{delta(nowSales.won, beforeSales.won)}</td>
+            </tr>
+            <tr>
+              <td>نرخ برد (از پرونده‌های بسته‌شده)</td><td class="a-num">{pct(nowSales.winRate)}</td>
+              <td class="a-num">{pct(beforeSales.winRate)}</td><td>—</td>
+            </tr>
+            <tr>
+              <td>ظرفیت قراردادها (کیلووات)</td><td class="a-num">{num(nowSales.capacityKw)}</td>
+              <td class="a-num">{num(beforeSales.capacityKw)}</td><td>{delta(nowSales.capacityKw, beforeSales.capacityKw)}</td>
+            </tr>
+            <tr>
+              <td>ارزش قراردادها (تومان)</td><td class="a-num">{toman(nowSales.dealValue)}</td>
+              <td class="a-num">{toman(beforeSales.dealValue)}</td><td>{delta(nowSales.dealValue, beforeSales.dealValue)}</td>
+            </tr>
+            <tr>
+              <td>میانگین ساعت تا اولین تماس</td>
+              <td class="a-num">{nowSales.responseHours === null ? '—' : fa(nowSales.responseHours.toFixed(1))}</td>
+              <td class="a-num">{beforeSales.responseHours === null ? '—' : fa(beforeSales.responseHours.toFixed(1))}</td>
+              <td>کمتر بهتر است</td>
+            </tr>
+            <tr>
+              <td>میانگین طول چرخهٔ فروش (روز)</td>
+              <td class="a-num">{nowSales.cycleDays === null ? '—' : fa(nowSales.cycleDays.toFixed(1))}</td>
+              <td class="a-num">{beforeSales.cycleDays === null ? '—' : fa(beforeSales.cycleDays.toFixed(1))}</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    {/* ---------- کانال‌ها ---------- */}
+    <section class="a-card">
+      <h2>کانال‌ها — کجا سرمایه‌گذاری کنیم</h2>
+      <p class="a-hint" style="margin-top:-8px">
+        درخواست‌ها بر اساس اولین برخورد شمرده شده‌اند: کانالی که مشتری را <b>شناساند</b>، نه
+        کانالی که آخرین بار از آن برگشت.
+      </p>
+      <div class="a-table-wrap">
+        <table class="a-table">
+          <thead>
+            <tr><th>کانال</th><th>بازدیدکننده</th><th>درخواست</th><th>نرخ تبدیل</th><th>قرارداد</th><th>ارزش قرارداد</th></tr>
+          </thead>
+          <tbody>
+            {channelRows.map((c) => (
+              <tr>
+                <td>{channelLabel(c.channel)}</td>
+                <td class="a-num">{num(c.visitors)}</td>
+                <td class="a-num">{num(c.leads)}</td>
+                <td class="a-num">{c.visitors > 0 ? pct(c.conversion) : '—'}</td>
+                <td class="a-num">{c.won > 0 ? num(c.won) : '—'}</td>
+                <td class="a-num">{c.value > 0 ? `${toman(c.value)} تومان` : '—'}</td>
+              </tr>
+            ))}
+            {channelRows.length === 0 && <tr><td colspan="6" class="a-empty">داده‌ای ثبت نشده.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      {paidChannels.length === 0 && (
+        <p class="a-hint">
+          در این بازه ترافیکی از تبلیغات پولی شناسایی نشده. اگر کمپینی اجرا شده، لینک‌هایش باید
+          پارامتر <code dir="ltr">utm_medium=cpc</code> داشته باشند تا جدا شمرده شوند.
+        </p>
+      )}
+    </section>
+
+    {/* ---------- قیف ---------- */}
+    <section class="a-card">
+      <h2>قیف تبدیل</h2>
+      <table class="a-table">
+        <thead><tr><th>مرحله</th><th>تعداد</th><th>عبور از مرحلهٔ قبل</th></tr></thead>
+        <tbody>
+          {steps.map((s, i) => (
+            <tr>
+              <td>{s.label}</td>
+              <td class="a-num">{num(s.people)}</td>
+              <td class="a-num">{i === 0 || s.fromPrevious === null ? '—' : pct(s.fromPrevious)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+
+    {(lost.length > 0 || content.length > 0) && (
+      <section class="a-card">
+        {lost.length > 0 && (
+          <>
+            <h2>چرا فرصت‌ها از دست رفتند</h2>
+            <table class="a-table">
+              <tbody>{lost.map((l) => <tr><td>{l.reason}</td><td class="a-num">{num(l.value)}</td></tr>)}</tbody>
+            </table>
+          </>
+        )}
+        {content.length > 0 && (
+          <>
+            <h2 style="margin-top:22px">محتوایی که در مسیر فروش نقش داشت</h2>
+            <table class="a-table">
+              <tbody>
+                {content.map((c) => (
+                  <tr><td dir="ltr" style="text-align:right">{c.path}</td><td class="a-num">{num(c.leads)} لید</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+      </section>
+    )}
+
+    <footer class="rep-foot">
+      {archived && (
+        <p>
+          این بازه قدیمی‌تر از ۱۲۰ روز است و رویدادهای خامش پاک شده‌اند، پس عددهای ترافیکی از
+          خلاصهٔ روزانه آمده‌اند: «بازدیدکننده‌روز» یعنی جمع شمارش روزانه، و کسی که در سه روز
+          آمده سه بار شمرده شده. عددهای فروش (درخواست، قرارداد، مبلغ) از این ماجرا مستثنا و
+          دقیق‌اند — پروندهٔ لیدها هیچ‌وقت پاک نمی‌شود.
+        </p>
+      )}
+      <p>
+        منبع داده: آنالیتیکس اول‌شخص سایت نماد نیرو. بازدیدها سمت سرور ثبت می‌شوند و ربات‌ها فیلتر
+        شده‌اند؛ اعداد ممکن است با گوگل آنالیتیکس متفاوت باشد و این طبیعی است — آن ابزار بخشی از
+        بازدیدها را به‌دلیل مسدودکننده‌ها و نبود جاوااسکریپت از دست می‌دهد.
+      </p>
+      <p>ساخته‌شده در {new Date().toLocaleDateString('fa-IR')}</p>
+    </footer>
+  </div>
+</Admin>
+
+<script>
+  document.getElementById('printBtn')?.addEventListener('click', () => window.print());
+</script>
+
+<style>
+  .rep-head { margin-bottom: 18px; }
+  .rep-head h2 { margin: 0 0 4px; font-size: 19px; }
+  .rep-head p { margin: 0; color: var(--a-muted); font-size: 13px; }
+
+  .summary { margin: 0; padding-inline-start: 18px; display: grid; gap: 10px; font-size: 14px; line-height: 2; }
+  .summary b { color: var(--a-yellow); font-weight: 700; }
+
+  .rep-foot { margin-top: 18px; color: var(--a-faint); font-size: 12px; line-height: 1.9; }
+  .rep-foot p { margin: 0 0 4px; }
+
+  /* نسخهٔ چاپی: روی کاغذ سفید، بدون منو و دکمه — همین فایل می‌شود PDF
+     قابل فرستادن، بدون ابزار جانبی. */
+  @media print {
+    :global(.a-side), :global(.a-head), :global(.a-actions) { display: none !important; }
+    :global(body.admin), :global(.a-main) { background: #fff !important; color: #111 !important; }
+    :global(.a-shell) { display: block !important; }
+    :global(.a-card) {
+      background: #fff !important;
+      border: 1px solid #ddd !important;
+      break-inside: avoid;
+    }
+    :global(.a-table th), :global(.a-table td) { border-color: #ddd !important; color: #111 !important; }
+    .summary b { color: #111 !important; }
+    .rep-foot { color: #555 !important; }
+  }
+</style>

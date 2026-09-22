@@ -1,0 +1,391 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import {
+  assistingContent,
+  byChannel,
+  dailyTrend,
+  deviceSplit,
+  eventCounts,
+  funnel,
+  landingPages,
+  lostReasons,
+  overview,
+  salesKpis,
+  topPages,
+} from '../../server/analytics/reports';
+import { channelLabel } from '../../server/analytics/channel';
+import { eventLabel } from '../../server/analytics/events';
+import { fa } from '../../utils';
+
+export const prerender = false;
+
+/**
+ * داشبورد آنالیتیکس.
+ *
+ * ترتیب بخش‌ها از بالا به پایین، ترتیب سؤال‌هاست: چقدر ترافیک داریم؟ کجا
+ * نشتی می‌کند؟ از کدام کانال می‌آید؟ کدام محتوا مشتری می‌سازد؟ هیچ عددی
+ * اینجا نیست که نشود با آن کاری کرد — «میانگین مدت بازدید» و امثالش
+ * عمداً حذف شده‌اند چون هیچ تصمیمی از آن‌ها بیرون نمی‌آید.
+ */
+
+const PERIODS = [
+  { days: 7, label: '۷ روز' },
+  { days: 30, label: '۳۰ روز' },
+  { days: 90, label: '۹۰ روز' },
+];
+
+const days = Math.min(Math.max(Number(Astro.url.searchParams.get('days')) || 30, 1), 365);
+const to = new Date();
+const from = new Date(to.getTime() - days * 86_400_000);
+const range = { from, to };
+
+/* بازهٔ قبلی با همان طول، برای مقایسه. بدون آن، هر عددی فقط یک عدد است:
+   «۴۲۰ بازدیدکننده» بد است یا خوب؟ معلوم نیست تا وقتی با دورهٔ قبل
+   سنجیده نشود. */
+const previous = {
+  from: new Date(from.getTime() - days * 86_400_000),
+  to: from,
+};
+
+const [now, before, steps, channels, pages, entries, events, devices, trend, content, sales, lost] =
+  await Promise.all([
+    overview(range),
+    overview(previous),
+    funnel(range),
+    byChannel(range),
+    topPages(range),
+    landingPages(range),
+    eventCounts(range),
+    deviceSplit(range),
+    dailyTrend(range),
+    assistingContent(range),
+    salesKpis(range),
+    lostReasons(range),
+  ]);
+
+/** درصد تغییر نسبت به دورهٔ قبل؛ وقتی دورهٔ قبل صفر بوده، درصد معنا ندارد */
+const delta = (current: number, past: number): number | null =>
+  past > 0 ? ((current - past) / past) * 100 : null;
+
+const pct = (v: number) => `${fa(v.toFixed(v < 10 ? 1 : 0))}٪`;
+const signed = (v: number | null) => (v === null ? '' : `${v >= 0 ? '▲' : '▼'} ${pct(Math.abs(v))}`);
+
+const deviceLabel: Record<string, string> = {
+  mobile: 'موبایل',
+  desktop: 'دسکتاپ',
+  tablet: 'تبلت',
+};
+
+/* نمودار روند: بیشینه مبنای ارتفاع میله‌هاست. وقتی همهٔ روزها صفرند،
+   تقسیم بر صفر پیش می‌آید، پس کف یک گذاشته می‌شود. */
+const peak = Math.max(1, ...trend.map((t) => t.visitors));
+const totalEventPeople = Math.max(1, ...events.map((e) => e.visitors));
+const maxChannel = Math.max(1, ...channels.map((c) => c.visitors));
+---
+<Admin
+  title="آنالیتیکس"
+  lead="رفتار بازدیدکننده‌ها، مسیرشان تا درخواست، و اینکه کدام کانال واقعاً مشتری می‌آورد."
+  roles={['admin', 'editor']}
+>
+  <a slot="actions" class="a-btn" href="/admin/report">گزارش مدیریت ↗</a>
+
+  <div class="a-filters">
+    {PERIODS.map((p) => (
+      <a
+        class:list={['a-btn', 'a-btn-sm', p.days === days && 'a-btn-primary']}
+        href={`?days=${p.days}`}
+      >{p.label}</a>
+    ))}
+    <span class="a-hint" style="margin-inline-start:auto">
+      {from.toLocaleDateString('fa-IR')} تا {to.toLocaleDateString('fa-IR')}
+    </span>
+  </div>
+
+  <div class="a-stats">
+    <div class="a-stat">
+      <b>{fa(now.visitors.toLocaleString('en-US'))}</b>
+      <span>بازدیدکننده <i class="d">{signed(delta(now.visitors, before.visitors))}</i></span>
+    </div>
+    <div class="a-stat">
+      <b>{fa(now.pageviews.toLocaleString('en-US'))}</b>
+      <span>بازدید صفحه <i class="d">{signed(delta(now.pageviews, before.pageviews))}</i></span>
+    </div>
+    <div class="a-stat">
+      <b>{fa(now.leads)}</b>
+      <span>درخواست <i class="d">{signed(delta(now.leads, before.leads))}</i></span>
+    </div>
+    <div class="a-stat">
+      <b>{pct(now.conversion)}</b>
+      <span>نرخ تبدیل به درخواست</span>
+    </div>
+  </div>
+
+  {now.pageviews === 0 && (
+    <p class="a-msg a-msg-warn">
+      هنوز بازدیدی در این بازه ثبت نشده. اگر سایت تازه منتشر شده، چند ساعت طول می‌کشد تا داده جمع
+      شود؛ اگر مدتی گذشته، ببینید سایت روی سرور اجرا می‌شود یا نسخهٔ ثابت.
+    </p>
+  )}
+
+  {/* ---------- روند ---------- */}
+  <div class="a-card">
+    <h2>روند روزانه</h2>
+    <p class="a-hint" style="margin-top:-8px">
+      میله‌ها بازدیدکنندهٔ یکتا و نقطه‌های زرد، درخواست‌های ثبت‌شدهٔ همان روزند.
+    </p>
+    {trend.length === 0 ? (
+      <p class="a-empty">داده‌ای برای این بازه نیست.</p>
+    ) : (
+      <div class="chart" role="img" aria-label="نمودار روند بازدید و درخواست">
+        {trend.map((t) => (
+          <div class="chart-col" title={`${t.day} — ${t.visitors} بازدیدکننده، ${t.leads} درخواست`}>
+            <div class="chart-bar" style={`height:${Math.max((t.visitors / peak) * 100, 2)}%`}>
+              {t.leads > 0 && <i class="chart-dot" style={`--n:${t.leads}`} />}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  {/* ---------- قیف ---------- */}
+  <div class="a-card">
+    <h2>قیف تبدیل</h2>
+    <p class="a-hint" style="margin-top:-8px">
+      هر مرحله تعداد <b>آدم</b> است، نه تعداد رویداد. ستون «از مرحلهٔ قبل» جایی را نشان می‌دهد که
+      بیشترین ریزش اتفاق می‌افتد — همان‌جا باید دست برد.
+    </p>
+    <div class="a-table-wrap">
+      <table class="a-table">
+        <thead>
+          <tr><th>مرحله</th><th>تعداد</th><th>از مرحلهٔ قبل</th><th>از کل</th><th></th></tr>
+        </thead>
+        <tbody>
+          {steps.map((s, i) => (
+            <tr>
+              <td>{s.label}</td>
+              <td class="a-num">{fa(s.people.toLocaleString('en-US'))}</td>
+              <td class="a-num">{i === 0 || s.fromPrevious === null ? '—' : pct(s.fromPrevious)}</td>
+              <td class="a-num">{i === 0 ? '۱۰۰٪' : pct(s.ofTotal)}</td>
+              <td style="width:40%">
+                <div class="meter"><i style={`width:${Math.max(s.ofTotal, 0.5)}%`} /></div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {/* ---------- کانال‌ها ---------- */}
+  <div class="a-card">
+    <h2>کانال‌ها</h2>
+    <p class="a-hint" style="margin-top:-8px">
+      لیدها بر اساس <b>اولین</b> برخورد شمرده می‌شوند: کسی که از اینستاگرام ما را شناخت و بعد با
+      جست‌وجوی نام شرکت برگشت، مشتری‌ای است که اینستاگرام آورده.
+    </p>
+    {channels.length === 0 ? (
+      <p class="a-empty">هنوز ترافیکی ثبت نشده.</p>
+    ) : (
+      <div class="a-table-wrap">
+        <table class="a-table">
+          <thead>
+            <tr><th>کانال</th><th>بازدیدکننده</th><th>درخواست</th><th>نرخ تبدیل</th><th>قرارداد</th><th></th></tr>
+          </thead>
+          <tbody>
+            {channels.map((c) => (
+              <tr>
+                <td>{channelLabel(c.channel)}</td>
+                <td class="a-num">{fa(c.visitors.toLocaleString('en-US'))}</td>
+                <td class="a-num">{fa(c.leads)}</td>
+                <td class="a-num">{c.visitors > 0 ? pct(c.conversion) : '—'}</td>
+                <td class="a-num">{c.won > 0 ? fa(c.won) : '—'}</td>
+                <td style="width:30%">
+                  <div class="meter"><i style={`width:${(c.visitors / maxChannel) * 100}%`} /></div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+
+  <div class="a-row">
+    {/* ---------- رویدادها ---------- */}
+    <div class="a-card">
+      <h2>رویدادها</h2>
+      {events.length === 0 ? (
+        <p class="a-empty">رویدادی ثبت نشده.</p>
+      ) : (
+        <table class="a-table">
+          <thead><tr><th>رویداد</th><th>نفر</th><th></th></tr></thead>
+          <tbody>
+            {events.map((e) => (
+              <tr>
+                <td>{eventLabel(e.type)}</td>
+                <td class="a-num">{fa(e.visitors)}</td>
+                <td style="width:45%">
+                  <div class="meter"><i style={`width:${(e.visitors / totalEventPeople) * 100}%`} /></div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+
+    {/* ---------- دستگاه ---------- */}
+    <div class="a-card">
+      <h2>دستگاه</h2>
+      <table class="a-table">
+        <thead><tr><th>دستگاه</th><th>بازدیدکننده</th><th>سهم</th></tr></thead>
+        <tbody>
+          {devices.map((d) => (
+            <tr>
+              <td>{deviceLabel[d.device] ?? d.device}</td>
+              <td class="a-num">{fa(d.value.toLocaleString('en-US'))}</td>
+              <td class="a-num">{now.visitors > 0 ? pct((d.value / now.visitors) * 100) : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="a-hint">
+        سهم موبایل تعیین می‌کند کدام نسخهٔ صفحه ارزش وقت گذاشتن دارد.
+      </p>
+    </div>
+  </div>
+
+  <div class="a-row">
+    {/* ---------- پربازدیدترین ---------- */}
+    <div class="a-card">
+      <h2>پربازدیدترین صفحه‌ها</h2>
+      <table class="a-table">
+        <thead><tr><th>صفحه</th><th>بازدید</th><th>نفر</th></tr></thead>
+        <tbody>
+          {pages.map((p) => (
+            <tr>
+              <td dir="ltr" style="text-align:right">{p.path}</td>
+              <td class="a-num">{fa(p.views.toLocaleString('en-US'))}</td>
+              <td class="a-num">{fa(p.visitors.toLocaleString('en-US'))}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    {/* ---------- صفحه‌های ورود ---------- */}
+    <div class="a-card">
+      <h2>صفحه‌های ورود</h2>
+      <p class="a-hint" style="margin-top:-8px">
+        اولین صفحه‌ای که بازدیدکنندهٔ تازه دیده — همان صفحه‌ای که گوگل نشانش داده.
+      </p>
+      <table class="a-table">
+        <thead><tr><th>صفحه</th><th>ورود تازه</th></tr></thead>
+        <tbody>
+          {entries.map((p) => (
+            <tr>
+              <td dir="ltr" style="text-align:right">{p.path}</td>
+              <td class="a-num">{fa(p.value.toLocaleString('en-US'))}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {/* ---------- محتوایی که مشتری می‌آورد ---------- */}
+  <div class="a-card">
+    <h2>مقاله‌هایی که مشتری ساختند</h2>
+    <p class="a-hint" style="margin-top:-8px">
+      مقاله‌هایی که کسانی خوانده بودند که بعداً درخواست ثبت کردند. این عدد ارزش محتوا را در مسیر
+      فروش نشان می‌دهد نه محبوبیتش — مقاله‌ای با هزار بازدید بی‌لید، از مقاله‌ای با صد بازدید و
+      پنج لید کم‌ارزش‌تر است.
+    </p>
+    {content.length === 0 ? (
+      <p class="a-empty">هنوز لیدی نداریم که پیش از فرم مقاله‌ای خوانده باشد.</p>
+    ) : (
+      <table class="a-table">
+        <thead><tr><th>مقاله</th><th>لید همراه</th></tr></thead>
+        <tbody>
+          {content.map((c) => (
+            <tr>
+              <td dir="ltr" style="text-align:right">
+                <a href={c.path} target="_blank" rel="noopener">{c.path}</a>
+              </td>
+              <td class="a-num">{fa(c.leads)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+
+  {/* ---------- فروش ---------- */}
+  <div class="a-card">
+    <h2>عملکرد فروش در این بازه</h2>
+    <div class="a-stats" style="margin-bottom:0">
+      <div class="a-stat"><b>{fa(sales.leads)}</b><span>درخواست</span></div>
+      <div class="a-stat"><b>{fa(sales.won)}</b><span>قرارداد بسته‌شده</span></div>
+      <div class="a-stat">
+        <b>{sales.responseHours === null ? '—' : fa(sales.responseHours.toFixed(1))}</b>
+        <span>میانگین ساعت تا اولین تماس</span>
+      </div>
+      <div class="a-stat"><b>{fa(sales.untouched)}</b><span>هنوز تماس گرفته نشده</span></div>
+    </div>
+    {lost.length > 0 && (
+      <>
+        <h3 style="margin:20px 0 8px;font-size:14px">دلیل ازدست‌رفتن</h3>
+        <table class="a-table">
+          <tbody>
+            {lost.map((l) => (
+              <tr><td>{l.reason}</td><td class="a-num">{fa(l.value)}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </>
+    )}
+  </div>
+
+  <p class="a-hint" style="margin-top:20px">
+    داده‌ها اول‌شخص‌اند و در دیتابیس خود سایت می‌مانند: هیچ سرویس بیرونی‌ای در کار نیست، افزونه‌های
+    مسدودکننده نمی‌توانند خاموشش کنند، و هیچ اطلاعات شخصی — نه آی‌پی، نه شماره — ثبت نمی‌شود.
+    رویدادهای خام ۱۲۰ روز نگه داشته می‌شوند و خلاصهٔ روزانه‌شان برای همیشه.
+  </p>
+</Admin>
+
+<style>
+  /* اعداد مقایسه با دورهٔ قبل، کنار برچسب و کم‌رنگ‌تر از خود عدد */
+  .a-stat .d { font-style: normal; color: var(--a-faint); font-size: 12px; margin-inline-start: 4px; }
+
+  /* میلهٔ نسبت — به‌جای نمودار دایره‌ای، چون مقایسهٔ طول از مقایسهٔ زاویه آسان‌تر است */
+  .meter { height: 7px; background: rgba(255,255,255,.06); border-radius: 4px; overflow: hidden; }
+  .meter i { display: block; height: 100%; background: var(--a-yellow); opacity: .75; }
+
+  .chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 140px;
+    padding-top: 10px;
+  }
+  .chart-col { flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 3px; }
+  .chart-bar {
+    width: 100%;
+    background: rgba(255,255,255,.14);
+    border-radius: 2px 2px 0 0;
+    position: relative;
+  }
+  /* روزی که لید داشته، نقطهٔ زرد بالای میله می‌گیرد — تعداد لید اندازه‌اش را کمی بزرگ‌تر می‌کند */
+  .chart-dot {
+    position: absolute;
+    top: -7px;
+    inset-inline-start: 50%;
+    transform: translateX(50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--a-yellow);
+    box-shadow: 0 0 0 calc(min(var(--n), 5) * 0.6px) rgba(255,196,26,.25);
+  }
+</style>

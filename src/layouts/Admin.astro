@@ -35,13 +35,24 @@ const contentLinks = [
   { href: '/admin/settings', label: 'متن‌های سایت' },
 ];
 
+const insightLinks = [
+  { href: '/admin/analytics', label: 'آنالیتیکس' },
+  { href: '/admin/report', label: 'گزارش مدیریت' },
+];
+
 const seoLinks = [
   { href: '/admin/seo', label: 'سلامت سئو' },
   { href: '/admin/seo/settings', label: 'تنظیمات سئو' },
   { href: '/admin/redirects', label: 'ریدایرکت‌ها و ۴۰۴' },
 ];
 
-const activeHref = ['/admin', '/admin/leads', ...contentLinks.map((l) => l.href), ...seoLinks.map((l) => l.href)]
+const activeHref = [
+  '/admin',
+  '/admin/leads',
+  ...insightLinks.map((l) => l.href),
+  ...contentLinks.map((l) => l.href),
+  ...seoLinks.map((l) => l.href),
+]
   .filter((href) => (href === '/admin' ? path === href : matches(href)))
   .sort((a, b) => b.length - a.length)[0];
 const on = (href: string) => href === activeHref;
@@ -70,6 +81,11 @@ const on = (href: string) => href === activeHref;
 
         {user.role !== 'sales' && (
           <>
+            <span class="a-group">آمار</span>
+            {insightLinks.map((l) => (
+              <a href={l.href} class:list={[on(l.href) && 'is-active']}>{l.label}</a>
+            ))}
+
             <span class="a-group">محتوا</span>
             {contentLinks.map((l) => (
               <a href={l.href} class:list={[on(l.href) && 'is-active']}>{l.label}</a>

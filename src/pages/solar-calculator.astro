@@ -244,6 +244,15 @@ const seo = await seoProps(c.seo);
 
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
+  /* رویدادهای قیف ماشین‌حساب.
+     تابع ردیاب را کامپوننت Analytics روی window می‌گذارد؛ اگر به هر دلیل
+     بالا نیامده باشد، این‌ها بی‌صدا رد می‌شوند و ماشین‌حساب کار خودش را
+     می‌کند — آمار هرگز نباید ابزار را زمین بزند. */
+  const track = (type: string, props?: Record<string, string | number | boolean>) =>
+    (window as any).nnTrack?.(type, props);
+  const trackOnce = (type: string, props?: Record<string, string | number | boolean>) =>
+    (window as any).nnTrackOnce?.(type, props);
+
   const form = $<HTMLFormElement>('calcForm');
   if (form) {
     const investmentInput = $<HTMLInputElement>('c-investment');
@@ -386,6 +395,16 @@ const seo = await seoProps(c.seo);
          بداند کاربر دربارهٔ چه ابعادی پرسیده است. */
       $<HTMLAnchorElement>('ctaLink').href =
         `/contact?capacity=${encodeURIComponent(capacity(mid.capacityKw))}`;
+
+      /* رسیدن به یک برآورد معتبر، مهم‌ترین نقطهٔ قیف است: از اینجا به بعد
+         کاربر عددی از ما دارد. ظرفیت را هم می‌فرستیم تا در گزارش معلوم
+         باشد سایت بیشتر چه اندازه پروژه‌ای جذب می‌کند. */
+      trackOnce('calc_result', {
+        kw: Math.round(mid.capacityKw),
+        investment: Math.round(investment / 1_000_000),
+        mount: base.mount,
+        region: regionSelect.value,
+      });
     };
 
     /* ---------- دریافت PDF ---------- */
@@ -445,6 +464,9 @@ const seo = await seoProps(c.seo);
         const out = await res.json();
 
         if (out.success) {
+          track('calc_report', {
+            kw: Math.round(calculate(readInvestment(), assumptionsFrom()).capacityKw),
+          });
           pdfNote.textContent = 'آماده شد. اگر برگه باز نشد، از دکمهٔ زیر استفاده کنید.';
           pdfForm.insertAdjacentHTML(
             'beforeend',
@@ -462,6 +484,14 @@ const seo = await seoProps(c.seo);
       } finally {
         pdfBtn.disabled = false;
       }
+    });
+
+    /* شروع کار با ماشین‌حساب = اولین باری که کاربر واقعاً چیزی را دست
+       می‌زند، نه باز شدن صفحه. باز شدن صفحه همان بازدید است و جداگانه
+       ثبت می‌شود؛ اگر این دو یکی شمرده شوند، قیف هیچ نشتی نشان نمی‌دهد. */
+    form.addEventListener('input', () => trackOnce('calc_start'), { once: false });
+    form.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('button[data-amount]')) trackOnce('calc_start');
     });
 
     /** مبلغ را موقع تایپ سه‌رقم‌سه‌رقم جدا می‌کند */
