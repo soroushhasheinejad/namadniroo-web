@@ -2,9 +2,10 @@
 import Base from '../../layouts/Base.astro';
 import ArticleCard from '../../components/ArticleCard.astro';
 import { categoryLabel } from '../../data/site';
-import { fa, breadcrumbSchema } from '../../utils';
+import { fa, breadcrumbSchema, faqSchema } from '../../utils';
 import { listArticles } from '../../server/repos/content';
 import { renderMarkdown } from '../../server/content/markdown';
+import { extractFaq, linkedArticleSlugs } from '../../server/content/articleParts';
 
 export const prerender = false;
 
@@ -26,12 +27,20 @@ const toc = [...html.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)].map((m) => 
   text: m[2]!.replace(/<[^>]+>/g, '').trim(),
 }));
 
-/* مطالب مرتبط: اول هم‌دسته، بعد بقیه — تا مقالهٔ دسته‌ای که فقط دو عضو
-   دارد هم سه پیشنهاد داشته باشد. */
+/* پرسش‌های پرتکرار: از خودِ متن مقاله در می‌آید (قرارداد در articleParts)
+   و به داده‌های ساختاریافتهٔ FAQPage تبدیل می‌شود. گوگل آن را به‌صورت
+   آکاردئون زیر نتیجه نشان می‌دهد. */
+const faq = extractFaq(html);
+
+/* مطالب مرتبط: اول مقاله‌هایی که خودِ این متن به آن‌ها لینک داده — یعنی
+   هم‌خوشه‌اند و ربطشان از هم‌دسته‌بودن قوی‌تر است — بعد هم‌دسته‌ها، بعد
+   بقیه، تا همیشه سه پیشنهاد پر شود. */
 const others = all.filter((a) => a.slug !== article.slug);
+const linked = linkedArticleSlugs(article.body);
 const related = [
-  ...others.filter((a) => a.category === article.category),
-  ...others.filter((a) => a.category !== article.category),
+  ...others.filter((a) => linked.has(a.slug)),
+  ...others.filter((a) => !linked.has(a.slug) && a.category === article.category),
+  ...others.filter((a) => !linked.has(a.slug) && a.category !== article.category),
 ].slice(0, 3);
 
 const published = article.publishedAt?.toISOString().slice(0, 10);
@@ -60,6 +69,7 @@ const pageSchema = [
       ? { image: new URL(article.cover.url, 'https://namadniroo.ir').href }
       : {}),
   },
+  ...(faq.length > 0 ? [faqSchema(faq)] : []),
 ];
 ---
 <Base
