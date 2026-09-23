@@ -52,6 +52,11 @@ const seo = await seoProps(c.seo);
       <b>{c.disclaimer.lead}</b>
       {c.disclaimer.text}
     </p>
+    <p class="calc-guide-link">
+      اولین بار است از این صفحه استفاده می‌کنید؟
+      <a href="/magazine/solar-calculator-guide">راهنمای ماشین‌حساب</a>
+      توضیح می‌دهد هر ورودی چه اثری بر نتیجه دارد و خروجی را چطور بخوانید.
+    </p>
   </div>
 
   <section class="calc">
@@ -562,6 +567,20 @@ const seo = await seoProps(c.seo);
     line-height: 1.9;
   }
   .approx-banner b { color: var(--yellow); }
+
+  /* راه خروج برای کسی که با دیدن فرم گیج می‌شود: مقالهٔ راهنما هر ورودی را
+     باز می‌کند. عمداً زیر همان هشدارِ «این یک برآورد است» نشسته، چون هر دو
+     یک کار می‌کنند — پایین‌آوردن انتظار از عددی که هنوز دیده نشده. */
+  .calc-guide-link {
+    margin: 12px 0 0;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.9;
+  }
+  .calc-guide-link a {
+    color: var(--yellow);
+    text-underline-offset: 3px;
+  }
 
   .calc { padding: 40px 0 80px; }
   .calc-grid { display: grid; grid-template-columns: 380px 1fr; gap: 28px; align-items: start; }

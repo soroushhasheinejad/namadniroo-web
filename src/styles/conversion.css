@@ -203,6 +203,10 @@ html.has-dialog { overflow: hidden; }
 }
 .calc-teaser-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
 .calc-teaser-copy p { margin: 18px 0 0; color: var(--muted); font-size: 17px; line-height: 1.9; max-width: 46ch; }
+/* برای کسی که هنوز آمادهٔ پرکردن فرم نیست ولی سؤال دارد — به‌جای اینکه
+   صفحه را ببندد، سراغ مقالهٔ راهنما می‌رود. */
+.calc-teaser-help { margin: 14px 0 0; font-size: 14.5px; }
+.calc-teaser-help a { color: var(--yellow); text-underline-offset: 3px; }
 
 .calc-teaser-form {
   display: flex; flex-direction: column; gap: 22px;
