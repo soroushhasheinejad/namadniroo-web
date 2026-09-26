@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CONSTRUCTION_MONTHS,
   EQUIPMENT_COST,
-  SITE_COST,
+  GRID_COST,
+  LAND_COST,
   TARIFF,
   calculate,
   capacityFor,
@@ -25,8 +27,8 @@ describe('scaleOf', () => {
 
 describe('capacityFor', () => {
   it('روی پشت‌بام هزینهٔ محوطه را حساب نمی‌کند', () => {
-    const roof = capacityFor(1 * BILLION, { mount: 'roof' });
-    const ground = capacityFor(1 * BILLION, { mount: 'ground' });
+    const roof = capacityFor(60 * BILLION, { mount: 'roof' });
+    const ground = capacityFor(60 * BILLION, { mount: 'ground' });
 
     expect(roof.capexPerKw).toBe(EQUIPMENT_COST[roof.scale].typical);
     expect(ground.capexPerKw).toBeGreaterThan(roof.capexPerKw);
@@ -59,23 +61,89 @@ describe('capacityFor', () => {
   });
 });
 
+describe('هزینهٔ ثابت پست و خط انتقال', () => {
+  it('با ظرفیت ضرب نمی‌شود — نیروگاه ده‌مگاواتی همان‌قدر می‌دهد که یک‌مگاواتی', () => {
+    /* باگی که رفع شد: این هزینه «بر کیلووات» حساب می‌شد، پس نیروگاه
+       بزرگ‌تر ده برابر هزینهٔ پست می‌گرفت. پست یک بار ساخته می‌شود. */
+    const small = capacityFor(60 * BILLION, { mount: 'ground' });
+    const big = capacityFor(600 * BILLION, { mount: 'ground' });
+    expect(small.capex.grid).toBe(big.capex.grid);
+    expect(big.capex.grid).toBe(GRID_COST.typical);
+  });
+
+  it('نیروگاه بزرگ‌تر آن را سرشکن می‌کند، پس هر کیلووات ارزان‌تر تمام می‌شود', () => {
+    const small = capacityFor(60 * BILLION, { mount: 'ground' });
+    const big = capacityFor(600 * BILLION, { mount: 'ground' });
+    expect(big.capexPerKw).toBeLessThan(small.capexPerKw);
+  });
+
+  it('روی پشت‌بام اصلاً وجود ندارد', () => {
+    const roof = capacityFor(10 * BILLION, { mount: 'roof' });
+    expect(roof.capex.grid).toBe(0);
+    expect(roof.capex.land).toBe(0);
+  });
+
+  it('سرمایهٔ کمتر از هزینهٔ پست، نیروگاه زمینی نمی‌سازد', () => {
+    const r = capacityFor(GRID_COST.typical - 1, { mount: 'ground' });
+    expect(r.belowGridCost).toBe(true);
+    expect(r.capacityKw).toBe(0);
+  });
+
+  it('تفکیک سرمایه با کل سرمایه جمع می‌خورد', () => {
+    const investment = 120 * BILLION;
+    const { capex } = capacityFor(investment, { mount: 'ground' });
+    expect(capex.equipment + capex.land + capex.grid).toBeCloseTo(investment, 4);
+  });
+});
+
+describe('زمان ساخت در بازگشت سرمایه', () => {
+  it('بازگشت با احتساب ساخت، به اندازهٔ همان ماه‌ها دیرتر است', () => {
+    const r = calculate(60 * BILLION, { ...defaultAssumptions('ground', 'high'), tariff: TARIFF.bourse });
+    expect(r.paybackWithBuildYears!).toBeCloseTo(
+      r.paybackYears! + CONSTRUCTION_MONTHS[r.scale] / 12,
+      6,
+    );
+    expect(r.paybackWithBuildYears!).toBeGreaterThan(r.paybackYears!);
+  });
+
+  it('وقتی سرمایه اصلاً برنگردد، هر دو null‌اند', () => {
+    const r = calculate(60 * BILLION, { ...defaultAssumptions('ground', 'high'), tariff: 1 });
+    expect(r.paybackYears).toBeNull();
+    expect(r.paybackWithBuildYears).toBeNull();
+  });
+
+  it('پروژهٔ بزرگ‌تر مدت ساخت بیشتری دارد', () => {
+    expect(CONSTRUCTION_MONTHS.utility).toBeGreaterThan(CONSTRUCTION_MONTHS.commercial);
+    expect(CONSTRUCTION_MONTHS.commercial).toBeGreaterThan(CONSTRUCTION_MONTHS.small);
+  });
+});
+
+describe('نرخ بورس انرژی', () => {
+  it('میانگین معاملات است، نه سقف تعرفهٔ صنایع', () => {
+    /* پیش‌تر نرخ بورس روی سقف تعرفه گذاشته شده بود و درآمد را
+       خوش‌بینانه نشان می‌داد. */
+    expect(TARIFF.bourse).toBeLessThan(TARIFF.bourseCeiling);
+    expect(TARIFF.bourse).toBeGreaterThan(TARIFF.satba.small);
+  });
+});
+
 describe('calculate', () => {
   const base = defaultAssumptions('ground', 'high');
 
   it('تولید سال اول از ظرفیت و تابش می‌آید', () => {
-    const r = calculate(10 * BILLION, base);
+    const r = calculate(60 * BILLION, base);
     expect(r.firstYearProductionKwh).toBeCloseTo(r.capacityKw * base.yieldPerKw, 6);
   });
 
   it('تولید هر سال کمتر از سال قبل است', () => {
-    const r = calculate(10 * BILLION, base);
+    const r = calculate(60 * BILLION, base);
     for (let i = 1; i < r.rows.length; i++) {
       expect(r.rows[i]!.productionKwh).toBeLessThan(r.rows[i - 1]!.productionKwh);
     }
   });
 
   it('افت راندمان بعد از ۲۰ سال معقول است', () => {
-    const r = calculate(10 * BILLION, base);
+    const r = calculate(60 * BILLION, base);
     const ratio = r.rows.at(-1)!.productionKwh / r.rows[0]!.productionKwh;
     // با افت ۰٫۷٪ سالانه، سال بیستم باید حدود ۸۷٪ سال اول باشد
     expect(ratio).toBeGreaterThan(0.85);
@@ -83,18 +151,18 @@ describe('calculate', () => {
   });
 
   it('هزینهٔ نگه‌داری از درآمد کم می‌شود', () => {
-    const r = calculate(10 * BILLION, base);
-    expect(r.firstYearNet).toBeCloseTo(r.firstYearRevenue - 10 * BILLION * base.omRate, 6);
+    const r = calculate(60 * BILLION, base);
+    expect(r.firstYearNet).toBeCloseTo(r.firstYearRevenue - 60 * BILLION * base.omRate, 6);
   });
 
   it('سال بازگشت با جمع جریان نقدی می‌خواند', () => {
-    const r = calculate(10 * BILLION, { ...base, tariff: TARIFF.bourse });
+    const r = calculate(60 * BILLION, { ...base, tariff: TARIFF.bourse });
     expect(r.paybackYears).not.toBeNull();
 
     const full = Math.floor(r.paybackYears!);
     // تا سال قبلِ بازگشت هنوز سرمایه برنگشته، و در سال بازگشت برگشته
-    expect(r.rows[full - 1]!.cumulative).toBeLessThan(10 * BILLION);
-    expect(r.rows[full]!.cumulative).toBeGreaterThanOrEqual(10 * BILLION);
+    expect(r.rows[full - 1]!.cumulative).toBeLessThan(60 * BILLION);
+    expect(r.rows[full]!.cumulative).toBeGreaterThanOrEqual(60 * BILLION);
   });
 
   it('وقتی سرمایه در افق برنگردد null می‌دهد', () => {
@@ -117,19 +185,19 @@ describe('calculate', () => {
   });
 
   it('تابش بیشتر یعنی درآمد بیشتر', () => {
-    const sunny = calculate(10 * BILLION, defaultAssumptions('ground', 'high'));
-    const cloudy = calculate(10 * BILLION, defaultAssumptions('ground', 'low'));
+    const sunny = calculate(60 * BILLION, defaultAssumptions('ground', 'high'));
+    const cloudy = calculate(60 * BILLION, defaultAssumptions('ground', 'low'));
     expect(sunny.firstYearRevenue).toBeGreaterThan(cloudy.firstYearRevenue);
   });
 
   it('مساحت موردنیاز زمینی بیشتر از پشت‌بامی است', () => {
-    const roof = calculate(10 * BILLION, defaultAssumptions('roof', 'good'));
-    const ground = calculate(10 * BILLION, defaultAssumptions('ground', 'good'));
+    const roof = calculate(60 * BILLION, defaultAssumptions('roof', 'good'));
+    const ground = calculate(60 * BILLION, defaultAssumptions('ground', 'good'));
     expect(ground.areaM2 / ground.capacityKw).toBeGreaterThan(roof.areaM2 / roof.capacityKw);
   });
 
   it('جمع تجمعی با جمع خالص سال‌ها برابر است', () => {
-    const r = calculate(10 * BILLION, base);
+    const r = calculate(60 * BILLION, base);
     const sum = r.rows.reduce((s, row) => s + row.net, 0);
     expect(r.totalNet).toBeCloseTo(sum, 4);
   });
@@ -148,15 +216,19 @@ describe('calculate', () => {
   });
 
   it('بازهٔ هزینه، بازهٔ ظرفیت می‌سازد', () => {
-    const cheap = calculate(10 * BILLION, {
+    const cheap = calculate(60 * BILLION, {
       ...base,
+      tariff: TARIFF.bourse,
       equipmentCostPerKw: EQUIPMENT_COST.commercial.min,
-      siteCostPerKw: SITE_COST.min,
+      landCostPerKw: LAND_COST.min,
+      gridCost: GRID_COST.min,
     });
-    const pricey = calculate(10 * BILLION, {
+    const pricey = calculate(60 * BILLION, {
       ...base,
+      tariff: TARIFF.bourse,
       equipmentCostPerKw: EQUIPMENT_COST.commercial.max,
-      siteCostPerKw: SITE_COST.max,
+      landCostPerKw: LAND_COST.max,
+      gridCost: GRID_COST.max,
     });
 
     expect(cheap.capacityKw).toBeGreaterThan(pricey.capacityKw);

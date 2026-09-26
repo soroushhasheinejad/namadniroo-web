@@ -61,43 +61,68 @@ export const EQUIPMENT_COST: Record<Scale, Range> = {
  */
 
 /**
- * هزینهٔ محوطه: زمین، پست، خط انتقال، محوطه‌سازی، حصار و مجوزها.
+ * زمین، محوطه‌سازی و حصار — تومان بر کیلووات، فقط نیروگاه زمینی.
  *
- * فقط نیروگاه زمینی این‌ها را دارد و دلیل اصلی فاصلهٔ عددهای منتشرشده
- * است: نیروگاه مگاواتی حدود ۶۰ تا ۸۰ میلیارد تومان برآورد می‌شود
- * (یعنی ۶۰ تا ۸۰ میلیون بر کیلووات) در حالی که تجهیزاتش به‌تنهایی
- * حدود ۲۵ میلیون بر کیلووات است.
- *
- * این رقم به موقعیت زمین و فاصله تا شبکه بسیار حساس است.
+ * این بخش با ظرفیت بزرگ می‌شود، چون مساحت لازم با ظرفیت بزرگ می‌شود:
+ * هر مگاوات حدود یک‌ونیم تا دو هکتار زمین می‌خواهد.
  */
-export const SITE_COST: Range = {
-  min: 15_000_000,
-  typical: 35_000_000,
-  max: 55_000_000,
+export const LAND_COST: Range = {
+  min: 6_000_000,
+  typical: 15_000_000,
+  max: 26_000_000,
+};
+
+/**
+ * پست، خط انتقال و مجوزهای اتصال به شبکه — مبلغ ثابت به تومان.
+ *
+ * ── چرا ثابت است و ضریب نمی‌خورد ────────────────────────────────────
+ * پیش‌تر این هزینه هم مثل زمین «بر کیلووات» حساب می‌شد، در حالی که
+ * عددش از یک نیروگاه یک‌مگاواتی در آمده بود. نتیجه‌اش این بود که
+ * نیروگاه ده‌مگاواتی ده برابر هزینهٔ پست می‌گرفت، که غلط است: پست و خط
+ * انتقال یک بار ساخته می‌شوند و هزینه‌شان به فاصله تا شبکه و سطح ولتاژ
+ * بستگی دارد، نه به اینکه چند پنل پشتش نصب شده.
+ *
+ * اثر عملی‌اش این است که نیروگاه بزرگ‌تر، این هزینه را روی ظرفیت بیشتری
+ * سرشکن می‌کند و ارزان‌تر تمام می‌شود — همان صرفهٔ مقیاسی که در پروژه‌های
+ * واقعی دیده می‌شود.
+ */
+export const GRID_COST: Range = {
+  min: 8_000_000_000,
+  typical: 20_000_000_000,
+  max: 35_000_000_000,
 };
 
 /**
  * تولید سالانهٔ هر کیلووات ظرفیت نصب‌شده (کیلووات‌ساعت).
  *
- * «ویژهٔ تولید» نامیده می‌شود و به تابش منطقه بستگی دارد. اعداد زیر
- * خروجی خالص‌اند: افت گرما، غبار، کابل و اینورتر در آن‌ها لحاظ شده.
+ * ── چرا گروه‌بندی بر اساس پتانسیل فتوولتائیک است، نه تابش ──────────
+ * تابش (GHI) فقط می‌گوید چقدر انرژی به زمین می‌رسد؛ پتانسیل فتوولتائیک
+ * (PVOUT) می‌گوید از آن انرژی چقدر برق در می‌آید. این دو همیشه یک ترتیب
+ * ندارند، چون راندمان پنل با گرما افت می‌کند و غبار جلوی نور را می‌گیرد.
+ *
+ * نتیجهٔ عملی‌اش این است که استان‌های گرم جنوبی با تابش بسیار بالا —
+ * سیستان‌وبلوچستان، خوزستان، هرمزگان — پایین‌تر از فلات مرتفع و خنک‌تر
+ * یزد و کرمان می‌نشینند، هرچند آفتاب بیشتری می‌گیرند. گروه‌بندی بر مبنای
+ * تابش، این استان‌ها را به‌غلط در بالاترین پله می‌گذاشت.
+ *
+ * اعداد زیر خروجی خالص‌اند: افت گرما، غبار، کابل و اینورتر در آن‌ها لحاظ
+ * شده، و مبنایشان میانگین بلندمدت PVOUT اطلس جهانی خورشید است.
  */
 export const YIELD_BY_REGION: Record<string, { label: string; kwhPerKw: number }> = {
-  high: { label: 'کرمان، یزد، سیستان (تابش بسیار بالا)', kwhPerKw: 1850 },
-  good: { label: 'اصفهان، فارس، خراسان، سمنان (تابش بالا)', kwhPerKw: 1750 },
-  mid: { label: 'تهران، مرکزی، آذربایجان (تابش متوسط)', kwhPerKw: 1600 },
-  low: { label: 'گیلان، مازندران، اردبیل (تابش کمتر)', kwhPerKw: 1350 },
+  high: { label: 'یزد، کرمان، خراسان جنوبی، سمنان (پتانسیل بسیار بالا)', kwhPerKw: 1850 },
+  good: { label: 'اصفهان، فارس، سیستان، خراسان رضوی، قم (پتانسیل بالا)', kwhPerKw: 1750 },
+  mid: { label: 'تهران، مرکزی، آذربایجان، خوزستان، هرمزگان (پتانسیل متوسط)', kwhPerKw: 1600 },
+  low: { label: 'گیلان، مازندران، گلستان، اردبیل (پتانسیل کمتر)', kwhPerKw: 1350 },
 };
 
 /**
  * نرخ فروش برق، به تومان بر کیلووات‌ساعت.
  *
  * `satba`  خرید تضمینی ۲۰ سالهٔ ساتبا. نرخ بر اساس ظرفیت پله‌ای است.
- * `bourse` فروش به صنایع از «تابلوی سبز» بورس انرژی. نرخ توافقی است و
- *          عدد زیر فقط یک مبنای مقایسه است: تعرفهٔ تجدیدپذیری که صنایع
- *          مشمول در صورت نخریدن برق سبز باید بپردازند.
+ * `bourse` فروش به صنایع از «تابلوی سبز» بورس انرژی. عدد زیر میانگین
+ *          معاملات واقعی ماه‌های اخیر است، نه سقف تعرفه.
  * `self`   خودمصرفی صنعتی. درآمد مستقیم ندارد؛ ارزشش برابر هزینه‌ای است
- *          که صنعت دیگر پرداخت نمی‌کند.
+ *          که صنعت دیگر پرداخت نمی‌کند — یعنی تعرفهٔ تجدیدپذیر صنایع.
  */
 export const TARIFF = {
   satba: {
@@ -109,10 +134,18 @@ export const TARIFF = {
        ۱۸ سال نشان می‌داد. */
     utility: null,
   },
-  /* این نرخ سقف است نه قیمت قطعی: تعرفه‌ای که صنایع مشمول در صورت
-     نخریدن برق سبز باید بپردازند، و طبیعتاً حاضرند تا نزدیک همین عدد
-     خرید کنند. قیمت واقعی توافقی و معمولاً پایین‌تر است. */
-  bourse: 11_892,
+  /* میانگین معاملات تابلوی سبز در ماه‌های اخیر (۱۴۰۵)، نه سقف تعرفه.
+     پیش‌تر اینجا عدد ۱۱٬۸۹۲ نشسته بود که تعرفهٔ تجدیدپذیر صنایع است —
+     یعنی سقفی که صنعت در صورت نخریدن برق سبز می‌پردازد. آن عدد درآمد
+     فروش در بورس را خوش‌بینانه‌تر از معاملهٔ واقعی نشان می‌داد.
+
+     قیمت در بورس نوسان دارد: معاملات ۱۴۰۴ حوالی ۵٬۸۰۰ تومان بسته شد و
+     در ۱۴۰۵ به حدود ۹٬۵۰۰ رسیده. این عدد را با هر گزارش تازهٔ بورس
+     به‌روز کنید. */
+  bourse: 9_500,
+  /* سقف تابلوی سبز: صنعت مشمول حاضر است تا نزدیک همین عدد خرید کند،
+     چون جایگزینش پرداخت تعرفهٔ تجدیدپذیر است. */
+  bourseCeiling: 11_892,
   self: 11_892,
 } as const;
 
@@ -131,6 +164,29 @@ export const AREA_PER_KW: Record<Mount, number> = {
   ground: 15,
 };
 
+/**
+ * شیب استاندارد پنل روی پشت‌بام (درجه).
+ *
+ * تولید پشت‌بامی در این مدل بر مبنای همین شیب است. سقف شیب‌دار یا نصب
+ * تخت روی بام، تولید را نسبت به این عدد کم می‌کند و برآورد را
+ * خوش‌بینانه می‌کند — برای همین در صفحه نوشته می‌شود.
+ */
+export const ROOF_TILT_DEG = 30;
+
+/**
+ * مدت ساخت تا اتصال به شبکه (ماه).
+ *
+ * تا پیش از سنکرون‌شدن، نیروگاه هیچ درآمدی ندارد ولی سرمایه خوابیده
+ * است. بازگشت سرمایه بدون این مدت، همیشه خوش‌بینانه‌تر از واقعیت است —
+ * به‌خصوص برای نیروگاه زمینی که بیشتر وقتش صرف مجوز و اتصال می‌شود، نه
+ * نصب پنل.
+ */
+export const CONSTRUCTION_MONTHS: Record<Scale, number> = {
+  small: 2,
+  commercial: 6,
+  utility: 12,
+};
+
 /* ============================================================
    محاسبه
    ============================================================ */
@@ -145,8 +201,10 @@ export function scaleOf(capacityKw: number): Scale {
 export interface Assumptions {
   /** تومان بر کیلووات — تجهیزات و نصب */
   equipmentCostPerKw: number;
-  /** تومان بر کیلووات — زمین و اتصال به شبکه (فقط زمینی) */
-  siteCostPerKw: number;
+  /** تومان بر کیلووات — زمین و محوطه‌سازی (فقط زمینی) */
+  landCostPerKw: number;
+  /** تومان — پست و خط انتقال، مبلغ ثابت و مستقل از ظرفیت (فقط زمینی) */
+  gridCost: number;
   /** کیلووات‌ساعت در سال به ازای هر کیلووات */
   yieldPerKw: number;
   mount: Mount;
@@ -175,11 +233,22 @@ export interface Result {
   firstYearProductionKwh: number;
   firstYearRevenue: number;
   firstYearNet: number;
-  /** سال بازگشت سرمایه، اعشاری. اگر در افق محاسبه برنگردد null است. */
+  /**
+   * سال بازگشت سرمایه از لحظهٔ اتصال به شبکه، اعشاری — یعنی بدون احتساب
+   * مدت ساخت. اگر در افق محاسبه برنگردد null است.
+   */
   paybackYears: number | null;
+  /** همان بازگشت سرمایه، ولی از روز پرداخت پول: مدت ساخت هم رویش است */
+  paybackWithBuildYears: number | null;
+  /** مدت ساخت تا اتصال به شبکه (ماه) */
+  constructionMonths: number;
   totalNet: number;
   /** بازده ساده سال اول، نسبت به سرمایه */
   firstYearReturn: number;
+  /** سرمایه کفاف پست و خط انتقال را نمی‌دهد، پس نیروگاه زمینی ممکن نیست */
+  belowGridCost: boolean;
+  /** تفکیک سرمایه: تجهیزات، زمین، اتصال به شبکه (تومان) */
+  capex: { equipment: number; land: number; grid: number };
   rows: YearRow[];
 }
 
@@ -192,18 +261,52 @@ export interface Result {
  */
 export function capacityFor(
   investment: number,
-  options: { mount: Mount; equipmentCostPerKw?: number; siteCostPerKw?: number },
-): { capacityKw: number; capexPerKw: number; scale: Scale } {
+  options: { mount: Mount; equipmentCostPerKw?: number; landCostPerKw?: number; gridCost?: number },
+): {
+  capacityKw: number;
+  capexPerKw: number;
+  scale: Scale;
+  belowGridCost: boolean;
+  capex: { equipment: number; land: number; grid: number };
+} {
+  const ground = options.mount === 'ground';
+  const grid = ground ? (options.gridCost ?? GRID_COST.typical) : 0;
+
+  /* پست و خط انتقال پیش از اولین پنل ساخته می‌شوند، پس از سرمایه کم
+     می‌شوند و بقیه صرف ظرفیت می‌شود. اگر سرمایه از همین هم کمتر باشد،
+     نیروگاه زمینی اصلاً شکل نمی‌گیرد — و این را باید گفت، نه اینکه
+     ظرفیت منفی نشان داده شود. */
+  const forCapacity = investment - grid;
+  if (forCapacity <= 0) {
+    return {
+      capacityKw: 0,
+      capexPerKw: 0,
+      scale: 'small',
+      belowGridCost: true,
+      capex: { equipment: 0, land: 0, grid },
+    };
+  }
+
   let scale: Scale = 'commercial';
 
   for (let i = 0; i < 3; i++) {
     const equipment = options.equipmentCostPerKw ?? EQUIPMENT_COST[scale].typical;
-    const site = options.mount === 'ground' ? (options.siteCostPerKw ?? SITE_COST.typical) : 0;
-    const capexPerKw = equipment + site;
-    const capacityKw = investment / capexPerKw;
+    const land = ground ? (options.landCostPerKw ?? LAND_COST.typical) : 0;
+    const perKw = equipment + land;
+    const capacityKw = forCapacity / perKw;
     const next = scaleOf(capacityKw);
 
-    if (next === scale || i === 2) return { capacityKw, capexPerKw, scale: next };
+    if (next === scale || i === 2) {
+      return {
+        capacityKw,
+        /* هزینهٔ واقعی هر کیلووات، با سرشکن‌شدن پست و خط انتقال روی
+           همین ظرفیت — همان عددی که پروژه با آن مقایسه می‌شود. */
+        capexPerKw: investment / capacityKw,
+        scale: next,
+        belowGridCost: false,
+        capex: { equipment: capacityKw * equipment, land: capacityKw * land, grid },
+      };
+    }
     scale = next;
   }
 
@@ -212,10 +315,11 @@ export function capacityFor(
 }
 
 export function calculate(investment: number, assumptions: Assumptions): Result {
-  const { capacityKw, capexPerKw, scale } = capacityFor(investment, {
+  const { capacityKw, capexPerKw, scale, belowGridCost, capex } = capacityFor(investment, {
     mount: assumptions.mount,
     equipmentCostPerKw: assumptions.equipmentCostPerKw,
-    siteCostPerKw: assumptions.siteCostPerKw,
+    landCostPerKw: assumptions.landCostPerKw,
+    gridCost: assumptions.gridCost,
   });
 
   const tariff = assumptions.tariff ?? TARIFF.satba[scale] ?? TARIFF.bourse;
@@ -244,6 +348,10 @@ export function calculate(investment: number, assumptions: Assumptions): Result 
 
   const firstYear = rows[0]!;
 
+  /* مدت ساخت درآمدی ندارد ولی پول از روز اول خوابیده است، پس فقط به
+     بازگشت سرمایه اضافه می‌شود — نه اینکه سال‌های تولید را جابه‌جا کند. */
+  const constructionMonths = CONSTRUCTION_MONTHS[scale];
+
   return {
     capacityKw,
     capexPerKw,
@@ -254,8 +362,12 @@ export function calculate(investment: number, assumptions: Assumptions): Result 
     firstYearRevenue: firstYear.revenue,
     firstYearNet: firstYear.net,
     paybackYears,
+    paybackWithBuildYears: paybackYears === null ? null : paybackYears + constructionMonths / 12,
+    constructionMonths,
     totalNet: cumulative,
     firstYearReturn: firstYear.net / investment,
+    belowGridCost,
+    capex,
     rows,
   };
 }
@@ -264,7 +376,8 @@ export function calculate(investment: number, assumptions: Assumptions): Result 
 export function defaultAssumptions(mount: Mount, region: string): Assumptions {
   return {
     equipmentCostPerKw: EQUIPMENT_COST.commercial.typical,
-    siteCostPerKw: SITE_COST.typical,
+    landCostPerKw: LAND_COST.typical,
+    gridCost: GRID_COST.typical,
     yieldPerKw: (YIELD_BY_REGION[region] ?? YIELD_BY_REGION.good!).kwhPerKw,
     mount,
     omRate: OM_RATE,
@@ -307,7 +420,7 @@ export const ROUTES: RouteInfo[] = [
   {
     key: 'bourse',
     title: 'فروش در بورس انرژی (تابلوی سبز)',
-    tariffLabel: 'توافقی؛ مبنای مقایسه: تعرفهٔ تجدیدپذیر صنایع',
+    tariffLabel: 'توافقی؛ مبنا: میانگین معاملات تابلوی سبز در ماه‌های اخیر',
     summary:
       'برق مستقیم به صنایع فروخته می‌شود. صنایع بالای یک مگاوات موظف‌اند بخشی از برقشان را تجدیدپذیر تأمین کنند، و همین تقاضا را می‌سازد.',
     pros: [
@@ -349,6 +462,16 @@ export const SOURCES = [
     label: 'ساتبا — تعرفه‌های خرید تضمینی برق تجدیدپذیر',
     url: 'https://www.satba.gov.ir/fa/guidance/guidance/guidance1-%D8%AA%D8%B9%D8%B1%D9%81%D9%87-%D9%87%D8%A7%DB%8C-%D8%AE%D8%B1%DB%8C%D8%AF-%D8%AA%D8%B6%D9%85%DB%8C%D9%86%DB%8C-%D8%A8%D8%B1%D9%82-%D8%A7%D8%B2-%D8%AA%D8%AC%D8%AF%DB%8C%D8%AF%D9%BE%D8%B0%DB%8C%D8%B1%D9%87%D8%A7',
     note: 'مرجع رسمی نرخ خرید تضمینی',
+  },
+  {
+    label: 'بورس انرژی ایران — تابلوی سبز',
+    url: 'https://www.irenex.ir/',
+    note: 'مرجع نرخ فروش در بورس؛ عدد مدل میانگین معاملات ماه‌های اخیر است',
+  },
+  {
+    label: 'اطلس جهانی خورشید — نقشهٔ پتانسیل فتوولتائیک ایران',
+    url: 'https://globalsolaratlas.info/download/iran',
+    note: 'مبنای گروه‌بندی مناطق بر اساس PVOUT، نه تابش',
   },
   {
     label: 'شانا — تعرفهٔ تجدیدپذیر صنایع، مهر ۱۴۰۵',

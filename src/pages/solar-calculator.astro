@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import { breadcrumbSchema, faqSchema } from '../utils';
-import { DEGRADATION, OM_RATE, ROUTES, SOURCES, UPDATED_AT, YEARS, YIELD_BY_REGION } from '../data/solarModel';
+import { CONSTRUCTION_MONTHS, DEGRADATION, OM_RATE, ROOF_TILT_DEG, ROUTES, SOURCES, TARIFF, UPDATED_AT, YEARS, YIELD_BY_REGION } from '../data/solarModel';
 import { fa } from '../utils';
 import { seoProps } from '../server/seo/pageSeo';
 import { getPageContent } from '../server/repos/pageContent';
@@ -19,8 +19,13 @@ const c = await getPageContent(calculatorPage);
    بماند. گرد کردن لازم است: ۰٫۰۰۷×۱۰۰ در جاوااسکریپت ۰٫۷۰۰۰۰۰۰۰۰۰۰۰۰۰۰۱ است. */
 const pct = (rate: number) => fa(String(+(rate * 100).toFixed(3)));
 const yields = Object.values(YIELD_BY_REGION).map((r) => r.kwhPerKw);
+const months = Object.values(CONSTRUCTION_MONTHS);
 const assumptions = [
-  { label: 'تولید سالانه', text: `${fa(Math.min(...yields))} تا ${fa(Math.max(...yields))} کیلووات‌ساعت به ازای هر کیلووات، بسته به تابش منطقه. افت گرما، غبار و اینورتر در آن لحاظ شده.` },
+  { label: 'تولید سالانه', text: `${fa(Math.min(...yields))} تا ${fa(Math.max(...yields))} کیلووات‌ساعت به ازای هر کیلووات، بر اساس پتانسیل فتوولتائیک منطقه (نه صرفاً تابش). افت گرما، غبار و اینورتر در آن لحاظ شده.` },
+  { label: 'شیب پنل', text: `روی پشت‌بام، شیب استاندارد ${fa(ROOF_TILT_DEG)} درجه. سقف تخت یا شیب‌دار کمتر تولید می‌کند.` },
+  { label: 'پست و خط انتقال', text: 'مبلغ ثابت است و با ظرفیت ضرب نمی‌شود؛ یک بار ساخته می‌شود و نیروگاه بزرگ‌تر آن را روی ظرفیت بیشتری سرشکن می‌کند.' },
+  { label: 'نرخ بورس انرژی', text: `${fa(TARIFF.bourse.toLocaleString('en-US'))} تومان بر کیلووات‌ساعت، میانگین معاملات تابلوی سبز در ماه‌های اخیر. سقف تعرفهٔ تجدیدپذیر صنایع ${fa(TARIFF.bourseCeiling.toLocaleString('en-US'))} تومان است.` },
+  { label: 'مدت ساخت', text: `${fa(Math.min(...months))} تا ${fa(Math.max(...months))} ماه بسته به اندازهٔ پروژه. بازگشت سرمایه هم بدون آن و هم با آن نوشته شده.` },
   { label: 'افت راندمان', text: `${pct(DEGRADATION)} درصد در سال.` },
   { label: 'نگه‌داری', text: `${pct(OM_RATE)} درصد سرمایه در سال.` },
   { label: 'افق محاسبه', text: `${fa(YEARS)} سال، هم‌اندازهٔ قرارداد خرید تضمینی.` },
@@ -66,8 +71,8 @@ const seo = await seoProps(c.seo);
 
         <div class="field">
           <label for="c-investment">سرمایهٔ موردنظر (تومان)</label>
-          <input id="c-investment" type="text" inputmode="numeric" dir="ltr" value="10,000,000,000" />
-          <span class="field-hint" id="investmentWords">۱۰ میلیارد تومان</span>
+          <input id="c-investment" type="text" inputmode="numeric" dir="rtl" value="۷۰٬۰۰۰٬۰۰۰٬۰۰۰" />
+          <span class="field-hint" id="investmentWords">۷۰ میلیارد تومان</span>
         </div>
 
         <div class="presets" id="presets">
@@ -84,10 +89,11 @@ const seo = await seoProps(c.seo);
             <option value="ground">زمینی — نیروگاه مستقل روی زمین</option>
             <option value="roof">پشت‌بام — روی سوله یا ساختمان موجود</option>
           </select>
+          <span class="field-hint" id="mountHint"></span>
         </div>
 
         <div class="field">
-          <label for="c-region">منطقه</label>
+          <label for="c-region">منطقه (بر اساس پتانسیل فتوولتائیک)</label>
           <select id="c-region">
             {regions.map(([key, r]) => (
               <option value={key} selected={key === 'high'}>{r.label}</option>
@@ -106,9 +112,18 @@ const seo = await seoProps(c.seo);
             <input id="c-equip" type="number" step="0.5" min="1" dir="ltr" value="35" />
           </div>
 
-          <div class="field" id="siteField">
-            <label for="c-site">زمین، پست و خط انتقال (میلیون تومان بر کیلووات)</label>
-            <input id="c-site" type="number" step="0.5" min="0" dir="ltr" value="35" />
+          <div class="field" id="landField">
+            <label for="c-land">زمین و محوطه‌سازی (میلیون تومان بر کیلووات)</label>
+            <input id="c-land" type="number" step="0.5" min="0" dir="ltr" value="15" />
+            <span class="field-hint">با ظرفیت بزرگ می‌شود، چون مساحت لازم بزرگ می‌شود.</span>
+          </div>
+
+          <div class="field" id="gridField">
+            <label for="c-grid">پست و خط انتقال (میلیارد تومان)</label>
+            <input id="c-grid" type="number" step="1" min="0" dir="ltr" value="20" />
+            <span class="field-hint">
+              مبلغ ثابت است و با ظرفیت ضرب نمی‌شود؛ به فاصله تا شبکه و سطح ولتاژ بستگی دارد.
+            </span>
           </div>
 
           <div class="field">
@@ -139,7 +154,13 @@ const seo = await seoProps(c.seo);
           </div>
         </div>
 
+        <p class="out-note" id="outNote" hidden></p>
+
+        <h3 class="out-h">سرمایه صرف چه می‌شود؟</h3>
+        <div class="capex-bar" id="capexBar"></div>
+
         <h3 class="out-h">آورده، به تفکیک روش فروش برق</h3>
+        <p class="out-sub">بازگشت سرمایه از روز اتصال به شبکه حساب شده است — مدت ساخت جدا آمده.</p>
         <div class="route-table" id="routeTable"></div>
         {c.resultsFoot && <p class="out-foot">{c.resultsFoot}</p>}
 
@@ -238,8 +259,9 @@ const seo = await seoProps(c.seo);
 <script>
   import {
     EQUIPMENT_COST,
+    GRID_COST,
+    LAND_COST,
     ROUTES,
-    SITE_COST,
     TARIFF,
     YIELD_BY_REGION,
     calculate,
@@ -264,9 +286,11 @@ const seo = await seoProps(c.seo);
     const mountSelect = $<HTMLSelectElement>('c-mount');
     const regionSelect = $<HTMLSelectElement>('c-region');
     const equipInput = $<HTMLInputElement>('c-equip');
-    const siteInput = $<HTMLInputElement>('c-site');
+    const landInput = $<HTMLInputElement>('c-land');
+    const gridInput = $<HTMLInputElement>('c-grid');
     const omInput = $<HTMLInputElement>('c-om');
-    const siteField = $<HTMLDivElement>('siteField');
+    const landField = $<HTMLDivElement>('landField');
+    const gridField = $<HTMLDivElement>('gridField');
 
     /* جداکنندهٔ هزارگان و اعشار هم فارسی می‌شود، وگرنه عدد نیمه‌فارسی
        می‌ماند. معکوسش هنگام خواندن ورودی لازم است. */
@@ -298,7 +322,8 @@ const seo = await seoProps(c.seo);
 
     const assumptionsFrom = (): Assumptions => ({
       equipmentCostPerKw: Number(equipInput.value) * 1_000_000,
-      siteCostPerKw: Number(siteInput.value) * 1_000_000,
+      landCostPerKw: Number(landInput.value) * 1_000_000,
+      gridCost: Number(gridInput.value) * 1_000_000_000,
       yieldPerKw: YIELD_BY_REGION[regionSelect.value]!.kwhPerKw,
       mount: mountSelect.value as Mount,
       omRate: Number(omInput.value) / 100,
@@ -320,18 +345,55 @@ const seo = await seoProps(c.seo);
       $('investmentWords').textContent = investment ? `${toman(investment)} تومان` : '—';
 
       // هزینهٔ محوطه فقط برای نصب زمینی معنا دارد
-      siteField.hidden = base.mount === 'roof';
+      landField.hidden = base.mount === 'roof';
+      gridField.hidden = base.mount === 'roof';
 
-      if (investment < 50_000_000) {
+      /* شیب پنل روی تولید اثر مستقیم دارد: برآورد پشت‌بامی بر مبنای شیب
+         استاندارد ۳۰ درجه است و سقف تخت یا شیب‌دار کمتر تولید می‌کند. */
+      $('mountHint').textContent =
+        base.mount === 'roof'
+          ? 'برآورد بر مبنای شیب استاندارد ۳۰ درجه است؛ روی سقف تخت یا شیب‌دار کمتر می‌شود.'
+          : 'پنل‌ها روی سازهٔ ثابت با شیب بهینه فرض شده‌اند.';
+
+      const blank = (message: string) => {
         $('outCapacity').textContent = '—';
-        $('outCapacityRange').textContent = 'مبلغی بالاتر وارد کنید';
+        $('outCapacityRange').textContent = '';
         $('outProduction').textContent = '—';
         $('outArea').textContent = '—';
         $('routeTable').innerHTML = '';
+        $('capexBar').innerHTML = '';
+        const note = $('outNote');
+        note.innerHTML = message;
+        note.hidden = false;
+        $('toRoof')?.addEventListener('click', () => {
+          mountSelect.value = 'roof';
+          render();
+        });
+      };
+
+      if (investment < 50_000_000) {
+        blank('برای دیدن برآورد، مبلغ سرمایه را وارد کنید.');
         return;
       }
 
       const mid = calculate(investment, base);
+
+      /* پست و خط انتقال پیش از هر پنلی ساخته می‌شوند. اگر سرمایه به آن
+         نرسد، نشان‌دادن ظرفیت صفر گیج‌کننده است؛ به‌جایش می‌گوییم چقدر کم
+         است و راه عملی را پیشنهاد می‌دهیم. */
+      if (mid.belowGridCost) {
+        blank(
+          `پست و خط انتقال به‌تنهایی حدود ${toman(base.gridCost)} تومان هزینه دارد و ` +
+            `پیش از نصب پنل‌ها ساخته می‌شود. با این سرمایه، نیروگاه زمینیِ مستقل شکل نمی‌گیرد — ` +
+            `اگر سقف یا سولهٔ موجود دارید، نصب پشت‌بامی با همین مبلغ جواب می‌دهد؛ ` +
+            `و اگر امکان اتصال به شبکهٔ موجود را دارید، رقم پست و خط را در ` +
+            `«فرض‌های پیشرفته» کم کنید. ` +
+            `<button type="button" class="note-action" id="toRoof">محاسبه به‌صورت پشت‌بامی</button>`,
+        );
+        return;
+      }
+
+      $('outNote').hidden = true;
 
       /* بازه از کم‌ترین و بیش‌ترین هزینهٔ منتشرشده ساخته می‌شود، نه از یک
          درصد دلخواه — تا بازه واقعاً بازتاب اختلاف منابع باشد. */
@@ -339,17 +401,50 @@ const seo = await seoProps(c.seo);
       const cheap = calculate(investment, {
         ...base,
         equipmentCostPerKw: EQUIPMENT_COST[scale].min,
-        siteCostPerKw: SITE_COST.min,
+        landCostPerKw: LAND_COST.min,
+        gridCost: GRID_COST.min,
       });
       const pricey = calculate(investment, {
         ...base,
         equipmentCostPerKw: EQUIPMENT_COST[scale].max,
-        siteCostPerKw: SITE_COST.max,
+        landCostPerKw: LAND_COST.max,
+        gridCost: GRID_COST.max,
       });
 
       $('outCapacity').textContent = `حدود ${capacity(mid.capacityKw)}`;
-      $('outCapacityRange').textContent =
-        `بازه: ${capacity(pricey.capacityKw)} تا ${capacity(cheap.capacityKw)}`;
+      /* اگر گران‌ترین حالت اصلاً جواب ندهد (پست و خط از کل سرمایه بیشتر
+         شود)، نوشتن «۰ کیلووات» در بازه گمراه‌کننده است. */
+      $('outCapacityRange').textContent = pricey.belowGridCost
+        ? `در گران‌ترین حالت، سرمایه به پست و خط نمی‌رسد`
+        : `بازه: ${capacity(pricey.capacityKw)} تا ${capacity(cheap.capacityKw)}`;
+
+      /* تفکیک سرمایه مهم‌ترین چیزی است که سرمایه‌گذار زمینی باید ببیند:
+         سهم پست و خط انتقال در پروژهٔ کوچک می‌تواند از خود تجهیزات
+         بیشتر باشد، و همین است که پروژهٔ کوچکِ زمینی را بی‌صرفه می‌کند. */
+      const parts = [
+        { label: 'تجهیزات و نصب', value: mid.capex.equipment, cls: 'cx-equip' },
+        { label: 'زمین و محوطه', value: mid.capex.land, cls: 'cx-land' },
+        { label: 'پست و خط انتقال', value: mid.capex.grid, cls: 'cx-grid' },
+      ].filter((p) => p.value > 0);
+
+      $('capexBar').innerHTML = `
+        <div class="cx-track">
+          ${parts
+            .map(
+              (p) =>
+                `<span class="cx-seg ${p.cls}" style="width:${((p.value / investment) * 100).toFixed(1)}%"></span>`,
+            )
+            .join('')}
+        </div>
+        <ul class="cx-legend">
+          ${parts
+            .map(
+              (p) =>
+                `<li><i class="${p.cls}"></i>${p.label}<b>${toman(p.value)} تومان</b>
+                 <span>${fa(Math.round((p.value / investment) * 100))}٪</span></li>`,
+            )
+            .join('')}
+        </ul>`;
       $('outProduction').textContent = `حدود ${fa(grouped(mid.firstYearProductionKwh))}`;
       $('outArea').textContent = `حدود ${area(mid.areaM2)}`;
       $('outAreaNote').textContent =
@@ -376,9 +471,17 @@ const seo = await seoProps(c.seo);
         }
 
         const r = calculate(investment, { ...base, tariff });
+        /* دو عدد نشان داده می‌شود چون سرمایه‌گذار با روز پرداخت پول
+           کار دارد، نه با روز سنکرون: نیروگاه تا وقتی ساخته می‌شود
+           درآمدی ندارد ولی پول خوابیده است. */
         const payback = r.paybackYears
           ? `${fa(r.paybackYears.toFixed(1))} سال`
           : 'بیش از ۲۰ سال';
+        const paybackNote = r.paybackWithBuildYears
+          ? `<span class="route-sub">با ${fa(r.constructionMonths)} ماه ساخت: ${fa(
+              r.paybackWithBuildYears.toFixed(1),
+            )} سال</span>`
+          : '';
 
         return `
           <div class="route-row">
@@ -388,7 +491,7 @@ const seo = await seoProps(c.seo);
             </div>
             <div class="route-nums">
               <div><span>درآمد خالص سال اول</span><b>${toman(r.firstYearNet)} تومان</b></div>
-              <div><span>بازگشت سرمایه</span><b>${payback}</b></div>
+              <div><span>بازگشت سرمایه<i>بدون احتساب زمان ساخت</i></span><b>${payback}</b>${paybackNote}</div>
               <div><span>جمع ۲۰ سال</span><b>${toman(r.totalNet)} تومان</b></div>
             </div>
           </div>`;
@@ -422,7 +525,8 @@ const seo = await seoProps(c.seo);
         mount: a.mount,
         region: regionSelect.value,
         equip: equipInput.value,
-        site: siteInput.value,
+        land: landInput.value,
+        grid: gridInput.value,
         om: omInput.value,
       });
       if (print) p.set('print', '1');
@@ -504,14 +608,16 @@ const seo = await seoProps(c.seo);
       const pos = investmentInput.selectionStart ?? 0;
       const before = investmentInput.value.length;
       const n = readInvestment();
-      investmentInput.value = n ? grouped(n) : '';
+      investmentInput.value = n ? fa(grouped(n)) : '';
       const after = investmentInput.value.length;
       investmentInput.setSelectionRange(pos + (after - before), pos + (after - before));
       render();
     });
 
-    for (const el of [mountSelect, regionSelect, equipInput, siteInput, omInput]) {
+    for (const el of [mountSelect, regionSelect, equipInput, landInput, gridInput, omInput]) {
       el.addEventListener('input', render);
+      // انتخابگرها در بعضی مرورگرها فقط change می‌دهند، نه input
+      el.addEventListener('change', render);
     }
 
     /* پیش‌فرض هزینهٔ تجهیزات با مقیاس عوض می‌شود، مگر کاربر خودش دست برده
@@ -522,7 +628,7 @@ const seo = await seoProps(c.seo);
     $('presets').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest('button[data-amount]');
       if (!btn) return;
-      investmentInput.value = grouped(Number(btn.getAttribute('data-amount')));
+      investmentInput.value = fa(grouped(Number(btn.getAttribute('data-amount'))));
       if (!equipTouched) {
         const kw = Number(btn.getAttribute("data-amount")) / 35_000_000;
         const scale = kw < 200 ? 'small' : kw < 1000 ? 'commercial' : 'utility';
@@ -542,7 +648,7 @@ const seo = await seoProps(c.seo);
     }
     const amount = Number(params.get('amount'));
     if (Number.isFinite(amount) && amount >= 100_000_000 && amount <= 10_000_000_000_000) {
-      investmentInput.value = grouped(amount);
+      investmentInput.value = fa(grouped(amount));
       if (!equipTouched) {
         const kw = amount / 35_000_000;
         const scale = kw < 200 ? 'small' : kw < 1000 ? 'commercial' : 'utility';
@@ -649,20 +755,58 @@ const seo = await seoProps(c.seo);
     .pdf-box { grid-template-columns: 1fr; gap: 16px; }
   }
 
-  .route-row {
+  .route-table :global(.route-row) {
     display: grid;
     grid-template-columns: 200px 1fr;
     gap: 16px;
     padding: 16px 0;
     border-top: 1px solid var(--line);
   }
-  .route-row:first-child { border-top: 0; }
-  .route-name b { display: block; font-size: 15px; }
-  .route-name span { display: block; margin-top: 4px; color: var(--faint); font-size: 12.5px; }
-  .route-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .route-nums span { display: block; color: var(--faint); font-size: 12.5px; margin-bottom: 4px; }
-  .route-nums b { font-size: 15px; color: var(--ink); }
-  .route-na {
+  .route-table :global(.route-row:first-child) { border-top: 0; }
+  .route-table :global(.route-name b) { display: block; font-size: 15px; }
+  .route-table :global(.route-name span) { display: block; margin-top: 4px; color: var(--faint); font-size: 12.5px; }
+  .route-table :global(.route-nums) { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .route-table :global(.route-nums span) { display: block; color: var(--faint); font-size: 12.5px; margin-bottom: 4px; }
+  .route-table :global(.route-nums b) { font-size: 15px; color: var(--ink); }
+  /* قید «بدون احتساب زمان ساخت» باید کنار خود عدد باشد، نه در پانویس */
+  .route-table :global(.route-nums i) { display: block; font-style: normal; font-size: 11.5px; color: var(--faint); opacity: .85; }
+  .route-table :global(.route-sub) { display: block; margin-top: 3px; font-size: 12px; color: var(--yellow-2); }
+
+  /* ---------- تفکیک سرمایه ---------- */
+  .out-sub { margin: -6px 0 14px; color: var(--faint); font-size: 13px; }
+  .out-note {
+    margin: 4px 0 18px; padding: 12px 14px;
+    border: 1px solid rgba(255,196,26,.35); border-radius: var(--r);
+    background: rgba(255,196,26,.06); color: var(--ink);
+    font-size: 13.5px; line-height: 1.9;
+  }
+  .out-note :global(.note-action) {
+    display: inline-block; margin-top: 8px;
+    padding: 7px 14px; border-radius: 999px;
+    border: 1px solid var(--yellow); background: transparent;
+    color: var(--yellow); font: inherit; font-size: 13px; font-weight: 700;
+    cursor: pointer;
+  }
+  .out-note :global(.note-action:hover) { background: var(--yellow); color: #111; }
+
+  .capex-bar { margin-bottom: 22px; }
+  .capex-bar :global(.cx-track) {
+    display: flex; height: 12px; border-radius: 999px; overflow: hidden;
+    background: var(--bg-2); border: 1px solid var(--line);
+  }
+  .capex-bar :global(.cx-seg) { display: block; height: 100%; }
+  .capex-bar :global(.cx-equip) { background: var(--yellow); }
+  .capex-bar :global(.cx-land) { background: var(--cerulean-3); }
+  .capex-bar :global(.cx-grid) { background: var(--cerulean-2); }
+  .capex-bar :global(.cx-legend) { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+  .capex-bar :global(.cx-legend li) {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--muted);
+  }
+  .capex-bar :global(.cx-legend i) { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .capex-bar :global(.cx-legend b) { margin-inline-start: auto; color: var(--ink); font-size: 13.5px; }
+  .capex-bar :global(.cx-legend span) { color: var(--faint); font-size: 12.5px; min-width: 42px; text-align: end; }
+  .route-table :global(.route-na) {
     display: block;
     color: var(--faint);
     font-size: 13.5px;
@@ -707,7 +851,7 @@ const seo = await seoProps(c.seo);
   }
   @media (max-width: 700px) {
     .out-top { grid-template-columns: 1fr; }
-    .route-row { grid-template-columns: 1fr; gap: 10px; }
-    .route-nums { grid-template-columns: 1fr; gap: 8px; }
+    .route-table :global(.route-row) { grid-template-columns: 1fr; gap: 10px; }
+    .route-table :global(.route-nums) { grid-template-columns: 1fr; gap: 8px; }
   }
 </style>

@@ -86,34 +86,36 @@ describe('صفحات', () => {
   });
 });
 
-import { EQUIPMENT_COST, SITE_COST, capacityFor } from './solarModel';
+import { EQUIPMENT_COST, GRID_COST, LAND_COST, capacityFor } from './solarModel';
 import { calculatorPage } from './pages';
 import { toLatinDigits } from '../utils';
 
 describe('پرسش‌های ماشین‌حساب با خود مدل می‌خوانند', () => {
   /* پاسخ «با یک میلیارد چه نیروگاهی؟» به‌صورت دادهٔ ساختاریافته به گوگل
-     می‌رود. نسخهٔ قبلی «۳۵ تا ۵۰ کیلووات» می‌گفت — عدد مدل پیش از اصلاح
-     هزینه‌ها — در حالی که خود ماشین‌حساب حدود ۲۶ نشان می‌داد. این تست
-     نگهبان همان است: اگر مدل عوض شد و پاسخ نه، اینجا شکست می‌خورد. */
+     می‌رود، پس نباید از مدل عقب بماند. این تست دو بار جلوی همین اشتباه
+     را گرفته: یک بار عددهای کهنه، و یک بار پاسخی که هنوز نیروگاه زمینیِ
+     یک‌میلیاردی را ممکن می‌دانست در حالی که مدل پست و خط انتقال را
+     هزینهٔ ثابت حساب می‌کند. */
   const answer = calculatorPage.defaults.faq.find((f) => f.q.includes('یک میلیارد'))!.a;
   const numbers = [...toLatinDigits(answer).matchAll(/(\d+) تا (\d+) کیلووات/g)].map((m) => [+m[1]!, +m[2]!]);
 
-  const range = (mount: 'roof' | 'ground') => {
-    const mid = capacityFor(1e9, { mount });
-    const lo = capacityFor(1e9, { mount, equipmentCostPerKw: EQUIPMENT_COST[mid.scale].max, siteCostPerKw: SITE_COST.max });
-    const hi = capacityFor(1e9, { mount, equipmentCostPerKw: EQUIPMENT_COST[mid.scale].min, siteCostPerKw: SITE_COST.min });
-    return [lo.capacityKw, hi.capacityKw];
-  };
-
   it('بازهٔ پشت‌بام', () => {
-    const [lo, hi] = range('roof');
-    expect(numbers[0]![0]).toBeCloseTo(lo, -0.5);
-    expect(numbers[0]![1]).toBeCloseTo(hi, -0.5);
+    const mid = capacityFor(1e9, { mount: 'roof' });
+    const lo = capacityFor(1e9, { mount: 'roof', equipmentCostPerKw: EQUIPMENT_COST[mid.scale].max });
+    const hi = capacityFor(1e9, { mount: 'roof', equipmentCostPerKw: EQUIPMENT_COST[mid.scale].min });
+    expect(numbers[0]![0]).toBeCloseTo(lo.capacityKw, -0.5);
+    expect(numbers[0]![1]).toBeCloseTo(hi.capacityKw, -0.5);
   });
 
-  it('بازهٔ زمینی', () => {
-    const [lo, hi] = range('ground');
-    expect(numbers[1]![0]).toBeCloseTo(lo, -0.5);
-    expect(numbers[1]![1]).toBeCloseTo(hi, -0.5);
+  it('برای زمینی عددی وعده نمی‌دهد، چون با این مبلغ ممکن نیست', () => {
+    const ground = capacityFor(1e9, {
+      mount: 'ground',
+      equipmentCostPerKw: EQUIPMENT_COST.small.min,
+      landCostPerKw: LAND_COST.min,
+      gridCost: GRID_COST.min,
+    });
+    expect(ground.belowGridCost).toBe(true);
+    // یعنی پاسخ فقط یک بازه دارد: پشت‌بام
+    expect(numbers).toHaveLength(1);
   });
 });

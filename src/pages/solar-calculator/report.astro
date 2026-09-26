@@ -31,7 +31,8 @@ const region = YIELD_BY_REGION[regionKey]!;
 
 const assumptions = {
   equipmentCostPerKw: num('equip', 35) * 1_000_000,
-  siteCostPerKw: num('site', 35) * 1_000_000,
+  landCostPerKw: num('land', 15) * 1_000_000,
+  gridCost: num('grid', 20) * 1_000_000_000,
   yieldPerKw: region.kwhPerKw,
   mount: mount as 'roof' | 'ground',
   omRate: num('om', 1.5) / 100,
@@ -98,8 +99,15 @@ const today = new Intl.DateTimeFormat('fa-IR', { dateStyle: 'long' }).format(new
           <tr><th>تولید ویژه</th><td>{fa(region.kwhPerKw)} کیلووات‌ساعت در سال به ازای هر کیلووات</td></tr>
           <tr><th>هزینهٔ تجهیزات و نصب</th><td>{fa(assumptions.equipmentCostPerKw / 1_000_000)} میلیون تومان بر کیلووات</td></tr>
           {mount === 'ground' && (
-            <tr><th>زمین، پست و خط انتقال</th><td>{fa(assumptions.siteCostPerKw / 1_000_000)} میلیون تومان بر کیلووات</td></tr>
+            <tr><th>زمین و محوطه‌سازی</th><td>{fa(assumptions.landCostPerKw / 1_000_000)} میلیون تومان بر کیلووات</td></tr>
           )}
+          {mount === 'ground' && (
+            <tr><th>پست و خط انتقال</th><td>{fa(assumptions.gridCost / 1_000_000_000)} میلیارد تومان — مبلغ ثابت، مستقل از ظرفیت</td></tr>
+          )}
+          {mount === 'roof' && (
+            <tr><th>شیب پنل</th><td>شیب استاندارد ۳۰ درجه</td></tr>
+          )}
+          <tr><th>مدت ساخت تا اتصال</th><td>{fa(mid.constructionMonths)} ماه — در ستون بازگشت سرمایه جدا آمده</td></tr>
           <tr><th>نگه‌داری سالانه</th><td>{fa((assumptions.omRate * 100).toFixed(1))} درصد سرمایه</td></tr>
           <tr><th>افت راندمان</th><td>۰٫۷ درصد در سال</td></tr>
           <tr><th>افق محاسبه</th><td>۲۰ سال — تورم لحاظ نشده، همه‌چیز به قیمت امروز</td></tr>
@@ -120,14 +128,14 @@ const today = new Intl.DateTimeFormat('fa-IR', { dateStyle: 'long' }).format(new
       <h2>آورده، به تفکیک روش فروش برق</h2>
       <table class="grid">
         <thead>
-          <tr><th>روش</th><th>نرخ (تومان/kWh)</th><th>خالص سال اول</th><th>بازگشت سرمایه</th><th>جمع ۲۰ سال</th></tr>
+          <tr><th>روش</th><th>نرخ (تومان/kWh)</th><th>خالص سال اول</th><th>بازگشت سرمایه<br /><small>بدون احتساب زمان ساخت</small></th><th>با احتساب ساخت</th><th>جمع ۲۰ سال</th></tr>
         </thead>
         <tbody>
           {routes.map(({ route, tariff, result }) => (
             <tr>
               <th>{route.title}</th>
               {result === null ? (
-                <td colspan="4" class="na">
+                <td colspan="5" class="na">
                   برای این ظرفیت نرخ مصوب ندارد؛ مصوبهٔ ۱۴۰۵ تا سقف یک مگاوات است
                   و نیروگاه بزرگ‌تر از راه بورس انرژی یا مزایده قیمت‌گذاری می‌شود.
                 </td>
@@ -136,6 +144,7 @@ const today = new Intl.DateTimeFormat('fa-IR', { dateStyle: 'long' }).format(new
                   <td>{grouped(tariff!)}</td>
                   <td>{toman(result.firstYearNet)}</td>
                   <td>{result.paybackYears ? `${fa(result.paybackYears.toFixed(1))} سال` : 'بیش از ۲۰ سال'}</td>
+                  <td>{result.paybackWithBuildYears ? `${fa(result.paybackWithBuildYears.toFixed(1))} سال` : '—'}</td>
                   <td>{toman(result.totalNet)}</td>
                 </>
               )}
