@@ -36,9 +36,29 @@ const assumptions = [
 const pageSchema = [
   breadcrumbSchema([
     { name: 'سرمایه‌گذاری', href: '/investment' },
-    { name: 'برآورد سرمایه‌گذاری', href: '/solar-calculator' },
+    { name: 'محاسبه سود نیروگاه خورشیدی', href: '/solar-calculator' },
   ]),
   faqSchema(c.faq),
+  /* این صفحه یک ابزار است نه مقاله. WebApplication به گوگل همین را
+     می‌گوید و شانس نمایش در نتایج «محاسبه…» را بالا می‌برد. */
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'ماشین‌حساب سود نیروگاه خورشیدی نماد نیرو',
+    url: 'https://namadniroo.ir/solar-calculator',
+    applicationCategory: 'FinanceApplication',
+    operatingSystem: 'Web',
+    inLanguage: 'fa-IR',
+    isAccessibleForFree: true,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'IRR' },
+    featureList: [
+      'محاسبه سود نیروگاه خورشیدی',
+      'محاسبه بازگشت سرمایه نیروگاه خورشیدی',
+      'برآورد ظرفیت قابل احداث از روی سرمایه',
+      'مقایسهٔ سه مسیر فروش برق: ساتبا، بورس انرژی و خودمصرفی صنعتی',
+    ],
+    publisher: { '@id': 'https://namadniroo.ir/#organization' },
+  },
 ];
 const seo = await seoProps(c.seo);
 
@@ -60,7 +80,10 @@ const seo = await seoProps(c.seo);
     <p class="calc-guide-link">
       اولین بار است از این صفحه استفاده می‌کنید؟
       <a href="/magazine/solar-calculator-guide">راهنمای ماشین‌حساب</a>
-      توضیح می‌دهد هر ورودی چه اثری بر نتیجه دارد و خروجی را چطور بخوانید.
+      توضیح می‌دهد هر ورودی چه اثری بر نتیجه دارد و خروجی را چطور بخوانید. اگر
+      دنبال عددهای آمادهٔ هر ظرفیت هستید،
+      <a href="/magazine/solar-plant-profit">سود نیروگاه خورشیدی چقدر است</a>
+      جدول کامل ۱۴۰۵ را دارد.
     </p>
   </div>
 
@@ -159,7 +182,7 @@ const seo = await seoProps(c.seo);
         <h3 class="out-h">سرمایه صرف چه می‌شود؟</h3>
         <div class="capex-bar" id="capexBar"></div>
 
-        <h3 class="out-h">آورده، به تفکیک روش فروش برق</h3>
+        <h3 class="out-h">سود نیروگاه خورشیدی، به تفکیک روش فروش برق</h3>
         <p class="out-sub">بازگشت سرمایه از روز اتصال به شبکه حساب شده است — مدت ساخت جدا آمده.</p>
         <div class="route-table" id="routeTable"></div>
         {c.resultsFoot && <p class="out-foot">{c.resultsFoot}</p>}
@@ -243,6 +266,32 @@ const seo = await seoProps(c.seo);
             <span>{s.note}</span>
           </li>
         ))}
+      </ul>
+    </div>
+  </section>
+
+  <section class="about-sec alt">
+    <div class="wrap">
+      <header class="about-head">
+        <h2>محاسبه سود نیروگاه خورشیدی؛ بعد از این صفحه</h2>
+      </header>
+      <p class="calc-more">
+        خروجی این ابزار یک برآورد از سود نیروگاه خورشیدی بر پایهٔ فرض‌های بالاست.
+        برای رفتن سراغ عددهای دقیق‌تر:
+      </p>
+      <ul class="calc-more-list">
+        <li>
+          <a href="/magazine/solar-plant-profit">سود نیروگاه خورشیدی چقدر است؟</a>
+          — جدول سود خالص سالانه و بیست‌ساله برای هر ظرفیت، حاشیه سود و اثر منطقه.
+        </li>
+        <li>
+          <a href="/magazine/payback-calculation">محاسبه بازگشت سرمایه</a>
+          — فرمول‌ها با مثال عددی کامل و اشتباه‌هایی که برآورد را خوش‌بینانه می‌کنند.
+        </li>
+        <li>
+          <a href="/magazine/solar-income-1405">درآمد نیروگاه خورشیدی در ۱۴۰۵</a>
+          — تفاوت درآمد و سود، و جدول درآمد به تفکیک مسیر فروش.
+        </li>
       </ul>
     </div>
   </section>
@@ -490,9 +539,9 @@ const seo = await seoProps(c.seo);
               <span>${fa(grouped(tariff))} تومان بر کیلووات‌ساعت</span>
             </div>
             <div class="route-nums">
-              <div><span>درآمد خالص سال اول</span><b>${toman(r.firstYearNet)} تومان</b></div>
+              <div><span>سود خالص سال اول</span><b>${toman(r.firstYearNet)} تومان</b></div>
               <div><span>بازگشت سرمایه<i>بدون احتساب زمان ساخت</i></span><b>${payback}</b>${paybackNote}</div>
-              <div><span>جمع ۲۰ سال</span><b>${toman(r.totalNet)} تومان</b></div>
+              <div><span>سود خالص ۲۰ ساله</span><b>${toman(r.totalNet)} تومان</b></div>
             </div>
           </div>`;
       });
@@ -685,6 +734,34 @@ const seo = await seoProps(c.seo);
   }
   .calc-guide-link a {
     color: var(--yellow);
+    text-underline-offset: 3px;
+  }
+
+  /* سه مسیر ادامه بعد از دیدن برآورد. لیست است نه کارت، چون هر سطر یک
+     جمله توضیح دارد و کارت‌کردنش فقط فضا می‌گیرد. */
+  .calc-more {
+    margin: 0 0 14px;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.95;
+  }
+  .calc-more-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 12px;
+  }
+  .calc-more-list li {
+    padding-inline-start: 14px;
+    border-inline-start: 2px solid rgba(255, 196, 26, 0.35);
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.95;
+  }
+  .calc-more-list a {
+    color: var(--yellow);
+    font-weight: 600;
     text-underline-offset: 3px;
   }
 

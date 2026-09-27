@@ -27,6 +27,20 @@ let workerStarted = false;
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
+
+  /* یک سایت، یک نشانی. لبهٔ لیارا درخواست `http://www` را ۳۰۱ می‌کند ولی
+     `https://www` را نه، پس به‌محض صدور گواهی برای www همان محتوا از دو
+     میزبان سرو می‌شود. تگ canonical همیشه به دامنهٔ بدون www اشاره دارد،
+     ولی ۳۰۱ سیگنال قطعی‌تری است و اعتبار لینک‌های ورودیِ www را هم منتقل
+     می‌کند. */
+  const host = context.request.headers.get('host');
+  if (host?.startsWith('www.')) {
+    const target = new URL(context.url);
+    target.host = host.slice(4);
+    target.protocol = 'https:';
+    return context.redirect(target.href, 301);
+  }
+
   if (SKIP.test(pathname)) return next();
 
   /* صفحات از پیش ساخته‌شده در زمان بیلد از اینجا رد می‌شوند. آن‌ها فایل
