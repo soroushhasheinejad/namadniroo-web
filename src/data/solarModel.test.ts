@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   CONSTRUCTION_MONTHS,
-  EQUIPMENT_COST,
+  BUILD_COST,
+  CAPEX_PER_MW_GROUND,
+  ROOF_FACTOR,
   GRID_COST,
   LAND_COST,
   TARIFF,
@@ -30,7 +32,7 @@ describe('capacityFor', () => {
     const roof = capacityFor(60 * BILLION, { mount: 'roof' });
     const ground = capacityFor(60 * BILLION, { mount: 'ground' });
 
-    expect(roof.capexPerKw).toBe(EQUIPMENT_COST[roof.scale].typical);
+    expect(roof.capexPerKw).toBeCloseTo(BUILD_COST.roof.typical, 4);
     expect(ground.capexPerKw).toBeGreaterThan(roof.capexPerKw);
     // با یک سرمایه، روی پشت‌بام ظرفیت بیشتری می‌شود نصب کرد
     expect(roof.capacityKw).toBeGreaterThan(ground.capacityKw);
@@ -48,15 +50,15 @@ describe('capacityFor', () => {
   it('فرض دستی کاربر جای پیش‌فرض را می‌گیرد', () => {
     const r = capacityFor(1 * BILLION, {
       mount: 'roof',
-      equipmentCostPerKw: 20 * MILLION,
+      buildCostPerKw: 20 * MILLION,
     });
     expect(r.capexPerKw).toBe(20 * MILLION);
     expect(r.capacityKw).toBe(50);
   });
 
   it('ظرفیت با سرمایه خطی بالا می‌رود وقتی پله عوض نشود', () => {
-    const a = capacityFor(10 * BILLION, { mount: 'roof', equipmentCostPerKw: 25 * MILLION });
-    const b = capacityFor(20 * BILLION, { mount: 'roof', equipmentCostPerKw: 25 * MILLION });
+    const a = capacityFor(10 * BILLION, { mount: 'roof', buildCostPerKw: 25 * MILLION });
+    const b = capacityFor(20 * BILLION, { mount: 'roof', buildCostPerKw: 25 * MILLION });
     expect(b.capacityKw).toBeCloseTo(a.capacityKw * 2, 6);
   });
 });
@@ -92,7 +94,26 @@ describe('هزینهٔ ثابت پست و خط انتقال', () => {
   it('تفکیک سرمایه با کل سرمایه جمع می‌خورد', () => {
     const investment = 120 * BILLION;
     const { capex } = capacityFor(investment, { mount: 'ground' });
-    expect(capex.equipment + capex.land + capex.grid).toBeCloseTo(investment, 4);
+    expect(capex.build + capex.land + capex.grid).toBeCloseTo(investment, 4);
+  });
+});
+
+describe('مبنای سرمایه', () => {
+  it('یک مگاوات زمینی همان ۸۰ میلیارد تومان در می‌آید', () => {
+    const r = capacityFor(CAPEX_PER_MW_GROUND, { mount: 'ground' });
+    expect(r.capacityKw).toBeCloseTo(1000, 0);
+  });
+
+  it('یک مگاوات سقفی، ۰٫۹۳ برابر زمینی است', () => {
+    const roofCapex = CAPEX_PER_MW_GROUND * ROOF_FACTOR;
+    const r = capacityFor(roofCapex, { mount: 'roof' });
+    expect(r.capacityKw).toBeCloseTo(1000, 0);
+  });
+
+  it('در ظرفیت بزرگ، هر مگاوات زمینی ارزان‌تر از مبنا تمام می‌شود', () => {
+    /* چون پست و خط یک بار حساب می‌شود، نه به ازای هر مگاوات. */
+    const ten = capacityFor(10 * CAPEX_PER_MW_GROUND, { mount: 'ground' });
+    expect(ten.capacityKw).toBeGreaterThan(10_000);
   });
 });
 
@@ -132,7 +153,11 @@ describe('calculate', () => {
 
   it('تولید سال اول از ظرفیت و تابش می‌آید', () => {
     const r = calculate(60 * BILLION, base);
-    expect(r.firstYearProductionKwh).toBeCloseTo(r.capacityKw * base.yieldPerKw, 6);
+    // افت از سال اول اعمال می‌شود، پس تولید سال اول ۰٫۹۹۳ برابر اسمی است
+    expect(r.firstYearProductionKwh).toBeCloseTo(
+      r.capacityKw * base.yieldPerKw * (1 - base.degradation),
+      6,
+    );
   });
 
   it('تولید هر سال کمتر از سال قبل است', () => {
@@ -207,7 +232,7 @@ describe('calculate', () => {
        در بیاید و بازگشت سرمایه در بازهٔ چندساله باشد. این تست نگهبان
        است: اگر فرض‌ها روزی طوری عوض شوند که خروجی از واقعیت بازار دور
        بیفتد، همین‌جا معلوم می‌شود. */
-    const r = calculate(70 * BILLION, defaultAssumptions('ground', 'high'));
+    const r = calculate(80 * BILLION, defaultAssumptions('ground', 'high'));
 
     expect(r.capacityKw).toBeGreaterThan(900);
     expect(r.capacityKw).toBeLessThan(1400);
@@ -219,14 +244,14 @@ describe('calculate', () => {
     const cheap = calculate(60 * BILLION, {
       ...base,
       tariff: TARIFF.bourse,
-      equipmentCostPerKw: EQUIPMENT_COST.commercial.min,
+      buildCostPerKw: BUILD_COST.ground.min,
       landCostPerKw: LAND_COST.min,
       gridCost: GRID_COST.min,
     });
     const pricey = calculate(60 * BILLION, {
       ...base,
       tariff: TARIFF.bourse,
-      equipmentCostPerKw: EQUIPMENT_COST.commercial.max,
+      buildCostPerKw: BUILD_COST.ground.max,
       landCostPerKw: LAND_COST.max,
       gridCost: GRID_COST.max,
     });
@@ -246,7 +271,7 @@ describe('نرخ ساتبا بالای یک مگاوات', () => {
   });
 
   it('در نبود نرخ مصوب، محاسبه به نرخ بورس برمی‌گردد و خطا نمی‌دهد', () => {
-    const r = calculate(70 * BILLION, defaultAssumptions('ground', 'high'));
+    const r = calculate(120 * BILLION, defaultAssumptions('ground', 'high'));
     expect(r.scale).toBe('utility');
     expect(r.tariff).toBe(TARIFF.bourse);
     expect(Number.isFinite(r.totalNet)).toBe(true);

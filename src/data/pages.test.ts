@@ -86,7 +86,7 @@ describe('صفحات', () => {
   });
 });
 
-import { EQUIPMENT_COST, GRID_COST, LAND_COST, capacityFor } from './solarModel';
+import { BUILD_COST, GRID_COST, LAND_COST, capacityFor } from './solarModel';
 import { calculatorPage } from './pages';
 import { toLatinDigits } from '../utils';
 
@@ -100,9 +100,8 @@ describe('پرسش‌های ماشین‌حساب با خود مدل می‌خو
   const numbers = [...toLatinDigits(answer).matchAll(/(\d+) تا (\d+) کیلووات/g)].map((m) => [+m[1]!, +m[2]!]);
 
   it('بازهٔ پشت‌بام', () => {
-    const mid = capacityFor(1e9, { mount: 'roof' });
-    const lo = capacityFor(1e9, { mount: 'roof', equipmentCostPerKw: EQUIPMENT_COST[mid.scale].max });
-    const hi = capacityFor(1e9, { mount: 'roof', equipmentCostPerKw: EQUIPMENT_COST[mid.scale].min });
+    const lo = capacityFor(1e9, { mount: 'roof', buildCostPerKw: BUILD_COST.roof.max });
+    const hi = capacityFor(1e9, { mount: 'roof', buildCostPerKw: BUILD_COST.roof.min });
     expect(numbers[0]![0]).toBeCloseTo(lo.capacityKw, -0.5);
     expect(numbers[0]![1]).toBeCloseTo(hi.capacityKw, -0.5);
   });
@@ -110,7 +109,7 @@ describe('پرسش‌های ماشین‌حساب با خود مدل می‌خو
   it('برای زمینی عددی وعده نمی‌دهد، چون با این مبلغ ممکن نیست', () => {
     const ground = capacityFor(1e9, {
       mount: 'ground',
-      equipmentCostPerKw: EQUIPMENT_COST.small.min,
+      buildCostPerKw: BUILD_COST.ground.min,
       landCostPerKw: LAND_COST.min,
       gridCost: GRID_COST.min,
     });
