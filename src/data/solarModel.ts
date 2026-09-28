@@ -39,48 +39,27 @@ export interface Range {
  * شامل پنل، اینورتر، سازه، کابل، تابلو و اجرا — یعنی چیزی که در هر دو
  * مقیاس پشت‌بامی و زمینی مشترک است.
  */
-/**
- * سرمایهٔ کل یک مگاوات نیروگاه زمینی — مبنای عددی مدل.
- *
- * رقم تجربهٔ اجرای شرکت است، نه برآورد مقاله‌ها: منابع منتشرشده برای یک
- * مگاوات از ۱۰ تا ۴۲ میلیارد تومان هم نوشته‌اند، ولی بیشترشان یا قدیمی‌اند
- * یا زمین و اتصال به شبکه را کنار گذاشته‌اند.
- */
-export const CAPEX_PER_MW_GROUND = 80_000_000_000;
-
-/**
- * نسبت سرمایهٔ نیروگاه سقفی به زمینی، در ظرفیت برابر.
- *
- * سقفی زمین و محوطه‌سازی و پست اختصاصی نمی‌خواهد، ولی سازه و اجرای روی
- * بام گران‌تر تمام می‌شود؛ خالصِ این دو حدود ۷ درصد ارزان‌تر است.
- */
-export const ROOF_FACTOR = 0.93;
-
-/**
- * هزینهٔ ساخت بر کیلووات: تجهیزات، سازه، کابل، تابلو و اجرا.
- *
- * برای زمینی، زمین و پست جداگانه حساب می‌شوند و این رقم شاملشان نیست؛
- * برای سقفی همین یک رقم کل سرمایه است. برای همین عدد سقفی بالاتر است و
- * این وارونگی طبیعی است: سامانهٔ کوچک‌تر روی بام، به ازای هر کیلووات
- * همیشه گران‌تر از مزرعهٔ خورشیدی تمام می‌شود.
- *
- * هر دو از همان مبنای یک مگاوات در می‌آیند:
- *   زمینی: (۸۰ میلیارد − پست ۲۰ میلیارد) ÷ ۱۰۰۰ − زمین ۱۵ = ۴۵
- *   سقفی:  ۸۰ میلیارد × ۰٫۹۳ ÷ ۱۰۰۰ = ۷۴٫۴
- */
-export const BUILD_COST: Record<Mount, Range> = {
-  ground: { min: 36_000_000, typical: 45_000_000, max: 56_000_000 },
-  roof: { min: 60_000_000, typical: 74_400_000, max: 90_000_000 },
+export const EQUIPMENT_COST: Record<Scale, Range> = {
+  small: { min: 30_000_000, typical: 38_000_000, max: 48_000_000 },
+  commercial: { min: 28_000_000, typical: 35_000_000, max: 44_000_000 },
+  utility: { min: 26_000_000, typical: 33_000_000, max: 40_000_000 },
 };
 
 /*
- * چرا این مبنا و نه رقم‌های پایین‌تر بعضی مقاله‌ها:
+ * چرا این اعداد و نه اعداد پایین‌تری که در بعضی مقاله‌ها می‌بینید:
  *
- * منابع فارسی برای یک مگاوات از ۱۰ تا ۴۲ میلیارد تومان نوشته‌اند. اختلاف
- * از آن‌جاست که بیشترشان فقط تجهیزات را حساب کرده‌اند و زمین، پست و خط
- * انتقال را کنار گذاشته‌اند — همان چیزی که در پروژهٔ واقعی حدود نیمی از
- * سرمایه است. مبنای این مدل، هزینهٔ تمام‌شدهٔ اجراست.
+ * منابع مقیاس کوچک گاهی رقم‌هایی حدود ۲۵ میلیون بر کیلووات می‌دهند، ولی
+ * همان منابع نیروگاه یک مگاواتی را ۶۰ تا ۸۰ میلیارد تومان برآورد می‌کنند —
+ * یعنی ۶۰ تا ۸۰ میلیون بر کیلووات. این دو با هم نمی‌خوانند، چون مقیاس
+ * بزرگ‌تر باید ارزان‌تر تمام شود نه گران‌تر.
+ *
+ * وقتی هزینهٔ محوطه (زمین، پست، خط انتقال) را که فقط نیروگاه زمینی دارد
+ * از رقم مگاواتی جدا کنیم، تجهیزات حدود ۳۵ میلیون بر کیلووات در می‌آید.
+ * همین عدد، دورهٔ بازگشت خانگی را هم به حدود ۳٫۵ سال می‌رساند که با
+ * برآورد منتشرشده می‌خواند. پس این مبنا با هر دو سر طیف سازگار است،
+ * برخلاف عدد ۲۵ میلیون که فقط با یک سرش می‌خواند.
  */
+
 /**
  * زمین، محوطه‌سازی و حصار — تومان بر کیلووات، فقط نیروگاه زمینی.
  *
@@ -129,21 +108,18 @@ export const GRID_COST: Range = {
  * اعداد زیر خروجی خالص‌اند: افت گرما، غبار، کابل و اینورتر در آن‌ها لحاظ
  * شده، و مبنایشان میانگین بلندمدت PVOUT اطلس جهانی خورشید است.
  */
-/**
- * روزهای مفید تولید در سال.
- *
- * ۳۴۵ روز، نه ۳۶۵: ابر، گردوغبار، شست‌وشو و توقف‌های نگه‌داری از تقویم کم
- * می‌شوند. فرمول تولید همان چیزی است که در برآوردهای مهندسی نوشته می‌شود:
- *
- *     تولید سال n = ظرفیت × ضریب منطقه × ۳۴۵ × (۱ − افت)^n
- */
 export const SUN_DAYS = 345;
 
 /**
  * ضریب منطقه: ساعت تابش مفید روزانه (kWh بر هر کیلووات در روز).
  *
  * تولید ویژهٔ سالانه از ضرب همین در ۳۴۵ در می‌آید — مثلاً کرمان:
- * ۵٫۳۶ × ۳۴۵ ≈ ۱۸۵۰ کیلووات‌ساعت بر کیلووات.
+ * ۵٫۳۶ × ۳۴۵ ≈ ۱۸۵۰ کیلووات‌ساعت بر کیلووات. فرمول مرجع همین است:
+ *
+ *     تولید سال n = ظرفیت × ضریب منطقه × ۳۴۵ × (۱ − افت)^n
+ *
+ * ۳۴۵ روز، نه ۳۶۵: ابر، گردوغبار، شست‌وشو و توقف نگه‌داری از تقویم کم
+ * می‌شوند.
  */
 const REGIONS: Record<string, { label: string; sunHours: number }> = {
   high: { label: 'یزد، کرمان، خراسان جنوبی، سمنان (پتانسیل بسیار بالا)', sunHours: 5.36 },
@@ -161,7 +137,6 @@ export const YIELD_BY_REGION: Record<
     { ...r, kwhPerKw: Math.round(r.sunHours * SUN_DAYS) },
   ]),
 );
-
 /**
  * نرخ فروش برق، به تومان بر کیلووات‌ساعت.
  *
@@ -247,8 +222,7 @@ export function scaleOf(capacityKw: number): Scale {
 
 export interface Assumptions {
   /** تومان بر کیلووات — تجهیزات و نصب */
-  /** تومان بر کیلووات — ساخت: تجهیزات، سازه، کابل و اجرا */
-  buildCostPerKw: number;
+  equipmentCostPerKw: number;
   /** تومان بر کیلووات — زمین و محوطه‌سازی (فقط زمینی) */
   landCostPerKw: number;
   /** تومان — پست و خط انتقال، مبلغ ثابت و مستقل از ظرفیت (فقط زمینی) */
@@ -295,8 +269,8 @@ export interface Result {
   firstYearReturn: number;
   /** سرمایه کفاف پست و خط انتقال را نمی‌دهد، پس نیروگاه زمینی ممکن نیست */
   belowGridCost: boolean;
-  /** تفکیک سرمایه: ساخت، زمین، اتصال به شبکه (تومان) */
-  capex: { build: number; land: number; grid: number };
+  /** تفکیک سرمایه: تجهیزات، زمین، اتصال به شبکه (تومان) */
+  capex: { equipment: number; land: number; grid: number };
   rows: YearRow[];
 }
 
@@ -309,13 +283,13 @@ export interface Result {
  */
 export function capacityFor(
   investment: number,
-  options: { mount: Mount; buildCostPerKw?: number; landCostPerKw?: number; gridCost?: number },
+  options: { mount: Mount; equipmentCostPerKw?: number; landCostPerKw?: number; gridCost?: number },
 ): {
   capacityKw: number;
   capexPerKw: number;
   scale: Scale;
   belowGridCost: boolean;
-  capex: { build: number; land: number; grid: number };
+  capex: { equipment: number; land: number; grid: number };
 } {
   const ground = options.mount === 'ground';
   const grid = ground ? (options.gridCost ?? GRID_COST.typical) : 0;
@@ -331,16 +305,16 @@ export function capacityFor(
       capexPerKw: 0,
       scale: 'small',
       belowGridCost: true,
-      capex: { build: 0, land: 0, grid },
+      capex: { equipment: 0, land: 0, grid },
     };
   }
 
   let scale: Scale = 'commercial';
 
   for (let i = 0; i < 3; i++) {
-    const build = options.buildCostPerKw ?? BUILD_COST[options.mount].typical;
+    const equipment = options.equipmentCostPerKw ?? EQUIPMENT_COST[scale].typical;
     const land = ground ? (options.landCostPerKw ?? LAND_COST.typical) : 0;
-    const perKw = build + land;
+    const perKw = equipment + land;
     const capacityKw = forCapacity / perKw;
     const next = scaleOf(capacityKw);
 
@@ -352,7 +326,7 @@ export function capacityFor(
         capexPerKw: investment / capacityKw,
         scale: next,
         belowGridCost: false,
-        capex: { build: capacityKw * build, land: capacityKw * land, grid },
+        capex: { equipment: capacityKw * equipment, land: capacityKw * land, grid },
       };
     }
     scale = next;
@@ -365,7 +339,7 @@ export function capacityFor(
 export function calculate(investment: number, assumptions: Assumptions): Result {
   const { capacityKw, capexPerKw, scale, belowGridCost, capex } = capacityFor(investment, {
     mount: assumptions.mount,
-    buildCostPerKw: assumptions.buildCostPerKw,
+    equipmentCostPerKw: assumptions.equipmentCostPerKw,
     landCostPerKw: assumptions.landCostPerKw,
     gridCost: assumptions.gridCost,
   });
@@ -427,7 +401,7 @@ export function calculate(investment: number, assumptions: Assumptions): Result 
 /** فرض‌های پیش‌فرض برای یک حالت */
 export function defaultAssumptions(mount: Mount, region: string): Assumptions {
   return {
-    buildCostPerKw: BUILD_COST[mount].typical,
+    equipmentCostPerKw: EQUIPMENT_COST.commercial.typical,
     landCostPerKw: LAND_COST.typical,
     gridCost: GRID_COST.typical,
     yieldPerKw: (YIELD_BY_REGION[region] ?? YIELD_BY_REGION.good!).kwhPerKw,

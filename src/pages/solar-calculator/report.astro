@@ -30,7 +30,7 @@ const regionKey = q.get('region') && YIELD_BY_REGION[q.get('region')!] ? q.get('
 const region = YIELD_BY_REGION[regionKey]!;
 
 const assumptions = {
-  buildCostPerKw: num('equip', 45) * 1_000_000,
+  equipmentCostPerKw: num('equip', 35) * 1_000_000,
   landCostPerKw: num('land', 15) * 1_000_000,
   gridCost: num('grid', 20) * 1_000_000_000,
   yieldPerKw: region.kwhPerKw,
@@ -97,7 +97,7 @@ const today = new Intl.DateTimeFormat('fa-IR', { dateStyle: 'long' }).format(new
           <tr><th>نوع نصب</th><td>{mount === 'ground' ? 'زمینی' : 'پشت‌بام'}</td></tr>
           <tr><th>منطقه</th><td>{region.label}</td></tr>
           <tr><th>تولید ویژه</th><td>{fa(region.kwhPerKw)} کیلووات‌ساعت در سال به ازای هر کیلووات</td></tr>
-          <tr><th>هزینهٔ ساخت</th><td>{fa(assumptions.buildCostPerKw / 1_000_000)} میلیون تومان بر کیلووات</td></tr>
+          <tr><th>هزینهٔ تجهیزات و نصب</th><td>{fa(assumptions.equipmentCostPerKw / 1_000_000)} میلیون تومان بر کیلووات</td></tr>
           {mount === 'ground' && (
             <tr><th>زمین و محوطه‌سازی</th><td>{fa(assumptions.landCostPerKw / 1_000_000)} میلیون تومان بر کیلووات</td></tr>
           )}
