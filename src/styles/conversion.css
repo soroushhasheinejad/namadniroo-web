@@ -205,8 +205,23 @@ html.has-dialog { overflow: hidden; }
 .calc-teaser-copy p { margin: 18px 0 0; color: var(--muted); font-size: 17px; line-height: 1.9; max-width: 46ch; }
 /* برای کسی که هنوز آمادهٔ پرکردن فرم نیست ولی سؤال دارد — به‌جای اینکه
    صفحه را ببندد، سراغ مقالهٔ راهنما می‌رود. */
-.calc-teaser-help { margin: 14px 0 0; font-size: 14.5px; }
-.calc-teaser-help a { color: var(--yellow); text-underline-offset: 3px; }
+/* دو پیوند راهنما. جملهٔ پیوسته نیستند، پس هر کدام باید هدف لمسی کامل
+   باشد: پیش از این ۲۳ پیکسل ارتفاع داشتند و انگشت راحت خطا می‌رفت. با
+   flex هم در موبایل زیر هم می‌نشینند به‌جای اینکه وسط عبارت بشکنند. */
+.calc-teaser-help {
+  margin: 8px 0 0; font-size: 14.5px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px;
+}
+.calc-teaser-help a {
+  display: inline-flex; align-items: center; min-height: 44px;
+  color: var(--yellow); text-underline-offset: 3px;
+}
+.calc-teaser-help span { color: var(--faint); }
+@media (max-width: 520px) {
+  /* در عرض کم، جداکنندهٔ نقطه بی‌معنا می‌شود چون پیوندها زیر هم می‌روند */
+  .calc-teaser-help { flex-direction: column; align-items: flex-start; gap: 0; }
+  .calc-teaser-help span { display: none; }
+}
 
 .calc-teaser-form {
   display: flex; flex-direction: column; gap: 22px;

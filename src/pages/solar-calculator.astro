@@ -748,6 +748,9 @@ const seo = await seoProps(c.seo);
   .calc-guide-link a {
     color: var(--yellow);
     text-underline-offset: 3px;
+    /* پیوند وسط جمله است و شکستنش بین دو خط، عبارت را دونیم می‌کرد؛
+       یک‌جا به خط بعد می‌رود. */
+    white-space: nowrap;
   }
 
   /* سه مسیر ادامه بعد از دیدن برآورد. لیست است نه کارت، چون هر سطر یک
