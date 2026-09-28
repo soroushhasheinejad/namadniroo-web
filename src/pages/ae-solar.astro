@@ -9,6 +9,7 @@ import { breadcrumbSchema, faqSchema } from '../utils';
 import { seoProps } from '../server/seo/pageSeo';
 import { getPageContent } from '../server/repos/pageContent';
 import { aeSolarPage } from '../data/pages';
+import { listProducts } from '../server/repos/content';
 
 /* پویا، تا متنی که در پنل عوض می‌شود بلافاصله دیده شود. خواندن از کش
    درون‌حافظه‌ای است، پس هزینه‌اش ناچیز است. */
@@ -17,7 +18,28 @@ export const prerender = false;
 const c = await getPageContent(aeSolarPage);
 const seo = await seoProps(c.seo);
 
+/* پنل‌های AE Solar فروشگاه، تا این صفحه به صفحهٔ هر محصول پیوند بدهد و
+   برعکس. برند در دیتابیس با &nbsp; ذخیره شده، پس فاصله‌ها کنار می‌روند. */
+const aeProducts = (await listProducts().catch(() => []))
+  .filter((p) => p.kind === 'panel' && /^AESOLAR$/i.test(p.brand.replace(/&nbsp;|\s/g, '')));
+
 const pageSchema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    '@id': 'https://namadniroo.ir/ae-solar#webpage',
+    url: 'https://namadniroo.ir/ae-solar',
+    name: c.seo.title,
+    inLanguage: 'fa-IR',
+    /* صفحه دربارهٔ برند است و ناشرش همان سازمانی که Base معرفی می‌کند */
+    about: {
+      '@type': 'Brand',
+      name: 'AE Solar',
+      alternateName: ['AE SOLAR', 'ای ای سولار'],
+      url: 'https://ae-solar.com',
+    },
+    publisher: { '@id': 'https://namadniroo.ir/#organization' },
+  },
   breadcrumbSchema([{ name: 'AE Solar', href: '/ae-solar' }]),
   // همان پرسش‌هایی که روی صفحه است
   faqSchema(c.faq),
@@ -152,6 +174,7 @@ const pageSchema = [
             {markedParts(c.warrantyHead.line1).map((part) => (part.marked ? <span class="red">{part.text}</span> : part.text))}<br />
             <em>{c.warrantyHead.line2}</em>
           </h2>
+          {c.warrantyHead.sub && <p class="ae-sub">{c.warrantyHead.sub}</p>}
         </header>
 
         <div class="warr-grid">
@@ -189,8 +212,45 @@ const pageSchema = [
       </div>
     </section>
 
+    <!-- ===== خرید پنل ===== -->
+    <section class="ae-sec alt" id="buy">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">{c.buyHead.kicker}</p>
+          <h2 class="ae-h2">
+            {markedParts(c.buyHead.line1).map((part) => (part.marked ? <span class="red">{part.text}</span> : part.text))}<br />
+            <em>{c.buyHead.line2}</em>
+          </h2>
+          {c.buyHead.sub && <p class="ae-sub">{c.buyHead.sub}</p>}
+        </header>
+
+        <div class="why-grid">
+          {c.buySteps.map((b, i) => (
+            <div class="why-card">
+              <span class="why-num">{fa(String(i + 1).padStart(2, '0'))}</span>
+              <h3>{b.title}</h3>
+              <p>{b.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        {aeProducts.length > 0 && (
+          <div class="dl-list ae-shop">
+            {aeProducts.map((p) => (
+              <a class="dl-row" href={`/shop/${p.slug}`}>
+                <span class="dl-name">{p.name}<span>پنل خورشیدی AE Solar · فروشگاه نماد نیرو</span></span>
+                <span class="dl-spec">{p.spec}</span>
+                <span class="dl-spec">{p.specUnit}</span>
+                <span class="dl-go">مشاهدهٔ محصول ←</span>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+
     <!-- ===== دیتاشیت‌ها ===== -->
-    <section class="ae-sec alt">
+    <section class="ae-sec">
       <div class="wrap">
         <header class="ae-head">
           <p class="ae-kicker">{c.datasheetsHead.kicker}</p>
@@ -204,7 +264,7 @@ const pageSchema = [
         <div class="dl-list">
           {c.datasheets.map((d) => (
             <a class="dl-row" href={d.file} download>
-              <span class="dl-name">{d.series}<span>دیتاشیت فنی · PDF</span></span>
+              <span class="dl-name">{d.series}<span>دیتاشیت پنل AE Solar · PDF</span></span>
               <span class="dl-spec">{d.tech}</span>
               <span class="dl-spec">{d.power} W</span>
               <span class="dl-go">دانلود ↓</span>
@@ -215,7 +275,7 @@ const pageSchema = [
     </section>
 
     <!-- ===== پرسش‌های متداول ===== -->
-    <section class="ae-sec">
+    <section class="ae-sec alt">
       <div class="wrap">
         <header class="ae-head">
           <p class="ae-kicker">{c.faqHead.kicker}</p>
@@ -237,7 +297,7 @@ const pageSchema = [
     </section>
 
     <!-- ===== لاک‌آپ شراکت ===== -->
-    <section class="ae-sec alt">
+    <section class="ae-sec">
       <div class="wrap">
         <div class="pact">
           <div class="pact-side">
