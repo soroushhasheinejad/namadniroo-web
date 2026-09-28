@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { listArticles, listProducts } from '../server/repos/content';
 import { getPageContent } from '../server/repos/pageContent';
 import { PAGES } from '../data/pages';
+import { aeModels } from '../data/aesolarModels';
 
 export const prerender = false;
 
@@ -81,6 +82,9 @@ export const GET: APIRoute = async () => {
 
     /* صفحاتی که ویراستار `noindex` زده در نقشه نمی‌آیند — فرستادن نشانی‌ای
        که خودمان از گوگل پنهانش کرده‌ایم سیگنال متناقض است. */
+    /* صفحهٔ هر مدل AE Solar — دادهٔ کد است نه دیتابیس */
+    ...aeModels.map((m) => ({ path: `/ae-solar/${m.slug}`, changefreq: 'monthly', priority: '0.7' })),
+
     ...products
       .filter((p) => !p.noindex)
       .map((p) => ({

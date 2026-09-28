@@ -1,0 +1,237 @@
+---
+import Base from '../../layouts/Base.astro';
+import { fa, breadcrumbSchema, faqSchema } from '../../utils';
+import { aeModels, aeModelBySlug } from '../../data/aesolarModels';
+
+/* صفحهٔ هر مدل AE Solar موجود در انبار — برای جست‌وجوهایی که توان دارند
+   («پنل 580 وات ae solar»). داده از دیتاشیت رسمی می‌آید، نه از پنل. پویا
+   است چون Base تنظیمات سئو را از دیتابیس می‌خواند. */
+export const prerender = false;
+
+const m = aeModelBySlug(Astro.params.model);
+if (!m) return Astro.rewrite('/404');
+
+const maxEff = Math.max(...m.rows.map((r) => r.eff));
+const range = `${fa(m.minW)} تا ${fa(m.maxW)}`;
+/* ارقام لاتین در عنوان عمداً است: جست‌وجوی توان‌دار بیشتر با ارقام لاتین
+   نوشته می‌شود و H1 با ارقام فارسی، پس صفحه هر دو شکل را دارد. */
+const title = `پنل ${m.maxW} وات AE Solar ${m.series} (${m.code}) | مشخصات و قیمت`;
+const description = `مشخصات کامل پنل ${range} وات AE Solar ${m.series} مدل ${m.code}: ${m.tech}، بازده تا ${fa(maxEff)}٪. دیتاشیت رسمی، گارانتی و استعلام قیمت از نمایندگی رسمی AE Solar.`;
+const pct = (v: number) => `${v < 0 ? '−' : '+'}${fa(Math.abs(v))}٪/°C`;
+
+const siblings = aeModels.filter((x) => x.slug !== m.slug);
+
+const faq = [
+  ...m.faq,
+  {
+    q: `قیمت پنل ${fa(m.maxW)} وات AE Solar چقدر است؟`,
+    a: `قیمت پنل ${m.series} ${m.code} به توان دقیق (${range} وات)، نرخ روز ارز و حجم سفارش بستگی دارد، پس لیست قیمت ثابت منتشر نمی‌کنیم. قیمت روز و موجودی انبار را پس از یک استعلام کوتاه برایتان می‌فرستیم.`,
+  },
+  {
+    q: `گارانتی پنل ${fa(m.maxW)} وات AE Solar چند سال است؟`,
+    a: `۱۵ سال گارانتی محصول برای نقص ساخت و مواد، و ۳۰ سال گارانتی عملکرد: دست‌کم ${fa(m.firstYear)}٪ توان اولیه در پایان سال اول و ${fa(m.year30)}٪ در سال سی‌ام. ادعای گارانتی از طریق نماد نیرو، نمایندهٔ رسمی AE Solar در ایران، به سازنده ثبت می‌شود.`,
+  },
+];
+
+const mech: [string, string][] = [
+  ['سلول', m.cells],
+  ['ابعاد (میلی‌متر)', fa(m.dimensions)],
+  ['وزن', `${fa(m.weightKg)} کیلوگرم`],
+  ['پوشش رو', m.front],
+  ['پوشش پشت', m.back],
+  ['لایهٔ کپسوله', m.encapsulant],
+  ...(m.bifacial ? [['ضریب دوطرفگی', '۸۰٪ (±۵٪)'] as [string, string]] : []),
+  ['جعبه‌تقسیم', 'IP68، سه دیود بای‌پس'],
+  ['قاب', 'آلومینیوم آنودایز ۳۰ میلی‌متری'],
+  ['کانکتور', 'MC4 یا سازگار با MC4'],
+  ['مقاومت در برابر تگرگ', 'تگرگ تا قطر ۲۵ میلی‌متر با سرعت ۲۳ متر بر ثانیه'],
+  ['بار مکانیکی', 'باد ۲۴۰۰ پاسکال، برف ۵۴۰۰ پاسکال'],
+  ['دمای کار', '−۴۰ تا +۸۵ درجه'],
+  ['NOCT', `${fa(m.noct)} درجه`],
+  ['ضریب دمایی Pmax / Voc / Isc', `${pct(m.tempPmax)} · ${pct(m.tempVoc)} · ${pct(m.tempIsc)}`],
+  ['حداکثر ولتاژ سیستم', '۱۵۰۰ ولت DC'],
+  ['حداکثر فیوز سری', `${fa(m.maxFuseA)} آمپر`],
+  ['تلورانس توان', '۰ تا +۵ وات (فقط مثبت)'],
+  ['بسته‌بندی', m.packing],
+];
+
+const schema = [
+  breadcrumbSchema([
+    { name: 'AE Solar', href: '/ae-solar' },
+    { name: `${m.series} ${m.code}`, href: `/ae-solar/${m.slug}` },
+  ]),
+  faqSchema(faq),
+];
+---
+<Base title={title} description={description} schema={schema}>
+  <div class="ae-page">
+
+    <section class="ae-hero">
+      <div class="wrap">
+        <p class="ae-crumb"><a href="/ae-solar">نمایندگی AE Solar</a><span>/</span>{m.series} {m.code}</p>
+        <span class="ae-badge">موجود در انبار · نمایندگی رسمی AE Solar</span>
+        <h1 class="ae-title">
+          پنل {fa(m.maxW)} وات AE Solar<br />
+          <span class="red">{m.series} {m.code}</span><br />
+          <span class="dim">{m.tech}، {range} وات</span>
+        </h1>
+        <p class="ae-lead">{m.fit}</p>
+        <div class="ae-hero-cta">
+          <a class="btn btn-solid" href="/#quote">استعلام قیمت و موجودی</a>
+          <a class="btn btn-ghost" href={m.datasheet} download>دانلود دیتاشیت رسمی</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="ae-stats" aria-label={`${m.series} ${m.code} در یک نگاه`}>
+      <div class="ae-stat"><b>{fa(m.maxW)}<i>W</i></b><span>حداکثر توان</span></div>
+      <div class="ae-stat"><b>{fa(maxEff)}<i>٪</i></b><span>بازده ماژول</span></div>
+      <div class="ae-stat"><b>−{fa(Math.abs(m.tempPmax))}<i>٪/°C</i></b><span>ضریب دمایی توان</span></div>
+      <div class="ae-stat"><b>{fa(m.year30)}<i>٪</i></b><span>توان تضمین‌شده در سال ۳۰</span></div>
+    </section>
+
+    <section class="ae-sec">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">مشخصات الکتریکی</p>
+          <h2 class="ae-h2">پنل {range} وات<br /><em>{m.series} {m.code}</em></h2>
+          <p class="ae-sub">در شرایط استاندارد آزمون (STC: تابش ۱۰۰۰ وات بر متر مربع، دمای سلول ۲۵ درجه). {m.bifacial && 'توان سمت پشت در این عددها نیست.'}</p>
+        </header>
+        <div class="tech-scroll">
+          <table class="tech-table">
+            <thead>
+              <tr>
+                <th>توان نامی (Pmax)</th>
+                <th>ولتاژ کار (Vmp)</th>
+                <th>جریان کار (Imp)</th>
+                <th>ولتاژ مدار باز (Voc)</th>
+                <th>جریان اتصال کوتاه (Isc)</th>
+                <th>بازده</th>
+              </tr>
+            </thead>
+            <tbody>
+              {m.rows.map((r) => (
+                <tr>
+                  <td><span class="tt-tech">{r.pmax} W</span></td>
+                  <td><span class="tt-num">{r.vmp.toFixed(2)} V</span></td>
+                  <td><span class="tt-num">{r.imp.toFixed(2)} A</span></td>
+                  <td><span class="tt-num">{r.voc.toFixed(2)} V</span></td>
+                  <td><span class="tt-num">{r.isc.toFixed(2)} A</span></td>
+                  <td><span class="tt-num">{r.eff.toFixed(2)}%</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="ae-sec alt">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">مشخصات مکانیکی و دمایی</p>
+          <h2 class="ae-h2">آنچه مهندس طراح<br /><em>لازم دارد.</em></h2>
+        </header>
+        <table class="tech-table spec-table">
+          <tbody>
+            {mech.map(([k, v]) => (
+              <tr><th scope="row">{k}</th><td>{v}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="ae-sec">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">گارانتی</p>
+          <h2 class="ae-h2">گارانتی <span class="red">پنل {fa(m.maxW)} وات AE Solar</span></h2>
+        </header>
+        <div class="warr-grid">
+          <div class="warr-card"><div class="warr-val">۱۵<i>سال</i></div><span class="warr-label">گارانتی محصول</span><span class="warr-note">نقص ساخت و مواد</span></div>
+          <div class="warr-card"><div class="warr-val">۳۰<i>سال</i></div><span class="warr-label">گارانتی عملکرد</span><span class="warr-note">افت خطی و تضمین‌شده</span></div>
+          <div class="warr-card"><div class="warr-val">{fa(m.firstYear)}<i>٪</i></div><span class="warr-label">پایان سال اول</span><span class="warr-note">حداقل توان تضمین‌شده</span></div>
+          <div class="warr-card"><div class="warr-val">{fa(m.year30)}<i>٪</i></div><span class="warr-label">سال سی‌ام</span><span class="warr-note">حداقل توان تضمین‌شده</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ae-sec alt">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">قیمت و خرید</p>
+          <h2 class="ae-h2">خرید <span class="red">پنل {fa(m.maxW)} وات AE Solar</span><br /><em>از نمایندگی رسمی.</em></h2>
+          <p class="ae-sub">قیمت پنل AE Solar به نرخ روز ارز، توان دقیق و حجم سفارش بستگی دارد؛ برای همین قیمت ثابت منتشر نمی‌کنیم. ظرفیت پروژه را بگویید تا قیمت روز، موجودی انبار کرمان و زمان تحویل را کتبی بفرستیم. <a href="/ae-solar#buy">مراحل خرید</a></p>
+        </header>
+        <div class="dl-list">
+          {m.shopSlug && (
+            <a class="dl-row" href={`/shop/${m.shopSlug}`}>
+              <span class="dl-name">{m.series} {m.code}<span>همین مدل در فروشگاه نماد نیرو</span></span>
+              <span class="dl-spec">{fa(m.minW)} – {fa(m.maxW)} W</span>
+              <span class="dl-spec">{m.bifacial ? 'Bifacial' : 'Mono-facial'}</span>
+              <span class="dl-go">فروشگاه ←</span>
+            </a>
+          )}
+          <a class="dl-row" href={m.datasheet} download>
+            <span class="dl-name">{m.series} {m.code}<span>دیتاشیت رسمی AE Solar · PDF</span></span>
+            <span class="dl-spec">{fa(m.minW)} – {fa(m.maxW)} W</span>
+            <span class="dl-spec">{m.tech}</span>
+            <span class="dl-go">دانلود ↓</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="ae-sec">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">پرسش‌های پرتکرار</p>
+          <h2 class="ae-h2">دربارهٔ پنل {fa(m.maxW)} وات<br /><em>AE Solar {m.series}</em></h2>
+        </header>
+        <div class="faq-list">
+          {faq.map((f) => (
+            <details class="faq-item">
+              <summary class="faq-q">{f.q}</summary>
+              <p class="faq-a">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="ae-sec alt">
+      <div class="wrap">
+        <header class="ae-head">
+          <p class="ae-kicker">مدل‌های دیگر در انبار</p>
+          <h2 class="ae-h2">پنل‌های AE Solar<br /><em>در توان‌های دیگر.</em></h2>
+        </header>
+        <div class="dl-list">
+          {siblings.map((s) => (
+            <a class="dl-row" href={`/ae-solar/${s.slug}`}>
+              <span class="dl-name">پنل {fa(s.maxW)} وات AE Solar<span>{s.series} {s.code}</span></span>
+              <span class="dl-spec">{fa(s.minW)} – {fa(s.maxW)} W</span>
+              <span class="dl-spec">{s.tech}</span>
+              <span class="dl-go">مشخصات ←</span>
+            </a>
+          ))}
+          <a class="dl-row" href="/ae-solar">
+            <span class="dl-name">نمایندگی رسمی AE Solar در ایران<span>همهٔ سری‌ها، راهنمای انتخاب و گارانتی</span></span>
+            <span class="dl-spec"></span>
+            <span class="dl-spec"></span>
+            <span class="dl-go">AE Solar ←</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="wrap">
+        <h2>پنل {fa(m.maxW)} وات AE Solar می‌خواهید؟</h2>
+        <p>ظرفیت پروژه را بگویید؛ قیمت روز و موجودی انبار را برایتان می‌فرستیم.</p>
+        <a class="btn btn-solid" href="/#quote">درخواست استعلام</a>
+      </div>
+    </section>
+
+  </div>
+</Base>

@@ -985,6 +985,21 @@ section { scroll-margin-top: 84px; }
 .dl-go { font-size: 13.5px; font-weight: 700; color: var(--yellow); white-space: nowrap; }
 .ae-shop { margin-top: 28px; }
 
+/* ---------- صفحهٔ هر مدل (/ae-solar/<model>) ---------- */
+.ae-crumb { margin: 0 0 22px; font-size: 13px; color: var(--faint); }
+.ae-crumb a { color: var(--muted); }
+.ae-crumb a:hover { color: var(--yellow); }
+.ae-crumb span { margin: 0 8px; }
+.ae-sub a { color: var(--yellow); }
+.spec-table { max-width: 88ch; }
+.spec-table th {
+  width: 34%; padding: 16px; text-align: start; vertical-align: top;
+  font-size: 14px; font-weight: 700; color: var(--faint);
+  border-bottom: 1px solid var(--line);
+}
+.spec-table td { padding: 16px; font-size: 15px; color: var(--ink); line-height: 1.8; }
+@media (max-width: 560px) { .spec-table th { width: 42%; } }
+
 /* ---------- پرسش‌های متداول ---------- */
 .faq-list { display: grid; gap: 10px; max-width: 88ch; }
 .faq-item { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2); overflow: hidden; }

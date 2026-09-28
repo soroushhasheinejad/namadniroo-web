@@ -4,8 +4,9 @@ import RelatedArticles from '../../components/RelatedArticles.astro';
 import ProductCard from '../../components/ProductCard.astro';
 import DbImage from '../../components/DbImage.astro';
 import { categoryLabel } from '../../data/site';
-import { breadcrumbSchema } from '../../utils';
+import { breadcrumbSchema, fa } from '../../utils';
 import { listProducts } from '../../server/repos/content';
+import { aeModelForShop } from '../../data/aesolarModels';
 
 export const prerender = false;
 
@@ -26,6 +27,9 @@ const guides: Record<typeof p.kind, string[]> = {
   storage: ['ongrid-offgrid', 'inverter-role', 'solar-vs-generator'],
   accessory: ['plant-components', 'maintenance-kpi', 'om-plant'],
 };
+
+/* پنل AE Solar صفحهٔ مشخصات کامل هم دارد؛ این دو باید به هم پیوند بدهند */
+const aeModel = aeModelForShop(p.slug);
 
 const related = all.filter((x) => x.slug !== p.slug && x.cat === p.cat).slice(0, 4);
 
@@ -76,7 +80,7 @@ const pageSchema = [
       </p>
       <span class="mag-tag">{categoryLabel[p.cat]}</span>
       <h1 class="article-title">{p.name}</h1>
-      <p class="article-meta" dir="ltr">{p.brand} · {p.spec} {p.specUnit}</p>
+      <p class="article-meta" dir="ltr">{brandPlain} · {p.spec} {p.specUnit}</p>
     </div>
   </div>
 
@@ -88,7 +92,7 @@ const pageSchema = [
           : <span class="thumb-brand" set:html={p.brand} />}
       </div>
       <div>
-        <p class="lead-lg">{p.brand} · {p.spec} {p.specUnit}</p>
+        <p class="lead-lg">{brandPlain} · {p.spec} {p.specUnit}</p>
         {p.body
           ? <p>{p.body}</p>
           : (
@@ -99,6 +103,9 @@ const pageSchema = [
             </p>
           )}
         <a class="btn btn-solid" href="/#quote">استعلام قیمت و موجودی</a>
+        {aeModel && (
+          <p><a href={`/ae-solar/${aeModel.slug}`}>مشخصات کامل و دیتاشیت پنل {fa(aeModel.maxW)} وات AE Solar {aeModel.series} ←</a></p>
+        )}
       </div>
     </div>
   </section>

@@ -10,6 +10,7 @@ import { seoProps } from '../server/seo/pageSeo';
 import { getPageContent } from '../server/repos/pageContent';
 import { aeSolarPage } from '../data/pages';
 import { listProducts } from '../server/repos/content';
+import { aeModels } from '../data/aesolarModels';
 
 /* پویا، تا متنی که در پنل عوض می‌شود بلافاصله دیده شود. خواندن از کش
    درون‌حافظه‌ای است، پس هزینه‌اش ناچیز است. */
@@ -121,6 +122,18 @@ const pageSchema = [
                 </span>
               </div>
             </article>
+          ))}
+        </div>
+
+        <!-- یک صفحه برای هر مدل موجود — جواب جست‌وجوهای توان‌دار -->
+        <div class="dl-list ae-shop">
+          {aeModels.map((m) => (
+            <a class="dl-row" href={`/ae-solar/${m.slug}`}>
+              <span class="dl-name">پنل {fa(m.maxW)} وات AE Solar<span>{m.series} {m.code} · موجود در انبار</span></span>
+              <span class="dl-spec">{fa(m.minW)} – {fa(m.maxW)} W</span>
+              <span class="dl-spec">{m.bifacial ? 'TOPCon · Bifacial' : 'PERC'}</span>
+              <span class="dl-go">مشخصات کامل ←</span>
+            </a>
           ))}
         </div>
       </div>
