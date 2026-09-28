@@ -310,6 +310,7 @@ const seo = await seoProps(c.seo);
   import {
     EQUIPMENT_COST,
     GRID_COST,
+    capacityFor,
     LAND_COST,
     ROUTES,
     TARIFF,
@@ -390,6 +391,17 @@ const seo = await seoProps(c.seo);
 
     const render = () => {
       const investment = readInvestment();
+
+      /* هزینهٔ تجهیزات پله‌ای است و پله از ظرفیت می‌آید، پس پیش‌فرضش باید
+         با هر تغییر سرمایه هماهنگ شود. پیش‌تر فقط دکمه‌های پیش‌فرض این کار
+         را می‌کردند و نتیجه‌اش این بود که یک مبلغ واحد، بسته به اینکه
+         تایپ شده باشد یا از دکمه آمده باشد، دو ظرفیت متفاوت می‌داد. */
+      if (!equipTouched && investment >= 50_000_000) {
+        const scaled = EQUIPMENT_COST[capacityFor(investment, { mount: mountSelect.value as Mount }).scale].typical;
+        const asMillions = String(scaled / 1_000_000);
+        if (equipInput.value !== asMillions) equipInput.value = asMillions;
+      }
+
       const base = assumptionsFrom();
 
       $('investmentWords').textContent = investment ? `${toman(investment)} تومان` : '—';
