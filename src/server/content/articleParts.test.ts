@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { extractFaq, linkedArticleSlugs } from './articleParts';
+import { extractFaq, labelTableCells, linkedArticleSlugs, splitLead } from './articleParts';
 import { renderMarkdown } from './markdown';
 import { parseFrontmatter } from '../../../scripts/articles';
 
@@ -85,5 +85,48 @@ describe('مقالات واقعی', () => {
     }
 
     expect(checked).toBeGreaterThanOrEqual(12);
+  });
+});
+
+describe('splitLead', () => {
+  it('متن پیش از اولین h2 را جدا می‌کند', () => {
+    const { lead, rest } = splitLead('<p>جواب کوتاه</p>\n<h2 id="a">بخش</h2><p>متن</p>');
+    expect(lead).toBe('<p>جواب کوتاه</p>');
+    expect(rest).toBe('<h2 id="a">بخش</h2><p>متن</p>');
+  });
+
+  it('مقاله‌ای که با تیتر شروع می‌شود یا تیتر ندارد را دست نمی‌زند', () => {
+    expect(splitLead('<h2 id="a">بخش</h2><p>متن</p>').lead).toBe('');
+    expect(splitLead('<p>فقط متن</p>')).toEqual({ lead: '', rest: '<p>فقط متن</p>' });
+  });
+});
+
+describe('labelTableCells', () => {
+  const table = (cols: string[], row: string[]) =>
+    `<table>\n<thead>\n<tr>\n${cols.map((c) => `<th>${c}</th>`).join('\n')}\n</tr>\n</thead>\n` +
+    `<tbody>\n<tr>\n${row.map((c) => `<td>${c}</td>`).join('\n')}\n</tr>\n</tbody>\n</table>`;
+
+  it('عنوان هر ستون را روی خانه‌های همان ستون می‌گذارد', () => {
+    const out = labelTableCells(table(['ظرفیت', 'سرمایه', '<strong>سود</strong>'], ['۵', '۱۹۰', '۵۱']));
+    expect(out).toContain('<table class="table-cards">');
+    expect(out).toContain('<td data-label="ظرفیت">۵</td>');
+    expect(out).toContain('<td data-label="سرمایه">۱۹۰</td>');
+    expect(out).toContain('<td data-label="سود">۵۱</td>');
+  });
+
+  it('جدول دوستونه را همان‌طور که هست می‌گذارد', () => {
+    const html = table(['معیار', 'مقدار'], ['حاشیه', '۹۵٪']);
+    expect(labelTableCells(html)).toBe(html);
+  });
+
+  it('همهٔ جدول‌های واقعی مقاله‌ها برچسب کامل می‌گیرند', async () => {
+    for (const file of await readdir(dir)) {
+      if (!file.endsWith('.md')) continue;
+      const { body } = parseFrontmatter(await readFile(path.join(dir, file), 'utf8'));
+      const out = labelTableCells(await renderMarkdown(body));
+      for (const t of out.match(/<table class="table-cards">[\s\S]*?<\/table>/g) ?? []) {
+        expect(t, file).not.toMatch(/<td(?![^>]*data-label)[^>]*>/);
+      }
+    }
   });
 });

@@ -271,6 +271,27 @@ const seo = await seoProps(c.seo);
     </div>
   </section>
 
+  {/* همان پرسش‌هایی که در FAQPage به گوگل داده می‌شود، روی خود صفحه هم.
+      گوگل دادهٔ ساختاریافته‌ای را که کاربر نمی‌بیند معتبر نمی‌داند، و این
+      پاسخ‌ها تنها متنی‌اند که «حساب سود» را روی صفحهٔ ابزار توضیح می‌دهند. */}
+  {c.faq.length > 0 && (
+    <section class="home-faq" aria-labelledby="calc-faq-title">
+      <div class="wrap home-faq-grid">
+        <div class="home-faq-head">
+          <h2 id="calc-faq-title" class="section-title">پرسش‌های پرتکرار دربارهٔ حساب سود نیروگاه خورشیدی</h2>
+        </div>
+        <div class="home-faq-list">
+          {c.faq.map((f, i) => (
+            <details class="hfaq-item" open={i === 0}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
   <section class="about-sec alt">
     <div class="wrap">
       <header class="about-head">

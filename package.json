@@ -6,7 +6,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "start": "node ./dist/server/entry.mjs",
+    "start": "node ./server.mjs",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:seed": "tsx scripts/seed.ts",
@@ -21,6 +21,7 @@
     "@astrojs/node": "^9.5.5",
     "@libsql/client": "^0.18.0",
     "astro": "^5.18.2",
+    "compression": "^1.8.2",
     "drizzle-orm": "^0.45.2",
     "nodemailer": "^9.0.6",
     "tsx": "^4.23.13"

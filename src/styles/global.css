@@ -608,6 +608,36 @@ section { scroll-margin-top: 84px; }
 .article-body th { background: rgba(255,196,26,.1); color: var(--ink); font-weight: 700; }
 .article-body tr:nth-child(even) td { background: rgba(255,255,255,.03); }
 
+/* جواب کوتاه ابتدای مقاله، بالای فهرست مطالب */
+.article-lead { padding-bottom: 0; }
+.article-lead + .article-toc { padding-top: 8px; }
+.article-body.has-lead { padding-top: 30px; }
+
+/* روی موبایل، جدول سه‌ستونه و بیشتر به کارت تبدیل می‌شود: هر ردیف یک کارت،
+   خانهٔ اول عنوان کارت، و عنوان ستون (data-label، از articleParts) کنار هر
+   عدد. اسکرول افقی ستون‌های مهم را از دید پنهان می‌کرد. */
+@media (max-width: 640px) {
+  .article-body table.table-cards { display: block; overflow: visible; }
+  .table-cards thead { display: none; }
+  .table-cards tbody, .table-cards tr, .table-cards td { display: block; }
+  .table-cards tr {
+    margin: 0 0 12px; border: 1px solid rgba(255,255,255,.12); border-radius: var(--r);
+    overflow: hidden; background: var(--bg-2);
+  }
+  .article-body .table-cards td {
+    display: flex; justify-content: space-between; gap: 14px;
+    min-width: 0; padding: 8px 14px; border: 0; border-top: 1px solid rgba(255,255,255,.07);
+    background: none;
+  }
+  .article-body .table-cards td::before {
+    content: attr(data-label); color: var(--muted); font-weight: 400; flex: 0 1 50%;
+  }
+  .article-body .table-cards td:first-child {
+    display: block; border-top: 0; background: rgba(255,196,26,.1); color: var(--ink); font-weight: 700;
+  }
+  .article-body .table-cards td:first-child::before { content: none; }
+}
+
 /* ============================================================
    دانلود پرتفولیو شرکت
    ============================================================ */

@@ -5,7 +5,7 @@ import { categoryLabel } from '../../data/site';
 import { fa, breadcrumbSchema, faqSchema } from '../../utils';
 import { listArticles } from '../../server/repos/content';
 import { renderMarkdown } from '../../server/content/markdown';
-import { extractFaq, linkedArticleSlugs } from '../../server/content/articleParts';
+import { extractFaq, labelTableCells, linkedArticleSlugs, splitLead } from '../../server/content/articleParts';
 
 export const prerender = false;
 
@@ -17,7 +17,11 @@ const article = all.find((a) => a.slug === slug);
 // نشانی نامعتبر یا مقاله‌ای که پیش‌نویس شده است
 if (!article) return Astro.rewrite('/404');
 
-const html = await renderMarkdown(article.body);
+const html = labelTableCells(await renderMarkdown(article.body));
+
+/* جواب کوتاه ابتدای مقاله پیش از فهرست مطالب می‌آید، نه بعد از آن — وگرنه
+   روی موبایل کل صفحهٔ اول فهرست بود و جواب زیر آن. */
+const { lead, rest } = splitLead(html);
 
 /* فهرست مطالب از روی تیترهای h2. شناسه‌ها را پردازشگر مارک‌داون می‌سازد؛
    لینک‌های پرشی هم به خواننده کمک می‌کنند و هم گاهی گوگل آن‌ها را زیر
@@ -96,18 +100,25 @@ const pageSchema = [
       <p class="article-meta">{article.dateFa} · {fa(article.readTime)} دقیقه مطالعه</p>
     </div>
 
+    {lead && <div class="wrap article-body article-lead" set:html={lead} />}
+
     {toc.length > 2 && (
       <nav class="wrap article-toc" aria-label="فهرست مطالب">
-        <details open>
+        <details id="articleToc">
           <summary>فهرست مطالب</summary>
           <ol>
             {toc.map((t) => <li><a href={`#${t.id}`}>{t.text}</a></li>)}
           </ol>
         </details>
+        {/* روی دسکتاپ باز، روی موبایل بسته. پیش از اولین نقاشی صفحه اجرا
+            می‌شود، پس جابه‌جایی در چیدمان نمی‌سازد. */}
+        <script is:inline>
+          if (matchMedia('(min-width: 768px)').matches) document.getElementById('articleToc').open = true;
+        </script>
       </nav>
     )}
 
-    <div class="wrap article-body" set:html={html} />
+    <div class={`wrap article-body${lead ? ' has-lead' : ''}`} set:html={lead ? rest : html} />
   </article>
 
   {related.length > 0 && (
