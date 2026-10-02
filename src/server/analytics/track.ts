@@ -44,6 +44,8 @@ export async function writeEvent(input: TrackInput): Promise<void> {
     utmSource: a?.utmSource ?? null,
     utmMedium: a?.utmMedium ?? null,
     utmCampaign: a?.utmCampaign ?? null,
+    utmTerm: a?.utmTerm ?? null,
+    utmContent: a?.utmContent ?? null,
     device: input.device ?? null,
     props: (input.props ?? null) as never,
   });
@@ -94,6 +96,8 @@ export function trackVisit(input: VisitInput): void {
         firstUtmSource: a.utmSource,
         firstUtmMedium: a.utmMedium,
         firstUtmCampaign: a.utmCampaign,
+        firstUtmTerm: a.utmTerm,
+        firstUtmContent: a.utmContent,
         firstReferrer: a.referrer,
         firstLanding: path.slice(0, MAX_PATH),
       })

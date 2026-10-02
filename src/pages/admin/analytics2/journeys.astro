@@ -1,0 +1,122 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import V2Filters from '../../../components/admin/V2Filters.astro';
+import { listSessions, listVisitors } from '../../../server/analytics/v2/journey';
+import { parseParams } from '../../../server/analytics/v2/params';
+import { channelLabel } from '../../../server/analytics/channel';
+import { fa } from '../../../utils';
+
+export const prerender = false;
+
+/**
+ * فهرست نشست‌ها و افراد.
+ *
+ * دو نگاه به یک داده: «نشست‌ها» برای دیدن ترافیک همان‌طور که اتفاق افتاده،
+ * و «افراد» برای دنبال‌کردن یک نفر در طول زمان. ستون لید، پل به پروندهٔ
+ * فروش است — همان چیزی که آنالیتیکس معمولی ندارد.
+ */
+
+const { days, range, filters } = parseParams(Astro.url);
+const tab = Astro.url.searchParams.get('tab') === 'people' ? 'people' : 'sessions';
+const onlyLeads = Astro.url.searchParams.get('leads') === '1';
+
+const [sessions, people] = await Promise.all([
+  tab === 'sessions' ? listSessions(range, filters, 150) : Promise.resolve([]),
+  tab === 'people' ? listVisitors(range, { onlyLeads, limit: 150 }) : Promise.resolve([]),
+]);
+
+const minutes = (sec: number) =>
+  sec < 60 ? `${fa(sec)} ثانیه` : `${fa(Math.round(sec / 60))} دقیقه`;
+const when = (d: Date) =>
+  d.toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+const tabHref = (t: string) => {
+  const u = new URL(Astro.url.href);
+  u.searchParams.set('tab', t);
+  return u.pathname + u.search;
+};
+---
+
+<Admin title="مسیر افراد">
+  <div class="a-head">
+    <h1>نشست‌ها و مسیر افراد</h1>
+    <p class="a-sub">
+      <a href="/admin/analytics2">نمای کلی</a> · <a href="/admin/analytics2/explore">اکسپلور</a>
+    </p>
+  </div>
+
+  <div class="v2-tabs">
+    <a class:list={['v2-tab', tab === 'sessions' && 'is-on']} href={tabHref('sessions')}>نشست‌ها</a>
+    <a class:list={['v2-tab', tab === 'people' && 'is-on']} href={tabHref('people')}>افراد</a>
+  </div>
+
+  <V2Filters url={Astro.url} days={days} filters={filters} />
+
+  {tab === 'sessions' ? (
+    sessions.length === 0 ? (
+      <p class="a-empty">نشستی در این بازه و با این فیلترها نیست.</p>
+    ) : (
+      <table class="a-table">
+        <thead>
+          <tr>
+            <th>زمان</th>
+            <th>کانال</th>
+            <th>کمپین</th>
+            <th>صفحهٔ ورود</th>
+            <th>بازدید</th>
+            <th>مدت</th>
+            <th>دستگاه</th>
+            <th>لید</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {sessions.map((s) => (
+            <tr class:list={[s.converted && 'is-converted']}>
+              <td>{when(s.startedAt)}</td>
+              <td>{s.channel ? channelLabel[s.channel as keyof typeof channelLabel] ?? s.channel : '—'}</td>
+              <td>{s.utmCampaign ?? '—'}</td>
+              <td class="a-path">{s.landing ?? '—'}</td>
+              <td>{fa(s.pageviews)}</td>
+              <td>{minutes(s.durationSec)}</td>
+              <td>{s.device ?? '—'}</td>
+              <td>{s.converted ? '✓' : '—'}</td>
+              <td><a href={`/admin/analytics2/person/${s.visitorId}`}>مسیر کامل ←</a></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  ) : people.length === 0 ? (
+    <p class="a-empty">کسی در این بازه نیست.</p>
+  ) : (
+    <table class="a-table">
+      <thead>
+        <tr>
+          <th>آخرین فعالیت</th>
+          <th>اولین کانال</th>
+          <th>منبع</th>
+          <th>کمپین</th>
+          <th>نشست</th>
+          <th>بازدید</th>
+          <th>لید</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {people.map((p) => (
+          <tr>
+            <td>{when(p.lastSeen)}</td>
+            <td>{p.firstChannel ? channelLabel[p.firstChannel as keyof typeof channelLabel] ?? p.firstChannel : '—'}</td>
+            <td>{p.firstUtmSource ?? '—'}</td>
+            <td>{p.firstUtmCampaign ?? '—'}</td>
+            <td>{fa(p.sessions)}</td>
+            <td>{fa(p.pageviews)}</td>
+            <td>{p.leadId ? <a href={`/admin/leads/${p.leadId}`}>{p.leadName}</a> : '—'}</td>
+            <td><a href={`/admin/analytics2/person/${p.id}`}>مسیر کامل ←</a></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</Admin>

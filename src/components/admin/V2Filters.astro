@@ -1,0 +1,89 @@
+---
+/**
+ * نوار فیلتر مشترک آنالیتیکس ۲.
+ *
+ * فیلترهای فعال را به‌صورت تراشه نشان می‌دهد (با دکمهٔ حذف) و یک فرم کوچک
+ * برای افزودن فیلتر تازه. همه‌چیز از راه query string می‌رود تا نشانی
+ * صفحه خودش گزارش را توصیف کند.
+ */
+import { DIMENSIONS, type Filter } from '../../server/analytics/v2/query';
+import { withDays, withoutFilter } from '../../server/analytics/v2/params';
+import { fa } from '../../utils';
+
+interface Props {
+  url: URL;
+  days: number;
+  filters: Filter[];
+}
+const { url, days, filters } = Astro.props;
+
+const PERIODS = [7, 30, 90, 180];
+const OP_LABELS: Record<string, string> = { is: '=', contains: 'شامل', not: '≠' };
+---
+
+<div class="v2-bar">
+  <div class="v2-periods">
+    {PERIODS.map((d) => (
+      <a class:list={['v2-period', d === days && 'is-on']} href={withDays(url, d)}>
+        {fa(d)} روز
+      </a>
+    ))}
+  </div>
+
+  <form class="v2-add" method="get">
+    {/* بازه و فیلترهای فعلی باید در فرم بمانند وگرنه افزودن یک فیلتر، بقیه را پاک می‌کرد */}
+    <input type="hidden" name="days" value={days} />
+    {filters.map((f) => (
+      <input
+        type="hidden"
+        name="f"
+        value={`${f.dimension}:${f.op ?? 'is'}:${f.value === null ? '' : encodeURIComponent(f.value)}`}
+      />
+    ))}
+    <input type="hidden" name="fd" value="" id="v2-fd-marker" />
+
+    <select name="dim" aria-label="بُعد">
+      {Object.entries(DIMENSIONS).map(([key, d]) => <option value={key}>{d.label}</option>)}
+    </select>
+    <select name="op" aria-label="شرط">
+      <option value="is">برابر</option>
+      <option value="contains">شامل</option>
+      <option value="not">نابرابر</option>
+    </select>
+    <input type="text" name="val" placeholder="مقدار (خالی = ثبت‌نشده)" />
+    <button type="submit" class="a-btn">افزودن فیلتر</button>
+  </form>
+
+  {filters.length > 0 && (
+    <div class="v2-chips">
+      {filters.map((f, i) => (
+        <span class="v2-chip">
+          {DIMENSIONS[f.dimension].label}
+          <i>{OP_LABELS[f.op ?? 'is']}</i>
+          <b>{f.value === null ? '(ثبت‌نشده)' : f.value}</b>
+          <a href={withoutFilter(url, i)} aria-label="حذف فیلتر">×</a>
+        </span>
+      ))}
+      <a class="v2-clear" href={`${url.pathname}?days=${days}`}>پاک‌کردن همه</a>
+    </div>
+  )}
+</div>
+
+<script>
+  /* فرم افزودن، فیلتر تازه را به‌شکل `dim:op:value` می‌فرستد. بدون این،
+     سه فیلد جدا در نشانی می‌نشستند و بقیهٔ صفحه‌ها نمی‌فهمیدندشان. */
+  for (const form of document.querySelectorAll<HTMLFormElement>('.v2-add')) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = new FormData(form);
+      const dim = String(data.get('dim') ?? '');
+      const op = String(data.get('op') ?? 'is');
+      const val = String(data.get('val') ?? '').trim();
+      if (!dim) return;
+
+      const url = new URL(location.href);
+      url.searchParams.append('f', `${dim}:${op}:${val === '' ? '' : encodeURIComponent(val)}`);
+      location.href = url.pathname + url.search;
+    });
+  }
+</script>

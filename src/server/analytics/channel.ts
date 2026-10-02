@@ -49,6 +49,10 @@ export interface Attribution {
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
+  /** کلمهٔ کلیدی کمپین — در تبلیغات جست‌وجو پر می‌شود */
+  utmTerm: string | null;
+  /** تفکیک خلاقه یا جایگاه آگهی: کدام بنر، کدام دکمه، کدام نسخهٔ متن */
+  utmContent: string | null;
   referrer: string | null;
 }
 
@@ -68,6 +72,8 @@ export function attributionFrom(url: URL, referrer: string | null, siteHost: str
   const utmSource = clip(p.get('utm_source'));
   const utmMedium = clip(p.get('utm_medium'));
   const utmCampaign = clip(p.get('utm_campaign'));
+  const utmTerm = clip(p.get('utm_term'));
+  const utmContent = clip(p.get('utm_content'));
 
   let refHost: string | null = null;
   let internal = false;
@@ -110,7 +116,15 @@ export function attributionFrom(url: URL, referrer: string | null, siteHost: str
     return 'direct';
   })();
 
-  return { channel, utmSource, utmMedium, utmCampaign, referrer: clip(referrer, 200) };
+  return {
+    channel,
+    utmSource,
+    utmMedium,
+    utmCampaign,
+    utmTerm,
+    utmContent,
+    referrer: clip(referrer, 200),
+  };
 }
 
 /**

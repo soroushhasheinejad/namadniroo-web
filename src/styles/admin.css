@@ -283,3 +283,91 @@ a { color: inherit; }
 @media (max-width: 640px) {
   .a-image-row { flex-direction: column; }
 }
+
+/* ============================================================
+   آنالیتیکس ۲
+   ============================================================
+   نسخهٔ ۱ دست‌نخورده است و کلاس‌هایش جداست؛ این‌ها فقط برای صفحه‌های
+   `/admin/analytics2` هستند. */
+
+.a-sub { margin: 4px 0 0; color: var(--a-muted); font-size: 13.5px; }
+.a-sub a { color: var(--a-yellow); }
+.a-empty { color: var(--a-muted); font-size: 13.5px; padding: 14px 0; }
+.a-path { font-family: var(--a-mono, ui-monospace, Menlo, monospace); font-size: 12.5px; direction: ltr; display: inline-block; }
+
+/* نوار فیلتر */
+.v2-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  padding: 12px 14px; margin: 16px 0;
+  background: var(--a-panel); border: 1px solid var(--a-line); border-radius: 10px;
+}
+.v2-periods { display: flex; gap: 6px; }
+.v2-period {
+  padding: 6px 12px; border-radius: 999px; font-size: 13px;
+  border: 1px solid var(--a-line); color: var(--a-muted);
+}
+.v2-period.is-on { background: var(--a-yellow); border-color: var(--a-yellow); color: #101010; font-weight: 700; }
+.v2-add { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.v2-add select, .v2-add input[type="text"] {
+  background: var(--a-bg); color: var(--a-ink);
+  border: 1px solid var(--a-line); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 13px;
+}
+.v2-chips { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.v2-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 999px; font-size: 12.5px;
+  background: rgba(255,196,26,.10); border: 1px solid rgba(255,196,26,.35);
+}
+.v2-chip i { font-style: normal; color: var(--a-muted); }
+.v2-chip b { font-weight: 700; }
+.v2-chip a { color: var(--a-muted); font-size: 15px; line-height: 1; padding: 0 2px; }
+.v2-chip a:hover { color: var(--a-red); }
+.v2-clear { color: var(--a-muted); font-size: 12.5px; align-self: center; }
+
+/* کارت‌های عدد */
+.v2-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.v2-card {
+  padding: 14px; border-radius: 10px;
+  background: var(--a-panel); border: 1px solid var(--a-line);
+}
+.v2-card span { display: block; color: var(--a-muted); font-size: 12.5px; margin-bottom: 6px; }
+.v2-card b { font-size: 22px; font-weight: 700; }
+.v2-card i { display: block; margin-top: 6px; font-style: normal; color: var(--a-yellow); font-size: 12px; }
+
+/* جدول‌های تفکیک */
+.v2-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.v2-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.v2-table {
+  padding: 14px; border-radius: 10px;
+  background: var(--a-panel); border: 1px solid var(--a-line);
+}
+.v2-table h2 { margin: 0 0 10px; font-size: 15px; font-weight: 700; }
+.v2-table .a-table a { color: var(--a-ink); }
+.v2-table .a-table a:hover { color: var(--a-yellow); }
+
+/* تب‌ها */
+.v2-tabs { display: flex; gap: 8px; margin: 16px 0 0; }
+.v2-tab { padding: 8px 16px; border-radius: 8px 8px 0 0; border: 1px solid var(--a-line); border-bottom: 0; color: var(--a-muted); font-size: 13.5px; }
+.v2-tab.is-on { background: var(--a-panel); color: var(--a-ink); font-weight: 700; }
+
+/* خط زمانی */
+.v2-h { margin: 26px 0 12px; font-size: 16px; font-weight: 700; }
+.v2-session { margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; background: var(--a-panel); border: 1px solid var(--a-line); }
+.v2-session header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--a-muted); }
+.v2-session header b { color: var(--a-ink); font-size: 13.5px; }
+.v2-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.v2-steps li { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13px; padding-inline-start: 12px; border-inline-start: 2px solid var(--a-line); }
+.v2-steps li.is-goal { border-inline-start-color: var(--a-yellow); }
+.v2-steps time { color: var(--a-muted); font-size: 12px; min-width: 92px; }
+.a-table tr.is-converted td:first-child { box-shadow: inset 2px 0 0 var(--a-yellow); }
+
+/* اکسپلور */
+.v2-explore { display: grid; gap: 14px; padding: 14px; margin: 16px 0; background: var(--a-panel); border: 1px solid var(--a-line); border-radius: 10px; }
+.v2-explore fieldset { border: 0; margin: 0; padding: 0; }
+.v2-explore legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 700; }
+.v2-explore legend small { color: var(--a-muted); font-weight: 400; }
+.v2-opts { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.v2-opts label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--a-muted); }
+.v2-explore select { background: var(--a-bg); color: var(--a-ink); border: 1px solid var(--a-line); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 13px; }
+.v2-explore button { justify-self: start; }
+.v2-result-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0 10px; color: var(--a-muted); font-size: 13px; }

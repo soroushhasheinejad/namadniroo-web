@@ -231,6 +231,8 @@ export const leads = sqliteTable(
     firstUtmSource: text('first_utm_source'),
     firstUtmMedium: text('first_utm_medium'),
     firstUtmCampaign: text('first_utm_campaign'),
+    firstUtmTerm: text('first_utm_term'),
+    firstUtmContent: text('first_utm_content'),
     firstReferrer: text('first_referrer'),
     /** اولین صفحه‌ای که با آن وارد سایت شد */
     landingPage: text('landing_page'),
@@ -409,6 +411,8 @@ export const visitors = sqliteTable(
     firstUtmSource: text('first_utm_source'),
     firstUtmMedium: text('first_utm_medium'),
     firstUtmCampaign: text('first_utm_campaign'),
+    firstUtmTerm: text('first_utm_term'),
+    firstUtmContent: text('first_utm_content'),
     firstReferrer: text('first_referrer'),
     firstLanding: text('first_landing'),
     /** آخرین کانالی که با آن برگشت */
@@ -451,6 +455,9 @@ export const events = sqliteTable(
     utmSource: text('utm_source'),
     utmMedium: text('utm_medium'),
     utmCampaign: text('utm_campaign'),
+    /** کلمهٔ کلیدی و تفکیک خلاقهٔ کمپین — گزارش‌های نسخهٔ ۲ رویشان فیلتر می‌دهند */
+    utmTerm: text('utm_term'),
+    utmContent: text('utm_content'),
     device: text('device', { enum: ['mobile', 'desktop', 'tablet'] }),
     /** هر چیز مخصوص همان رویداد: ظرفیت محاسبه‌شده، عمق اسکرول، … */
     props: text('props', { mode: 'json' }),

@@ -1,0 +1,102 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import V2Filters from '../../../components/admin/V2Filters.astro';
+import { DIMENSIONS, METRICS, runQuery, runTotals, type DimensionKey } from '../../../server/analytics/v2/query';
+import { parseParams, withFilter } from '../../../server/analytics/v2/params';
+import { fa } from '../../../utils';
+
+export const prerender = false;
+
+/**
+ * آنالیتیکس ۲ — نمای کلی.
+ *
+ * تفاوتش با نسخهٔ ۱ یک چیز است: هر عددی که می‌بینید قابل فیلترشدن است.
+ * روی هر ردیف کلیک کنید، همان مقدار به فیلترها اضافه می‌شود و کل صفحه
+ * — از کارت‌های بالا تا همهٔ جدول‌ها — به همان برش محدود می‌شود. نسخهٔ ۱
+ * دست‌نخورده سر جایش است.
+ */
+
+const { days, range, filters } = parseParams(Astro.url);
+const url = Astro.url;
+
+const BREAKDOWNS: { title: string; dim: DimensionKey }[] = [
+  { title: 'کانال', dim: 'channel' },
+  { title: 'منبع', dim: 'utmSource' },
+  { title: 'مدیوم', dim: 'utmMedium' },
+  { title: 'کمپین', dim: 'utmCampaign' },
+  { title: 'کلمهٔ کلیدی', dim: 'utmTerm' },
+  { title: 'خلاقه', dim: 'utmContent' },
+  { title: 'صفحهٔ ورود', dim: 'path' },
+  { title: 'دستگاه', dim: 'device' },
+];
+
+const spec = { range, filters };
+const [totals, ...tables] = await Promise.all([
+  runTotals({ ...spec, metrics: ['sessions', 'visitors', 'pageviews', 'leads', 'calcResults'] }),
+  ...BREAKDOWNS.map((b) =>
+    runQuery({ ...spec, dimensions: [b.dim], metrics: ['sessions', 'visitors', 'leads'], limit: 12 }),
+  ),
+]);
+
+const pct = (n: number, of: number) => (of > 0 ? `${fa((n / of * 100).toFixed(1))}٪` : '—');
+---
+
+<Admin title="آنالیتیکس ۲">
+  <div class="a-head">
+    <h1>آنالیتیکس ۲</h1>
+    <p class="a-sub">
+      همان دادهٔ نسخهٔ ۱، ولی قابل برش. روی هر مقدار کلیک کنید تا فیلتر شود.
+      <a href="/admin/analytics">نسخهٔ ۱</a> ·
+      <a href="/admin/analytics2/journeys">مسیر افراد</a> ·
+      <a href="/admin/analytics2/explore">اکسپلور</a>
+    </p>
+  </div>
+
+  <V2Filters url={url} days={days} filters={filters} />
+
+  <div class="v2-cards">
+    {(['sessions', 'visitors', 'pageviews', 'calcResults', 'leads'] as const).map((m) => (
+      <div class="v2-card">
+        <span>{METRICS[m].label}</span>
+        <b>{fa(totals[m].toLocaleString('en-US'))}</b>
+        {m === 'leads' && <i>نرخ تبدیل نشست: {pct(totals.leads, totals.sessions)}</i>}
+      </div>
+    ))}
+  </div>
+
+  <div class="v2-grid">
+    {BREAKDOWNS.map((b, i) => (
+      <section class="v2-table">
+        <h2>{b.title}</h2>
+        {tables[i]!.length === 0 ? (
+          <p class="a-empty">داده‌ای در این بازه نیست.</p>
+        ) : (
+          <table class="a-table">
+            <thead>
+              <tr>
+                <th>{DIMENSIONS[b.dim].label}</th>
+                <th>نشست</th>
+                <th>لید</th>
+                <th>تبدیل</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tables[i]!.map((row) => (
+                <tr>
+                  <td>
+                    <a href={withFilter(url, { dimension: b.dim, value: row.keys[0] ?? null, op: 'is' })}>
+                      {row.keys[0] ?? '(ثبت‌نشده)'}
+                    </a>
+                  </td>
+                  <td>{fa(row.values.sessions)}</td>
+                  <td>{fa(row.values.leads)}</td>
+                  <td>{pct(row.values.leads, row.values.sessions)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+    ))}
+  </div>
+</Admin>

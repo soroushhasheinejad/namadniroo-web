@@ -1,0 +1,117 @@
+---
+import Admin from '../../../../layouts/Admin.astro';
+import { journeyOf } from '../../../../server/analytics/v2/journey';
+import { channelLabel } from '../../../../server/analytics/channel';
+import { eventLabel } from '../../../../server/analytics/events';
+import { fa } from '../../../../utils';
+
+export const prerender = false;
+
+/**
+ * مسیر کامل یک نفر.
+ *
+ * از اولین برخورد تا آخرین رویداد، به‌علاوهٔ پروندهٔ فروشش اگر فرم پر کرده
+ * باشد. این همان صفحه‌ای است که به سؤال «این لید از کجا آمد و قبلش چه
+ * دید؟» جواب می‌دهد — سؤالی که با گزارش‌های تجمیعی هرگز جواب نمی‌گیرد.
+ */
+
+const journey = await journeyOf(Astro.params.id!);
+if (!journey) return Astro.redirect('/admin/analytics2/journeys');
+
+const { visitor, lead, sessions, timeline } = journey;
+
+const when = (d: Date) =>
+  d.toLocaleString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+/* رویدادها به نشست‌ها گروه می‌شوند تا مسیر خوانده شود، نه یک فهرست بلند */
+const bySession = new Map<string, typeof timeline>();
+for (const e of timeline) {
+  const list = bySession.get(e.sessionId) ?? [];
+  list.push(e);
+  bySession.set(e.sessionId, list);
+}
+const sessionMeta = new Map(sessions.map((s) => [s.sessionId, s]));
+
+const firstTouch = [
+  ['کانال', visitor.firstChannel ? channelLabel[visitor.firstChannel as keyof typeof channelLabel] ?? visitor.firstChannel : null],
+  ['منبع', visitor.firstUtmSource],
+  ['مدیوم', visitor.firstUtmMedium],
+  ['کمپین', visitor.firstUtmCampaign],
+  ['کلمهٔ کلیدی', visitor.firstUtmTerm],
+  ['خلاقه', visitor.firstUtmContent],
+  ['ارجاع‌دهنده', visitor.firstReferrer],
+  ['صفحهٔ ورود', visitor.firstLanding],
+] as const;
+---
+
+<Admin title="مسیر بازدیدکننده">
+  <div class="a-head">
+    <h1>مسیر یک بازدیدکننده</h1>
+    <p class="a-sub">
+      <a href="/admin/analytics2/journeys">بازگشت به فهرست</a> · شناسه:
+      <code>{visitor.id}</code>
+    </p>
+  </div>
+
+  <div class="v2-cards">
+    <div class="v2-card"><span>نشست</span><b>{fa(visitor.sessions)}</b></div>
+    <div class="v2-card"><span>بازدید صفحه</span><b>{fa(visitor.pageviews)}</b></div>
+    <div class="v2-card"><span>اولین بازدید</span><b>{when(visitor.firstSeen)}</b></div>
+    <div class="v2-card"><span>آخرین فعالیت</span><b>{when(visitor.lastSeen)}</b></div>
+  </div>
+
+  <div class="v2-two">
+    <section class="v2-table">
+      <h2>برخورد اول</h2>
+      <table class="a-table">
+        <tbody>
+          {firstTouch.map(([label, value]) => (
+            <tr><th>{label}</th><td>{value ?? '—'}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="v2-table">
+      <h2>پروندهٔ فروش</h2>
+      {lead ? (
+        <table class="a-table">
+          <tbody>
+            <tr><th>نام</th><td><a href={`/admin/leads/${lead.id}`}>{lead.name}</a></td></tr>
+            <tr><th>شماره</th><td dir="ltr">{lead.phone}</td></tr>
+            <tr><th>وضعیت</th><td>{lead.status}</td></tr>
+            <tr><th>ارزش معامله</th><td>{lead.dealValue ? `${fa(lead.dealValue.toLocaleString('en-US'))} تومان` : '—'}</td></tr>
+            <tr><th>تاریخ ثبت</th><td>{when(lead.createdAt)}</td></tr>
+          </tbody>
+        </table>
+      ) : (
+        <p class="a-empty">این بازدیدکننده هنوز فرمی پر نکرده است.</p>
+      )}
+    </section>
+  </div>
+
+  <h2 class="v2-h">خط زمانی</h2>
+  {[...bySession.entries()].map(([sid, list], i) => {
+    const meta = sessionMeta.get(sid);
+    return (
+      <section class="v2-session">
+        <header>
+          <b>نشست {fa(i + 1)}</b>
+          <span>{when(list[0]!.at)}</span>
+          {meta && <span>{fa(meta.pageviews)} بازدید</span>}
+          {meta?.channel && <span>{channelLabel[meta.channel as keyof typeof channelLabel] ?? meta.channel}</span>}
+          {meta?.utmCampaign && <span>کمپین: {meta.utmCampaign}</span>}
+        </header>
+        <ol class="v2-steps">
+          {list.map((e) => (
+            <li class:list={[e.type === 'lead_submit' && 'is-goal']}>
+              <time>{when(e.at)}</time>
+              <b>{eventLabel[e.type as keyof typeof eventLabel] ?? e.type}</b>
+              {e.path && <span class="a-path">{e.path}</span>}
+            </li>
+          ))}
+        </ol>
+      </section>
+    );
+  })}
+</Admin>

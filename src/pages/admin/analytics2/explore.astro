@@ -1,0 +1,152 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import V2Filters from '../../../components/admin/V2Filters.astro';
+import {
+  DIMENSIONS,
+  METRICS,
+  isDimension,
+  isMetric,
+  runQuery,
+  type DimensionKey,
+  type MetricKey,
+} from '../../../server/analytics/v2/query';
+import { parseParams, withFilter } from '../../../server/analytics/v2/params';
+import { fa } from '../../../utils';
+
+export const prerender = false;
+
+/**
+ * اکسپلور — جدول آزاد.
+ *
+ * بُعدها و سنجه‌ها را خودتان انتخاب می‌کنید و جدول همان‌جا ساخته می‌شود؛
+ * معادل Explore در GA4. گزارش‌های آمادهٔ صفحهٔ نمای کلی هم از همین موتور
+ * می‌آیند، فقط با انتخاب‌های از پیش تعیین‌شده.
+ */
+
+const { days, range, filters } = parseParams(Astro.url);
+const p = Astro.url.searchParams;
+
+const dims = (p.getAll('dim').filter(isDimension) as DimensionKey[]).slice(0, 2);
+const metrics = (p.getAll('metric').filter(isMetric) as MetricKey[]).slice(0, 4);
+
+const chosenDims = dims.length ? dims : (['utmSource'] as DimensionKey[]);
+const chosenMetrics = metrics.length ? metrics : (['sessions', 'leads'] as MetricKey[]);
+const orderBy = (p.get('order') && isMetric(p.get('order')!) ? p.get('order')! : chosenMetrics[0]!) as MetricKey;
+
+const rows = await runQuery({
+  range,
+  filters,
+  dimensions: chosenDims,
+  metrics: chosenMetrics,
+  orderBy,
+  limit: 200,
+});
+
+/* خروجی CSV از همین نشانی با `&csv=1` گرفته می‌شود — برای وقتی که کسی
+   می‌خواهد همین جدول را در اکسل یا جای دیگری تحلیل کند. */
+if (p.get('csv') === '1') {
+  const header = [...chosenDims.map((d) => DIMENSIONS[d].label), ...chosenMetrics.map((m) => METRICS[m].label)];
+  const body = rows.map((r) => [...r.keys.map((k) => k ?? ''), ...chosenMetrics.map((m) => r.values[m])]);
+  const csv = [header, ...body]
+    .map((line) => line.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  return new Response('﻿' + csv, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="explore.csv"',
+    },
+  });
+}
+
+const csvHref = (() => {
+  const u = new URL(Astro.url.href);
+  u.searchParams.set('csv', '1');
+  return u.pathname + u.search;
+})();
+---
+
+<Admin title="اکسپلور">
+  <div class="a-head">
+    <h1>اکسپلور</h1>
+    <p class="a-sub">
+      بُعد و سنجه را خودتان بچینید. <a href="/admin/analytics2">نمای کلی</a> ·
+      <a href="/admin/analytics2/journeys">مسیر افراد</a>
+    </p>
+  </div>
+
+  <form class="v2-explore" method="get">
+    <input type="hidden" name="days" value={days} />
+    {filters.map((f) => (
+      <input type="hidden" name="f" value={`${f.dimension}:${f.op ?? 'is'}:${f.value === null ? '' : encodeURIComponent(f.value)}`} />
+    ))}
+
+    <fieldset>
+      <legend>بُعدها <small>(تا ۲ تا)</small></legend>
+      <div class="v2-opts">
+        {Object.entries(DIMENSIONS).map(([key, d]) => (
+          <label>
+            <input type="checkbox" name="dim" value={key} checked={chosenDims.includes(key as DimensionKey)} />
+            {d.label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>سنجه‌ها <small>(تا ۴ تا)</small></legend>
+      <div class="v2-opts">
+        {Object.entries(METRICS).map(([key, m]) => (
+          <label>
+            <input type="checkbox" name="metric" value={key} checked={chosenMetrics.includes(key as MetricKey)} />
+            {m.label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>مرتب‌سازی</legend>
+      <select name="order">
+        {chosenMetrics.map((m) => (
+          <option value={m} selected={m === orderBy}>{METRICS[m].label}</option>
+        ))}
+      </select>
+    </fieldset>
+
+    <button type="submit" class="a-btn a-btn-primary">ساختن جدول</button>
+  </form>
+
+  <V2Filters url={Astro.url} days={days} filters={filters} />
+
+  <div class="v2-result-head">
+    <span>{fa(rows.length)} ردیف</span>
+    <a class="a-btn" href={csvHref}>خروجی CSV</a>
+  </div>
+
+  {rows.length === 0 ? (
+    <p class="a-empty">با این ترکیب، داده‌ای نیست.</p>
+  ) : (
+    <table class="a-table">
+      <thead>
+        <tr>
+          {chosenDims.map((d) => <th>{DIMENSIONS[d].label}</th>)}
+          {chosenMetrics.map((m) => <th>{METRICS[m].label}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr>
+            {r.keys.map((k, i) => (
+              <td>
+                <a href={withFilter(Astro.url, { dimension: chosenDims[i]!, value: k, op: 'is' })}>
+                  {k ?? '(ثبت‌نشده)'}
+                </a>
+              </td>
+            ))}
+            {chosenMetrics.map((m) => <td>{fa(r.values[m].toLocaleString('en-US'))}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</Admin>
