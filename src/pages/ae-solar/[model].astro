@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import { fa, breadcrumbSchema, faqSchema } from '../../utils';
 import { aeModels, aeModelBySlug } from '../../data/aesolarModels';
+import RelatedArticles from '../../components/RelatedArticles.astro';
 
 /* صفحهٔ هر مدل AE Solar موجود در انبار — برای جست‌وجوهایی که توان دارند
    («پنل 580 وات ae solar»). داده از دیتاشیت رسمی می‌آید، نه از پنل. پویا
@@ -224,6 +225,11 @@ const schema = [
         </div>
       </div>
     </section>
+
+    <RelatedArticles
+      slugs={['ae-solar-panel-review', 'ae-solar-original-panel']}
+      title="دربارهٔ پنل AE Solar"
+    />
 
     <section class="cta-band">
       <div class="wrap">
