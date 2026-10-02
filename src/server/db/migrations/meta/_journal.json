@@ -50,6 +50,13 @@
       "when": 1790940928715,
       "tag": "0006_analytics_v2_utm",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1790977046728,
+      "tag": "0007_marketing_automation",
+      "breakpoints": true
     }
   ]
 }

@@ -536,6 +536,198 @@ export const leadActivity = sqliteTable(
 );
 
 /* ============================================================
+   اتوماسیون مارکتینگ
+   ============================================================ */
+
+/**
+ * مخاطب — کسی که می‌شود به او پیام فرستاد.
+ *
+ * جدا از `leads` است و این عمدی است: لید یک درخواست است (یک نفر می‌تواند
+ * سه بار فرم پر کند) ولی مخاطب یک انسان است، با یک شماره. مشتریان قدیمی
+ * هم که هیچ‌وقت فرم سایت را پر نکرده‌اند اینجا جا می‌شوند.
+ *
+ * `phone_normalized` کلید یکتاست، چون تنها چیزی است که در همهٔ منابع
+ * مشترک است و به شکل واحد در می‌آید.
+ */
+export const contacts = sqliteTable(
+  'contacts',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    phoneNormalized: text('phone_normalized').notNull().unique(),
+    /** همان شکلی که کاربر یا فایل نوشته بود — برای نمایش */
+    phone: text('phone').notNull(),
+    name: text('name'),
+    /** از کجا به فهرست اضافه شد */
+    origin: text('origin', { enum: ['lead', 'import', 'manual'] })
+      .notNull()
+      .default('lead'),
+    /** اگر از فرم سایت آمده، پل به پروندهٔ فروش */
+    leadId: integer('lead_id').references(() => leads.id, { onDelete: 'set null' }),
+    /** اگر رفتارش در سایت را می‌شناسیم، پل به آنالیتیکس */
+    visitorId: text('visitor_id'),
+    city: text('city'),
+    /**
+     * رضایت پیامکی. تا وقتی `true` نیست هیچ پیام تبلیغاتی نمی‌رود —
+     * پیام تراکنشی (مثل پیگیری درخواست خودش) جداست و به این گره نمی‌خورد.
+     */
+    marketingConsent: integer('marketing_consent', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    /** لحظه‌ای که «لغو۱۱» فرستاد؛ پر بودنش یعنی هرگز دیگر پیام نرود */
+    optedOutAt: timestamp('opted_out_at'),
+    /** برچسب‌های دلخواه برای سگمنت‌بندی دستی */
+    tags: text('tags', { mode: 'json' }).$type<string[]>(),
+    /** ستون‌های اضافی فایل اکسل، دست‌نخورده */
+    extra: text('extra', { mode: 'json' }),
+    lastMessagedAt: timestamp('last_messaged_at'),
+    /** شمارندهٔ سقف هفتگی؛ هر دور ارسال به‌روز می‌شود */
+    messages7d: integer('messages_7d').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().default(now()),
+    updatedAt: timestamp('updated_at').notNull().default(now()),
+  },
+  (t) => [
+    index('contacts_lead_idx').on(t.leadId),
+    index('contacts_consent_idx').on(t.marketingConsent),
+    index('contacts_last_msg_idx').on(t.lastMessagedAt),
+  ],
+);
+
+/**
+ * فلو — پیام خودکاری که با یک رویداد شروع می‌شود.
+ *
+ * ساختارش همان چیزی است که در سند مارکتینگ آمده: تریگر ← انتظار ← شرط ←
+ * اقدام. مراحل به‌صورت JSON ذخیره می‌شوند چون شکلشان بین فلوها فرق می‌کند
+ * و ستون‌کردنشان یعنی یک مایگریشن برای هر نوع مرحلهٔ تازه.
+ */
+export const flows = sqliteTable(
+  'flows',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    /** کد خوانا مثل S01 — همان کدی که در سند برنامهٔ مارکتینگ است */
+    code: text('code').notNull().unique(),
+    name: text('name').notNull(),
+    /** رویدادی که فلو را شروع می‌کند: `lead_submit`، `calc_result`، … */
+    trigger: text('trigger').notNull(),
+    /** شرط ورود، روی مخاطب و رفتارش */
+    entryRule: text('entry_rule', { mode: 'json' }),
+    /** مراحل: انتظار، شرط، ارسال */
+    steps: text('steps', { mode: 'json' }).notNull(),
+    status: text('status', { enum: ['draft', 'active', 'paused'] })
+      .notNull()
+      .default('draft'),
+    /**
+     * درصدی که عمداً پیام نمی‌گیرد تا اثر واقعی فلو اندازه‌گیری شود.
+     * بدون این، هر تبدیلی به حساب فلو نوشته می‌شود — حتی آن‌ها که به‌هر‌حال
+     * اتفاق می‌افتادند.
+     */
+    controlPercent: integer('control_percent').notNull().default(10),
+    channel: text('channel', { enum: ['sms'] }).notNull().default('sms'),
+    createdAt: timestamp('created_at').notNull().default(now()),
+    updatedAt: timestamp('updated_at').notNull().default(now()),
+  },
+  (t) => [index('flows_status_idx').on(t.status)],
+);
+
+/** حضور یک مخاطب در یک فلو — هر ورود یک ردیف */
+export const flowRuns = sqliteTable(
+  'flow_runs',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    flowId: integer('flow_id')
+      .notNull()
+      .references(() => flows.id, { onDelete: 'cascade' }),
+    contactId: integer('contact_id')
+      .notNull()
+      .references(() => contacts.id, { onDelete: 'cascade' }),
+    /** شمارهٔ مرحله‌ای که بعداً باید اجرا شود */
+    stepIndex: integer('step_index').notNull().default(0),
+    /** زودتر از این لحظه سراغ مرحلهٔ بعد نمی‌رویم */
+    nextRunAt: timestamp('next_run_at'),
+    status: text('status', { enum: ['running', 'done', 'stopped'] })
+      .notNull()
+      .default('running'),
+    /** این ردیف در گروه کنترل است و پیامی نمی‌گیرد */
+    isControl: integer('is_control', { mode: 'boolean' }).notNull().default(false),
+    /** هدف فلو محقق شد (مثلاً لید ثبت شد) */
+    converted: integer('converted', { mode: 'boolean' }).notNull().default(false),
+    startedAt: timestamp('started_at').notNull().default(now()),
+    endedAt: timestamp('ended_at'),
+  },
+  (t) => [
+    index('flow_runs_due_idx').on(t.status, t.nextRunAt),
+    index('flow_runs_contact_idx').on(t.contactId),
+  ],
+);
+
+/** کمپین — ارسال یک‌باره به یک سگمنت */
+export const campaigns = sqliteTable(
+  'campaigns',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    /** تعریف مخاطب، همان شکل `entry_rule` فلو */
+    audienceRule: text('audience_rule', { mode: 'json' }),
+    channel: text('channel', { enum: ['sms'] }).notNull().default('sms'),
+    body: text('body').notNull(),
+    /** نسخه‌های آزمون A/B؛ خالی یعنی تک‌نسخه */
+    variants: text('variants', { mode: 'json' }).$type<{ label: string; body: string; share: number }[]>(),
+    controlPercent: integer('control_percent').notNull().default(0),
+    scheduledAt: timestamp('scheduled_at'),
+    status: text('status', { enum: ['draft', 'scheduled', 'sending', 'sent', 'canceled'] })
+      .notNull()
+      .default('draft'),
+    /** هدفی که موفقیت کمپین با آن سنجیده می‌شود، و پنجره‌اش به روز */
+    goalEvent: text('goal_event'),
+    goalDays: integer('goal_days').notNull().default(7),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().default(now()),
+    sentAt: timestamp('sent_at'),
+  },
+  (t) => [index('campaigns_status_idx').on(t.status, t.scheduledAt)],
+);
+
+/**
+ * هر پیامی که فرستاده شد یا نشد.
+ *
+ * ردیف‌های «نرفت» به‌اندازهٔ «رفت» مهم‌اند: وقتی کسی می‌پرسد چرا فلان مشتری
+ * پیام نگرفت، جواب باید اینجا باشد — سقف هفتگی، ساعت سکوت، رضایت نداشتن،
+ * یا گروه کنترل.
+ */
+export const messages = sqliteTable(
+  'messages',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    contactId: integer('contact_id')
+      .notNull()
+      .references(() => contacts.id, { onDelete: 'cascade' }),
+    flowId: integer('flow_id').references(() => flows.id, { onDelete: 'set null' }),
+    campaignId: integer('campaign_id').references(() => campaigns.id, { onDelete: 'set null' }),
+    channel: text('channel', { enum: ['sms'] }).notNull().default('sms'),
+    body: text('body').notNull(),
+    /** برچسب نسخه در آزمون A/B */
+    variant: text('variant'),
+    status: text('status', {
+      enum: ['queued', 'sent', 'failed', 'skipped', 'control'],
+    })
+      .notNull()
+      .default('queued'),
+    /** چرا نرفت — فقط برای skipped و failed */
+    reason: text('reason'),
+    /** شناسهٔ پیام نزد سرویس‌دهنده، برای پیگیری تحویل */
+    providerId: text('provider_id'),
+    attempts: integer('attempts').notNull().default(0),
+    sentAt: timestamp('sent_at'),
+    createdAt: timestamp('created_at').notNull().default(now()),
+  },
+  (t) => [
+    index('messages_contact_idx').on(t.contactId, t.createdAt),
+    index('messages_status_idx').on(t.status, t.createdAt),
+    index('messages_campaign_idx').on(t.campaignId),
+    index('messages_flow_idx').on(t.flowId),
+  ],
+);
+
+/* ============================================================
    تایپ‌های استخراج‌شده
    ============================================================ */
 
@@ -547,6 +739,12 @@ export type Project = typeof projects.$inferSelect;
 export type Article = typeof articles.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 export type NewLead = typeof leads.$inferInsert;
+export type Contact = typeof contacts.$inferSelect;
+export type NewContact = typeof contacts.$inferInsert;
+export type Flow = typeof flows.$inferSelect;
+export type FlowRun = typeof flowRuns.$inferSelect;
+export type Campaign = typeof campaigns.$inferSelect;
+export type Message = typeof messages.$inferSelect;
 export type Redirect = typeof redirects.$inferSelect;
 export type NotFound = typeof notFound.$inferSelect;
 export type LeadStatus = Lead['status'];
