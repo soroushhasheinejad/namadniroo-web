@@ -1,6 +1,12 @@
 import { createLead, recentDuplicate } from '../repos/leads';
 import { enqueueEmail } from './outbox';
-import { getVisitor, lastTouch, linkVisitorToLead, trackEvent } from '../analytics/track';
+import {
+  currentSessionId,
+  getVisitor,
+  lastTouch,
+  linkVisitorToLead,
+  trackEvent,
+} from '../analytics/track';
 import { channelLabel } from '../analytics/channel';
 import { logActivity } from '../repos/leadActivity';
 import type { QuoteInput } from '../validation/quote';
@@ -82,13 +88,36 @@ export async function submitQuote(
     void linkVisitorToLead(visitor.visitorId, lead.id).catch((err) =>
       console.error('[quote] اتصال بازدیدکننده به لید ناموفق:', err),
     );
-    trackEvent({
-      visitorId: visitor.visitorId,
-      sessionId: visitor.sessionId,
-      type: 'lead_submit',
-      path: input.source || null,
-      props: { leadId: lead.id, area: input.area || '—' },
-    });
+    /* رویداد ثبت لید باید مبدأ را با خودش ببرد، وگرنه در گزارش‌ها زیر
+       «ثبت‌نشده» می‌افتد و معلوم نمی‌شود کدام کانال مشتری ساخته — همان
+       چیزی که تمام ۳۵۲ لید اول دچارش بودند. مبدأ از رویدادهای خود
+       بازدیدکننده می‌آید، نه از نشانی فرم که دیگر utm ندارد. */
+    void (async () => {
+      const [session, lastSeenTouch] = await Promise.all([
+        currentSessionId(visitor.visitorId).catch(() => null),
+        touch ? Promise.resolve(touch) : lastTouch(visitor.visitorId).catch(() => null),
+      ]);
+
+      trackEvent({
+        visitorId: visitor.visitorId,
+        /* نشست واقعی‌اش، و فقط اگر پیدا نشد همان چیزی که کوکی می‌گفت */
+        sessionId: session ?? visitor.sessionId,
+        type: 'lead_submit',
+        path: input.source || null,
+        attribution: lastSeenTouch
+          ? {
+              channel: lastSeenTouch.channel as never,
+              utmSource: lastSeenTouch.utmSource,
+              utmMedium: lastSeenTouch.utmMedium,
+              utmCampaign: lastSeenTouch.utmCampaign,
+              utmTerm: null,
+              utmContent: null,
+              referrer: null,
+            }
+          : undefined,
+        props: { leadId: lead.id, area: input.area || '—' },
+      });
+    })().catch((err) => console.error('[quote] ثبت رویداد لید ناموفق:', err));
   }
 
   /* اولین سطر خط زمانی پرونده. بدون آن، کارشناسی که فردا پرونده را باز

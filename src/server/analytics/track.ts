@@ -1,4 +1,4 @@
-import { and, desc, eq, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, ne, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { events, visitors } from '../db/schema';
 import type { Attribution, Device } from './channel';
@@ -171,6 +171,30 @@ export async function lastTouch(visitorId: string) {
     .orderBy(desc(events.createdAt))
     .limit(1);
   return row ?? null;
+}
+
+/**
+ * شناسهٔ نشست جاری یک بازدیدکننده، از روی رویدادهایش.
+ *
+ * کوکی نشست بعد از نیم‌ساعت منقضی می‌شود. کسی که بیست دقیقه با
+ * ماشین‌حساب کار می‌کند و بعد فرم را می‌فرستد، در لحظهٔ ارسال ممکن است
+ * دیگر کوکی نشست نداشته باشد — و آن‌وقت رویداد ثبت لید در نشستی
+ * تک‌ردیفی می‌افتاد که به هیچ بازدیدی وصل نبود. اینجا نشست واقعی‌اش
+ * پیدا می‌شود.
+ */
+export async function currentSessionId(
+  visitorId: string,
+  withinMinutes = 30,
+): Promise<string | null> {
+  const db = await getDb();
+  const since = new Date(Date.now() - withinMinutes * 60_000);
+  const [row] = await db
+    .select({ sessionId: events.sessionId })
+    .from(events)
+    .where(and(eq(events.visitorId, visitorId), gte(events.createdAt, since)))
+    .orderBy(desc(events.createdAt))
+    .limit(1);
+  return row?.sessionId ?? null;
 }
 
 /** خط زمانی یک بازدیدکننده — قدیمی‌ترین اول، برای نمایش در پروندهٔ فروش */
