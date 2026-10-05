@@ -23,6 +23,8 @@ export interface QuoteInput {
   utmCampaign?: string;
   /** خلاصهٔ برآورد ماشین‌حساب، اگر لید از آن صفحه آمده باشد */
   estimate?: string;
+  /** شناسهٔ کاربر گوگل آنالیتیکس، اگر مرورگر کوکی‌اش را داشته باشد */
+  gaClientId?: string;
 }
 
 /* فقط همین سه مقدار پذیرفته می‌شود. متن آزاد از بیرون در این ستون
@@ -78,6 +80,11 @@ export function validateQuote(body: Record<string, unknown>): ValidationResult {
       /* سقف بلندتر از بقیهٔ فیلدها چون یک جملهٔ کامل است، ولی همچنان
          محدود — این متن از سمت کاربر می‌آید. */
       estimate: clean(body.estimate, 400) || undefined,
+      /* شکل استاندارد `1234567890.1234567890` است؛ هر چیز دیگری دور
+         ریخته می‌شود تا ستون با دادهٔ بی‌معنی پر نشود. */
+      gaClientId: /^\d{6,12}\.\d{8,12}$/.test(clean(body.ga_client_id, 40))
+        ? clean(body.ga_client_id, 40)
+        : undefined,
     },
   };
 }

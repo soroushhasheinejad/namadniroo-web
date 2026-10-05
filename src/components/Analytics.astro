@@ -16,12 +16,50 @@
   type Props = Record<string, string | number | boolean>;
 
   /**
+   * شناسهٔ کاربر در گوگل آنالیتیکس، از کوکی `_ga`.
+   *
+   * شکل کوکی `GA1.1.1234567890.1234567890` است و دو بخش آخرش همان
+   * client_id است. این تنها کلیدی است که GA4 برای پیوند دادهٔ بیرونی به
+   * کاربرانش می‌پذیرد، و بدون نگه‌داشتنش نمی‌شود نتیجهٔ فروش را بعداً به
+   * پروفایل همان کاربر برگرداند.
+   */
+  const gaClientId = (): string => {
+    const m = document.cookie.match(/_ga=GA\d\.\d\.(\d+\.\d+)/);
+    return m?.[1] ?? '';
+  };
+  (window as any).nnGaClientId = gaClientId;
+
+  /* نام رویدادهای ما به نام‌های پیشنهادی گوگل ترجمه می‌شود تا در گزارش‌های
+     آمادهٔ GA4 هم دیده شوند، نه فقط به‌عنوان رویداد سفارشی. */
+  const GA_NAMES: Record<string, string> = {
+    form_open: 'form_start',
+    lead_submit: 'generate_lead',
+    phone_click: 'contact',
+    calc_result: 'calc_result',
+  };
+
+  /**
+   * همان رویداد را به GA4 هم می‌فرستد.
+   *
+   * تا امروز GA4 فقط بازدید صفحه داشت و هیچ تبدیلی نمی‌دید؛ یعنی گزارش
+   * کمپین‌هایش می‌گفت چند نفر آمدند ولی نمی‌گفت چند نفر مشتری شدند.
+   */
+  const toGa = (type: string, props?: Props) => {
+    const gtag = (window as any).gtag;
+    if (typeof gtag !== 'function') return;
+    try {
+      gtag('event', GA_NAMES[type] ?? type, { ...props, page_path: location.pathname });
+    } catch { /* آمار نباید هیچ‌وقت صفحه را زمین بزند */ }
+  };
+
+  /**
    * ارسال با `sendBeacon`: درخواست به صف مرورگر سپرده می‌شود و حتی اگر
    * کاربر همان لحظه صفحه را ترک کند می‌رسد. برای رویدادهایی مثل «کلیک روی
    * لینک بیرونی» تنها راهی است که جواب می‌دهد — `fetch` معمولی با بسته
    * شدن صفحه لغو می‌شود.
    */
   const send = (type: string, props?: Props) => {
+    toGa(type, props);
     const body = JSON.stringify({ type, path: location.pathname, props });
     try {
       const blob = new Blob([body], { type: 'application/json' });
@@ -46,6 +84,10 @@
 
   /* در دسترس بقیهٔ صفحه‌ها — ماشین‌حساب از همین استفاده می‌کند */
   (window as any).nnTrack = send;
+  /* فقط برای رویدادهایی که سرور خودش ثبتشان می‌کند (مثل ثبت لید): اگر از
+     مسیر `send` می‌رفتند، یک بار سرور و یک بار مرورگر ثبتشان می‌کرد و
+     آمار خودمان دوبار می‌شمرد. */
+  (window as any).nnGaOnly = toGa;
   (window as any).nnTrackOnce = once;
 
   /* --- کلیک‌ها --- */

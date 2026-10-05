@@ -655,11 +655,14 @@ const seo = await seoProps(c.seo);
             capacity: capacity(calculate(readInvestment(), assumptionsFrom()).capacityKw),
             source: location.pathname,
             estimate: estimateSummary(),
+            ga_client_id: (window as any).nnGaClientId?.() ?? '',
           }),
         });
         const out = await res.json();
 
         if (out.success) {
+          /* فقط به GA4 — ثبت در آمار خودمان کار سرور است */
+          (window as any).nnGaOnly?.('lead_submit', { from: '/solar-calculator' });
           track('calc_report', {
             kw: Math.round(calculate(readInvestment(), assumptionsFrom()).capacityKw),
           });

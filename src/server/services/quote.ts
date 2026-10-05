@@ -72,6 +72,7 @@ export async function submitQuote(
     utmCampaign: input.utmCampaign ?? null,
     estimate: input.estimate ?? null,
     visitorId: visitor?.visitorId ?? null,
+    gaClientId: input.gaClientId ?? null,
     /* utm فرستاده‌شده از مرورگر فقط وقتی استفاده می‌شود که رویدادی در کار
        نباشد؛ سرور بهتر از خود صفحه می‌داند کاربر از کجا آمده. */
     channel: touch?.channel ?? null,

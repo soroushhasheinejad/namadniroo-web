@@ -171,6 +171,9 @@ const { site } = await getSiteSettings();
           ...Object.fromEntries(new FormData(form).entries()),
           ...utm,
           source: location.pathname + location.search,
+          /* بدون این، لید ثبت‌شده هیچ‌وقت به کاربر متناظرش در GA4 وصل
+             نمی‌شود و ایمپورت نتیجهٔ فروش به GA4 ممکن نخواهد بود. */
+          ga_client_id: (window as any).nnGaClientId?.() ?? '',
         };
         const res = await fetch('/api/quote', {
           method: 'POST',
@@ -181,6 +184,8 @@ const { site } = await getSiteSettings();
         /* پیام سرور فارسی و مشخص است (مثلاً «شمارهٔ تماس معتبر نیست»)؛
            خطای شبکه‌ی مرورگر انگلیسی است و به کاربر نشان داده نمی‌شود. */
         if (!data.success) throw new ServerMessage(data.message || 'ارسال انجام نشد');
+        /* فقط به GA4: ثبت در آمار خودمان کار سرور است و از آن‌جا انجام شده */
+        (window as any).nnGaOnly?.('lead_submit', { from: location.pathname });
         body.hidden = true;
         done.hidden = false;
         done.focus();

@@ -1,0 +1,1 @@
+ALTER TABLE `leads` ADD `ga_client_id` text;
