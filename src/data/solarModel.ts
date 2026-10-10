@@ -6,17 +6,15 @@
  * می‌شوند (که در ایران زیاد اتفاق می‌افتد) فقط همین یک فایل به‌روز شود.
  *
  * ── دربارهٔ دقت ─────────────────────────────────────────────────────
- * خروجی این مدل «برآورد» است، نه طرح توجیهی. منابع منتشرشدهٔ داخلی در
- * مورد هزینهٔ احداث با هم اختلاف زیادی دارند، چون:
+ * خروجی این مدل «برآورد» است، نه طرح توجیهی. هزینهٔ احداث در هر پروژه
+ * فرق می‌کند، چون:
  *
  *   • قیمت تجهیزات به نرخ ارز گره خورده و ماه‌به‌ماه عوض می‌شود
- *   • بعضی منابع فقط تجهیزات و نصب را حساب می‌کنند و بعضی زمین، پست و
- *     خط انتقال را هم اضافه می‌کنند — که برای نیروگاه زمینی می‌تواند
- *     نزدیک نیمی از کل سرمایه باشد
- *   • تاریخ انتشار منابع یکی نیست و نرخ‌ها بین آن‌ها جهش داشته
+ *   • زمین، فاصله تا شبکه و سطح ولتاژ اتصال در هر پروژه یک چیز است
+ *   • برند و مشخصات تجهیزات انتخاب سرمایه‌گذار است
  *
- * برای همین هر عدد به‌صورت بازه تعریف شده و خروجی هم بازه است، نه یک
- * عدد قطعی. کاربر می‌تواند همهٔ فرض‌ها را عوض کند.
+ * برای همین هزینه به‌صورت بازه تعریف شده و خروجی هم بازه است، نه یک
+ * عدد قطعی. کاربر می‌تواند فرض‌ها را عوض کند.
  */
 
 export type Scale = 'small' | 'commercial' | 'utility';
@@ -34,63 +32,56 @@ export interface Range {
 }
 
 /**
- * هزینهٔ تجهیزات و نصب، به تومان بر کیلووات.
+ * هزینهٔ احداث نیروگاه زمینی، به تومان بر کیلووات — کلید در دست.
  *
- * شامل پنل، اینورتر، سازه، کابل، تابلو و اجرا — یعنی چیزی که در هر دو
- * مقیاس پشت‌بامی و زمینی مشترک است.
+ * مبنا برآورد نماد نیرو از قیمت روز پروژه‌هاست: هر مگاوات نیروگاه زمینی
+ * ۱۰۰ تا ۱۱۰ میلیارد تومان. این یک رقمِ کل است و همهٔ اجزا را در خودش
+ * دارد؛ مدل دیگر تجهیزات، زمین و پست را جدا حساب نمی‌کند.
+ *
+ * ── چرا مدل سه‌جزئی کنار رفت ────────────────────────────────────────
+ * پیش‌تر هزینه از سه جزء ساخته می‌شد: تجهیزات (۳۳ تا ۳۸ میلیون بر
+ * کیلووات، پله‌ای بر اساس مقیاس)، زمین (۱۵ میلیون بر کیلووات) و پست و خط
+ * انتقال (۲۰ میلیارد تومان ثابت). حاصلش برای یک مگاوات زمینی ۶۸ میلیارد
+ * و برای یک مگاوات روی سقف ۳۳ میلیارد بود — یعنی سقف نصفِ زمینی. هر دو
+ * از قیمت واقعی پروژه‌ها دور بودند: رقم کل پایین بود و فاصلهٔ زمینی و
+ * سقف بسیار بیشتر از آنچه در عمل دیده می‌شود.
+ *
+ * همین نرخ برای همهٔ ظرفیت‌ها به کار می‌رود. عدد مرجع در مقیاس مگاواتی
+ * داده شده و برای ظرفیت‌های کوچک عدد جداگانه‌ای در دست نیست؛ اگر روزی
+ * بود، جایش همین‌جاست.
  */
-export const EQUIPMENT_COST: Record<Scale, Range> = {
-  small: { min: 30_000_000, typical: 38_000_000, max: 48_000_000 },
-  commercial: { min: 28_000_000, typical: 35_000_000, max: 44_000_000 },
-  utility: { min: 26_000_000, typical: 33_000_000, max: 40_000_000 },
-};
-
-/*
- * چرا این اعداد و نه اعداد پایین‌تری که در بعضی مقاله‌ها می‌بینید:
- *
- * منابع مقیاس کوچک گاهی رقم‌هایی حدود ۲۵ میلیون بر کیلووات می‌دهند، ولی
- * همان منابع نیروگاه یک مگاواتی را ۶۰ تا ۸۰ میلیارد تومان برآورد می‌کنند —
- * یعنی ۶۰ تا ۸۰ میلیون بر کیلووات. این دو با هم نمی‌خوانند، چون مقیاس
- * بزرگ‌تر باید ارزان‌تر تمام شود نه گران‌تر.
- *
- * وقتی هزینهٔ محوطه (زمین، پست، خط انتقال) را که فقط نیروگاه زمینی دارد
- * از رقم مگاواتی جدا کنیم، تجهیزات حدود ۳۵ میلیون بر کیلووات در می‌آید.
- * همین عدد، دورهٔ بازگشت خانگی را هم به حدود ۳٫۵ سال می‌رساند که با
- * برآورد منتشرشده می‌خواند. پس این مبنا با هر دو سر طیف سازگار است،
- * برخلاف عدد ۲۵ میلیون که فقط با یک سرش می‌خواند.
- */
-
-/**
- * زمین، محوطه‌سازی و حصار — تومان بر کیلووات، فقط نیروگاه زمینی.
- *
- * این بخش با ظرفیت بزرگ می‌شود، چون مساحت لازم با ظرفیت بزرگ می‌شود:
- * هر مگاوات حدود یک‌ونیم تا دو هکتار زمین می‌خواهد.
- */
-export const LAND_COST: Range = {
-  min: 6_000_000,
-  typical: 15_000_000,
-  max: 26_000_000,
+export const GROUND_COST: Range = {
+  min: 100_000_000,
+  typical: 105_000_000,
+  max: 110_000_000,
 };
 
 /**
- * پست، خط انتقال و مجوزهای اتصال به شبکه — مبلغ ثابت به تومان.
+ * نصب روی سقف سوله چقدر ارزان‌تر از زمینی تمام می‌شود.
  *
- * ── چرا ثابت است و ضریب نمی‌خورد ────────────────────────────────────
- * پیش‌تر این هزینه هم مثل زمین «بر کیلووات» حساب می‌شد، در حالی که
- * عددش از یک نیروگاه یک‌مگاواتی در آمده بود. نتیجه‌اش این بود که
- * نیروگاه ده‌مگاواتی ده برابر هزینهٔ پست می‌گرفت، که غلط است: پست و خط
- * انتقال یک بار ساخته می‌شوند و هزینه‌شان به فاصله تا شبکه و سطح ولتاژ
- * بستگی دارد، نه به اینکه چند پنل پشتش نصب شده.
- *
- * اثر عملی‌اش این است که نیروگاه بزرگ‌تر، این هزینه را روی ظرفیت بیشتری
- * سرشکن می‌کند و ارزان‌تر تمام می‌شود — همان صرفهٔ مقیاسی که در پروژه‌های
- * واقعی دیده می‌شود.
+ * تفاوت این دو فقط همین ۷ درصد است، در هر ظرفیتی: یک مگاوات زمینی با
+ * ۱۰۵ میلیارد تومان، روی سقف سوله حدود ۹۷٫۶۵ میلیارد.
  */
-export const GRID_COST: Range = {
-  min: 12_000_000_000,
-  typical: 20_000_000_000,
-  max: 32_000_000_000,
-};
+export const ROOF_DISCOUNT = 0.07;
+
+/**
+ * هزینهٔ هر کیلووات برای یک نوع نصب، از روی هزینهٔ زمینی.
+ *
+ * گرد می‌شود چون ضرب اعشاری دُم می‌گذارد (۱۰۵ میلیون × ۰٫۹۳ دقیقاً
+ * ۹۷٬۶۵۰٬۰۰۰ در نمی‌آید) و این عدد عیناً در کادر ورودی صفحه می‌نشیند.
+ */
+export function costPerKwFor(mount: Mount, groundCostPerKw = GROUND_COST.typical): number {
+  return mount === 'roof' ? Math.round(groundCostPerKw * (1 - ROOF_DISCOUNT)) : groundCostPerKw;
+}
+
+/** بازهٔ هزینهٔ هر کیلووات برای یک نوع نصب */
+export function costRangeFor(mount: Mount): Range {
+  return {
+    min: costPerKwFor(mount, GROUND_COST.min),
+    typical: costPerKwFor(mount, GROUND_COST.typical),
+    max: costPerKwFor(mount, GROUND_COST.max),
+  };
+}
 
 /**
  * تولید سالانهٔ هر کیلووات ظرفیت نصب‌شده (کیلووات‌ساعت).
@@ -221,12 +212,11 @@ export function scaleOf(capacityKw: number): Scale {
 }
 
 export interface Assumptions {
-  /** تومان بر کیلووات — تجهیزات و نصب */
-  equipmentCostPerKw: number;
-  /** تومان بر کیلووات — زمین و محوطه‌سازی (فقط زمینی) */
-  landCostPerKw: number;
-  /** تومان — پست و خط انتقال، مبلغ ثابت و مستقل از ظرفیت (فقط زمینی) */
-  gridCost: number;
+  /**
+   * تومان بر کیلووات — هزینهٔ کل احداث برای همین نوع نصب. تفاوت زمینی و
+   * سقف از قبل در آن لحاظ شده؛ `costPerKwFor` پیش‌فرضش را می‌دهد.
+   */
+  costPerKw: number;
   /** کیلووات‌ساعت در سال به ازای هر کیلووات */
   yieldPerKw: number;
   mount: Mount;
@@ -267,81 +257,32 @@ export interface Result {
   totalNet: number;
   /** بازده ساده سال اول، نسبت به سرمایه */
   firstYearReturn: number;
-  /** سرمایه کفاف پست و خط انتقال را نمی‌دهد، پس نیروگاه زمینی ممکن نیست */
-  belowGridCost: boolean;
-  /** تفکیک سرمایه: تجهیزات، زمین، اتصال به شبکه (تومان) */
-  capex: { equipment: number; land: number; grid: number };
   rows: YearRow[];
 }
 
 /**
  * ظرفیت قابل احداث با سرمایهٔ داده‌شده.
  *
- * نکتهٔ ظریف: هزینهٔ هر کیلووات به مقیاس بستگی دارد و مقیاس خودش از
- * ظرفیت می‌آید — یعنی یک وابستگی حلقوی. با چند بار تکرار به جواب
- * پایدار می‌رسیم؛ سه دور همیشه کافی است چون پله‌ها فقط سه‌تا هستند.
+ * هزینهٔ هر کیلووات دیگر به مقیاس بستگی ندارد، پس یک تقسیم ساده است.
+ * مقیاس فقط برای نرخ خرید تضمینی و مدت ساخت لازم می‌شود.
  */
 export function capacityFor(
   investment: number,
-  options: { mount: Mount; equipmentCostPerKw?: number; landCostPerKw?: number; gridCost?: number },
+  options: { mount: Mount; costPerKw?: number },
 ): {
   capacityKw: number;
   capexPerKw: number;
   scale: Scale;
-  belowGridCost: boolean;
-  capex: { equipment: number; land: number; grid: number };
 } {
-  const ground = options.mount === 'ground';
-  const grid = ground ? (options.gridCost ?? GRID_COST.typical) : 0;
-
-  /* پست و خط انتقال پیش از اولین پنل ساخته می‌شوند، پس از سرمایه کم
-     می‌شوند و بقیه صرف ظرفیت می‌شود. اگر سرمایه از همین هم کمتر باشد،
-     نیروگاه زمینی اصلاً شکل نمی‌گیرد — و این را باید گفت، نه اینکه
-     ظرفیت منفی نشان داده شود. */
-  const forCapacity = investment - grid;
-  if (forCapacity <= 0) {
-    return {
-      capacityKw: 0,
-      capexPerKw: 0,
-      scale: 'small',
-      belowGridCost: true,
-      capex: { equipment: 0, land: 0, grid },
-    };
-  }
-
-  let scale: Scale = 'commercial';
-
-  for (let i = 0; i < 3; i++) {
-    const equipment = options.equipmentCostPerKw ?? EQUIPMENT_COST[scale].typical;
-    const land = ground ? (options.landCostPerKw ?? LAND_COST.typical) : 0;
-    const perKw = equipment + land;
-    const capacityKw = forCapacity / perKw;
-    const next = scaleOf(capacityKw);
-
-    if (next === scale || i === 2) {
-      return {
-        capacityKw,
-        /* هزینهٔ واقعی هر کیلووات، با سرشکن‌شدن پست و خط انتقال روی
-           همین ظرفیت — همان عددی که پروژه با آن مقایسه می‌شود. */
-        capexPerKw: investment / capacityKw,
-        scale: next,
-        belowGridCost: false,
-        capex: { equipment: capacityKw * equipment, land: capacityKw * land, grid },
-      };
-    }
-    scale = next;
-  }
-
-  /* c8 ignore next */
-  throw new Error('unreachable');
+  const capexPerKw = options.costPerKw ?? costPerKwFor(options.mount);
+  const capacityKw = investment / capexPerKw;
+  return { capacityKw, capexPerKw, scale: scaleOf(capacityKw) };
 }
 
 export function calculate(investment: number, assumptions: Assumptions): Result {
-  const { capacityKw, capexPerKw, scale, belowGridCost, capex } = capacityFor(investment, {
+  const { capacityKw, capexPerKw, scale } = capacityFor(investment, {
     mount: assumptions.mount,
-    equipmentCostPerKw: assumptions.equipmentCostPerKw,
-    landCostPerKw: assumptions.landCostPerKw,
-    gridCost: assumptions.gridCost,
+    costPerKw: assumptions.costPerKw,
   });
 
   const tariff = assumptions.tariff ?? TARIFF.satba[scale] ?? TARIFF.bourse;
@@ -392,8 +333,6 @@ export function calculate(investment: number, assumptions: Assumptions): Result 
     constructionMonths,
     totalNet: cumulative,
     firstYearReturn: firstYear.net / investment,
-    belowGridCost,
-    capex,
     rows,
   };
 }
@@ -401,9 +340,7 @@ export function calculate(investment: number, assumptions: Assumptions): Result 
 /** فرض‌های پیش‌فرض برای یک حالت */
 export function defaultAssumptions(mount: Mount, region: string): Assumptions {
   return {
-    equipmentCostPerKw: EQUIPMENT_COST.commercial.typical,
-    landCostPerKw: LAND_COST.typical,
-    gridCost: GRID_COST.typical,
+    costPerKw: costPerKwFor(mount),
     yieldPerKw: (YIELD_BY_REGION[region] ?? YIELD_BY_REGION.good!).kwhPerKw,
     mount,
     omRate: OM_RATE,
@@ -512,7 +449,7 @@ export const SOURCES = [
   {
     label: 'ماناسازان — راهنمای سرمایه‌گذاری نیروگاه خورشیدی ۱۴۰۵',
     url: 'https://manasazan.ir/%D8%B3%D8%B1%D9%85%D8%A7%DB%8C%D9%87-%DA%AF%D8%B0%D8%A7%D8%B1%DB%8C-%D9%86%DB%8C%D8%B1%D9%88%DA%AF%D8%A7%D9%87-%D8%AE%D9%88%D8%B1%D8%B4%DB%8C%D8%AF%DB%8C-1405/',
-    note: 'هزینهٔ احداث مگاواتی، زمین موردنیاز و دورهٔ بازگشت',
+    note: 'زمین موردنیاز و دورهٔ بازگشت',
   },
   {
     label: 'اکوایران — ابلاغ نرخ جدید خرید تضمینی',
@@ -522,4 +459,4 @@ export const SOURCES = [
 ] as const;
 
 /** تاریخ آخرین به‌روزرسانی فرض‌ها — در صفحه نمایش داده می‌شود */
-export const UPDATED_AT = 'شهریور ۱۴۰۵';
+export const UPDATED_AT = 'مهر ۱۴۰۵';

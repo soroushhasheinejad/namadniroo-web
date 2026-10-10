@@ -1,5 +1,5 @@
 ---
-import { ROUTES, TARIFF, UPDATED_AT, YIELD_BY_REGION, calculate } from '../../data/solarModel';
+import { ROUTES, TARIFF, UPDATED_AT, YIELD_BY_REGION, calculate, costPerKwFor } from '../../data/solarModel';
 import { fa } from '../../utils';
 import { getSiteSettings } from '../../server/repos/siteSettings';
 
@@ -30,9 +30,9 @@ const regionKey = q.get('region') && YIELD_BY_REGION[q.get('region')!] ? q.get('
 const region = YIELD_BY_REGION[regionKey]!;
 
 const assumptions = {
-  equipmentCostPerKw: num('equip', 35) * 1_000_000,
-  landCostPerKw: num('land', 15) * 1_000_000,
-  gridCost: num('grid', 20) * 1_000_000_000,
+  /* پیوندهای قدیمی به‌جای cost سه عدد equip و land و grid داشتند؛ آن‌ها
+     نادیده گرفته می‌شوند و برگه با پیش‌فرض همین نوع نصب ساخته می‌شود. */
+  costPerKw: num('cost', costPerKwFor(mount) / 1_000_000) * 1_000_000,
   yieldPerKw: region.kwhPerKw,
   mount: mount as 'roof' | 'ground',
   omRate: num('om', 1.5) / 100,
@@ -97,13 +97,7 @@ const today = new Intl.DateTimeFormat('fa-IR', { dateStyle: 'long' }).format(new
           <tr><th>نوع نصب</th><td>{mount === 'ground' ? 'زمینی' : 'پشت‌بام'}</td></tr>
           <tr><th>منطقه</th><td>{region.label}</td></tr>
           <tr><th>تولید ویژه</th><td>{fa(region.kwhPerKw)} کیلووات‌ساعت در سال به ازای هر کیلووات</td></tr>
-          <tr><th>هزینهٔ تجهیزات و نصب</th><td>{fa(assumptions.equipmentCostPerKw / 1_000_000)} میلیون تومان بر کیلووات</td></tr>
-          {mount === 'ground' && (
-            <tr><th>زمین و محوطه‌سازی</th><td>{fa(assumptions.landCostPerKw / 1_000_000)} میلیون تومان بر کیلووات</td></tr>
-          )}
-          {mount === 'ground' && (
-            <tr><th>پست و خط انتقال</th><td>{fa(assumptions.gridCost / 1_000_000_000)} میلیارد تومان — مبلغ ثابت، مستقل از ظرفیت</td></tr>
-          )}
+          <tr><th>هزینهٔ احداث</th><td>{fa(+(assumptions.costPerKw / 1_000_000).toFixed(2))} میلیون تومان بر کیلووات — یعنی همین‌قدر میلیارد تومان بر مگاوات</td></tr>
           {mount === 'roof' && (
             <tr><th>شیب پنل</th><td>شیب استاندارد ۳۰ درجه</td></tr>
           )}

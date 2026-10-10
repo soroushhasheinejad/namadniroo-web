@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   CONSTRUCTION_MONTHS,
-  EQUIPMENT_COST,
-  GRID_COST,
-  LAND_COST,
+  GROUND_COST,
+  ROOF_DISCOUNT,
   TARIFF,
   calculate,
   capacityFor,
+  costPerKwFor,
+  costRangeFor,
   defaultAssumptions,
   scaleOf,
 } from './solarModel';
@@ -25,20 +26,62 @@ describe('scaleOf', () => {
   });
 });
 
-describe('capacityFor', () => {
-  it('روی پشت‌بام هزینهٔ محوطه را حساب نمی‌کند', () => {
-    const roof = capacityFor(60 * BILLION, { mount: 'roof' });
-    const ground = capacityFor(60 * BILLION, { mount: 'ground' });
-
-    expect(roof.capexPerKw).toBe(EQUIPMENT_COST[roof.scale].typical);
-    expect(ground.capexPerKw).toBeGreaterThan(roof.capexPerKw);
-    // با یک سرمایه، روی پشت‌بام ظرفیت بیشتری می‌شود نصب کرد
-    expect(roof.capacityKw).toBeGreaterThan(ground.capacityKw);
+describe('هزینهٔ احداث', () => {
+  it('هر مگاوات زمینی ۱۰۰ تا ۱۱۰ میلیارد تومان است', () => {
+    /* عدد مرجع کل مدل. تومان بر کیلووات × ۱۰۰۰ = تومان بر مگاوات. */
+    expect(GROUND_COST.min * 1000).toBe(100 * BILLION);
+    expect(GROUND_COST.max * 1000).toBe(110 * BILLION);
+    expect(GROUND_COST.typical * 1000).toBe(105 * BILLION);
   });
 
-  it('به پلهٔ سازگار با ظرفیت خروجی می‌رسد', () => {
-    /* وابستگی حلقوی است: هزینهٔ هر کیلووات به پله بستگی دارد و پله به
-       ظرفیت. خروجی باید با خودش سازگار باشد. */
+  it('سقف سوله ۷ درصد ارزان‌تر از زمینی است', () => {
+    expect(ROOF_DISCOUNT).toBe(0.07);
+    // یک مگاوات زمینی ۱۰۵ میلیارد، روی سقف ۹۷٫۶۵ میلیارد
+    expect(costPerKwFor('ground') * 1000).toBe(105 * BILLION);
+    expect(costPerKwFor('roof') * 1000).toBe(97.65 * BILLION);
+  });
+
+  it('همین ۷ درصد در سر و ته بازه هم برقرار است', () => {
+    const ground = costRangeFor('ground');
+    const roof = costRangeFor('roof');
+    for (const k of ['min', 'typical', 'max'] as const) {
+      expect(roof[k] / ground[k], k).toBeCloseTo(1 - ROOF_DISCOUNT, 9);
+    }
+    expect(roof.min * 1000).toBe(93 * BILLION);
+    expect(roof.max * 1000).toBe(102.3 * BILLION);
+  });
+
+  it('عدد پیش‌فرض بدون دُم اعشاری است، چون عیناً در کادر ورودی می‌نشیند', () => {
+    expect(String(costPerKwFor('roof') / MILLION)).toBe('97.65');
+    expect(String(costPerKwFor('ground') / MILLION)).toBe('105');
+  });
+});
+
+describe('capacityFor', () => {
+  it('با ۱۰۵ میلیارد تومان، یک مگاوات زمینی ساخته می‌شود', () => {
+    const r = capacityFor(105 * BILLION, { mount: 'ground' });
+    expect(r.capacityKw).toBeCloseTo(1000, 6);
+    expect(r.capexPerKw).toBe(GROUND_COST.typical);
+  });
+
+  it('با یک سرمایه، روی سقف حدود ۷٫۵ درصد ظرفیت بیشتری می‌شود نصب کرد', () => {
+    /* تفاوت هزینه ۷ درصد است؛ تفاوت ظرفیت کمی بیشتر در می‌آید
+       (۱ ÷ ۰٫۹۳)، و در هر سرمایه‌ای همین است. */
+    for (const investment of [1 * BILLION, 60 * BILLION, 600 * BILLION]) {
+      const roof = capacityFor(investment, { mount: 'roof' });
+      const ground = capacityFor(investment, { mount: 'ground' });
+      expect(ground.capexPerKw).toBeGreaterThan(roof.capexPerKw);
+      expect(roof.capacityKw / ground.capacityKw, `${investment}`).toBeCloseTo(1 / (1 - ROOF_DISCOUNT), 6);
+    }
+  });
+
+  it('هزینهٔ هر کیلووات به اندازهٔ پروژه بستگی ندارد', () => {
+    const small = capacityFor(1 * BILLION, { mount: 'ground' });
+    const big = capacityFor(600 * BILLION, { mount: 'ground' });
+    expect(small.capexPerKw).toBe(big.capexPerKw);
+  });
+
+  it('پلهٔ خروجی با ظرفیت خروجی می‌خواند', () => {
     for (const investment of [200 * MILLION, 5 * BILLION, 50 * BILLION, 500 * BILLION]) {
       const r = capacityFor(investment, { mount: 'ground' });
       expect(scaleOf(r.capacityKw), `${investment}`).toBe(r.scale);
@@ -46,53 +89,15 @@ describe('capacityFor', () => {
   });
 
   it('فرض دستی کاربر جای پیش‌فرض را می‌گیرد', () => {
-    const r = capacityFor(1 * BILLION, {
-      mount: 'roof',
-      equipmentCostPerKw: 20 * MILLION,
-    });
+    const r = capacityFor(1 * BILLION, { mount: 'roof', costPerKw: 20 * MILLION });
     expect(r.capexPerKw).toBe(20 * MILLION);
     expect(r.capacityKw).toBe(50);
   });
 
-  it('ظرفیت با سرمایه خطی بالا می‌رود وقتی پله عوض نشود', () => {
-    const a = capacityFor(10 * BILLION, { mount: 'roof', equipmentCostPerKw: 25 * MILLION });
-    const b = capacityFor(20 * BILLION, { mount: 'roof', equipmentCostPerKw: 25 * MILLION });
+  it('ظرفیت با سرمایه خطی بالا می‌رود', () => {
+    const a = capacityFor(10 * BILLION, { mount: 'roof' });
+    const b = capacityFor(20 * BILLION, { mount: 'roof' });
     expect(b.capacityKw).toBeCloseTo(a.capacityKw * 2, 6);
-  });
-});
-
-describe('هزینهٔ ثابت پست و خط انتقال', () => {
-  it('با ظرفیت ضرب نمی‌شود — نیروگاه ده‌مگاواتی همان‌قدر می‌دهد که یک‌مگاواتی', () => {
-    /* باگی که رفع شد: این هزینه «بر کیلووات» حساب می‌شد، پس نیروگاه
-       بزرگ‌تر ده برابر هزینهٔ پست می‌گرفت. پست یک بار ساخته می‌شود. */
-    const small = capacityFor(60 * BILLION, { mount: 'ground' });
-    const big = capacityFor(600 * BILLION, { mount: 'ground' });
-    expect(small.capex.grid).toBe(big.capex.grid);
-    expect(big.capex.grid).toBe(GRID_COST.typical);
-  });
-
-  it('نیروگاه بزرگ‌تر آن را سرشکن می‌کند، پس هر کیلووات ارزان‌تر تمام می‌شود', () => {
-    const small = capacityFor(60 * BILLION, { mount: 'ground' });
-    const big = capacityFor(600 * BILLION, { mount: 'ground' });
-    expect(big.capexPerKw).toBeLessThan(small.capexPerKw);
-  });
-
-  it('روی پشت‌بام اصلاً وجود ندارد', () => {
-    const roof = capacityFor(10 * BILLION, { mount: 'roof' });
-    expect(roof.capex.grid).toBe(0);
-    expect(roof.capex.land).toBe(0);
-  });
-
-  it('سرمایهٔ کمتر از هزینهٔ پست، نیروگاه زمینی نمی‌سازد', () => {
-    const r = capacityFor(GRID_COST.typical - 1, { mount: 'ground' });
-    expect(r.belowGridCost).toBe(true);
-    expect(r.capacityKw).toBe(0);
-  });
-
-  it('تفکیک سرمایه با کل سرمایه جمع می‌خورد', () => {
-    const investment = 120 * BILLION;
-    const { capex } = capacityFor(investment, { mount: 'ground' });
-    expect(capex.equipment + capex.land + capex.grid).toBeCloseTo(investment, 4);
   });
 });
 
@@ -206,34 +211,25 @@ describe('calculate', () => {
     expect(r.totalNet).toBeCloseTo(sum, 4);
   });
 
-  it('خروجی برای یک نیروگاه مگاواتی در محدودهٔ منابع منتشرشده است', () => {
-    /* ۷۰ میلیارد تومان، زمینی، کرمان — طبق منابع باید حدود یک مگاوات
-       در بیاید و بازگشت سرمایه در بازهٔ چندساله باشد. این تست نگهبان
-       است: اگر فرض‌ها روزی طوری عوض شوند که خروجی از واقعیت بازار دور
-       بیفتد، همین‌جا معلوم می‌شود. */
-    const r = calculate(70 * BILLION, defaultAssumptions('ground', 'high'));
+  it('خروجی برای یک نیروگاه مگاواتی در محدودهٔ قیمت روز است', () => {
+    /* ۱۰۵ میلیارد تومان، زمینی، کرمان — باید یک مگاوات در بیاید و
+       بازگشت سرمایه در بازهٔ چندساله باشد. این تست نگهبان است: اگر
+       فرض‌ها روزی طوری عوض شوند که خروجی از واقعیت بازار دور بیفتد،
+       همین‌جا معلوم می‌شود. */
+    const r = calculate(105 * BILLION, defaultAssumptions('ground', 'high'));
 
-    expect(r.capacityKw).toBeGreaterThan(900);
-    expect(r.capacityKw).toBeLessThan(1400);
+    expect(r.capacityKw).toBeGreaterThan(950);
+    expect(r.capacityKw).toBeLessThan(1050);
     expect(r.firstYearProductionKwh).toBeGreaterThan(1_500_000);
-    expect(r.firstYearProductionKwh).toBeLessThan(2_600_000);
+    expect(r.firstYearProductionKwh).toBeLessThan(2_100_000);
+    expect(r.paybackYears!).toBeGreaterThan(4);
+    expect(r.paybackYears!).toBeLessThan(10);
   });
 
   it('بازهٔ هزینه، بازهٔ ظرفیت می‌سازد', () => {
-    const cheap = calculate(60 * BILLION, {
-      ...base,
-      tariff: TARIFF.bourse,
-      equipmentCostPerKw: EQUIPMENT_COST.commercial.min,
-      landCostPerKw: LAND_COST.min,
-      gridCost: GRID_COST.min,
-    });
-    const pricey = calculate(60 * BILLION, {
-      ...base,
-      tariff: TARIFF.bourse,
-      equipmentCostPerKw: EQUIPMENT_COST.commercial.max,
-      landCostPerKw: LAND_COST.max,
-      gridCost: GRID_COST.max,
-    });
+    const range = costRangeFor('ground');
+    const cheap = calculate(60 * BILLION, { ...base, tariff: TARIFF.bourse, costPerKw: range.min });
+    const pricey = calculate(60 * BILLION, { ...base, tariff: TARIFF.bourse, costPerKw: range.max });
 
     expect(cheap.capacityKw).toBeGreaterThan(pricey.capacityKw);
     expect(cheap.paybackYears!).toBeLessThan(pricey.paybackYears!);
@@ -250,7 +246,7 @@ describe('نرخ ساتبا بالای یک مگاوات', () => {
   });
 
   it('در نبود نرخ مصوب، محاسبه به نرخ بورس برمی‌گردد و خطا نمی‌دهد', () => {
-    const r = calculate(70 * BILLION, defaultAssumptions('ground', 'high'));
+    const r = calculate(210 * BILLION, defaultAssumptions('ground', 'high'));
     expect(r.scale).toBe('utility');
     expect(r.tariff).toBe(TARIFF.bourse);
     expect(Number.isFinite(r.totalNet)).toBe(true);

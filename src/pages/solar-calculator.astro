@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import { breadcrumbSchema, faqSchema } from '../utils';
-import { CONSTRUCTION_MONTHS, DEGRADATION, SUN_DAYS, OM_RATE, ROOF_TILT_DEG, ROUTES, SOURCES, TARIFF, UPDATED_AT, YEARS, YIELD_BY_REGION } from '../data/solarModel';
+import { CONSTRUCTION_MONTHS, DEGRADATION, GROUND_COST, SUN_DAYS, OM_RATE, ROOF_DISCOUNT, ROOF_TILT_DEG, ROUTES, SOURCES, TARIFF, UPDATED_AT, YEARS, YIELD_BY_REGION, costPerKwFor } from '../data/solarModel';
 import { fa } from '../utils';
 import { seoProps } from '../server/seo/pageSeo';
 import { getPageContent } from '../server/repos/pageContent';
@@ -20,11 +20,14 @@ const c = await getPageContent(calculatorPage);
 const pct = (rate: number) => fa(String(+(rate * 100).toFixed(3)));
 const yields = Object.values(YIELD_BY_REGION).map((r) => r.kwhPerKw);
 const months = Object.values(CONSTRUCTION_MONTHS);
+/* تومان بر کیلووات، عددش همان «میلیارد تومان بر مگاوات» است وقتی بر یک
+   میلیون تقسیم شود. */
+const perMw = (tomanPerKw: number) => fa(String(+(tomanPerKw / 1_000_000).toFixed(2)));
 const assumptions = [
   { label: 'تولید سالانه', text: `${fa(Math.min(...yields))} تا ${fa(Math.max(...yields))} کیلووات‌ساعت به ازای هر کیلووات، بر اساس پتانسیل فتوولتائیک منطقه (نه صرفاً تابش). افت گرما، غبار و اینورتر در آن لحاظ شده.` },
   { label: 'فرمول تولید', text: `ظرفیت × ضریب منطقه × ${fa(SUN_DAYS)} روز × (۱ − افت)^سال. ضریب منطقه همان ساعت تابش مفید روزانه است و ${fa(SUN_DAYS)} روز یعنی روزهای بی‌ابر و بدون توقف نگه‌داری.` },
   { label: 'شیب پنل', text: `روی پشت‌بام، شیب استاندارد ${fa(ROOF_TILT_DEG)} درجه. سقف تخت یا شیب‌دار کمتر تولید می‌کند.` },
-  { label: 'پست و خط انتقال', text: 'مبلغ ثابت است و با ظرفیت ضرب نمی‌شود؛ یک بار ساخته می‌شود و نیروگاه بزرگ‌تر آن را روی ظرفیت بیشتری سرشکن می‌کند.' },
+  { label: 'هزینهٔ احداث', text: `هر مگاوات نیروگاه زمینی ${perMw(GROUND_COST.min)} تا ${perMw(GROUND_COST.max)} میلیارد تومان، با مبنای ${perMw(GROUND_COST.typical)} میلیارد — برآورد نماد نیرو از قیمت روز. نصب روی سقف سوله ${pct(ROOF_DISCOUNT)} درصد کمتر تمام می‌شود.` },
   { label: 'نرخ بورس انرژی', text: `${fa(TARIFF.bourse.toLocaleString('en-US'))} تومان بر کیلووات‌ساعت، میانگین معاملات تابلوی سبز در ماه‌های اخیر. سقف تعرفهٔ تجدیدپذیر صنایع ${fa(TARIFF.bourseCeiling.toLocaleString('en-US'))} تومان است.` },
   { label: 'مدت ساخت', text: `${fa(Math.min(...months))} تا ${fa(Math.max(...months))} ماه بسته به اندازهٔ پروژه. بازگشت سرمایه هم بدون آن و هم با آن نوشته شده.` },
   { label: 'افت راندمان', text: `${pct(DEGRADATION)} درصد در سال.` },
@@ -132,21 +135,10 @@ const seo = await seoProps(c.seo);
           </p>
 
           <div class="field">
-            <label for="c-equip">هزینهٔ تجهیزات و نصب (میلیون تومان بر کیلووات)</label>
-            <input id="c-equip" type="number" step="0.5" min="1" dir="ltr" value="35" />
-          </div>
-
-          <div class="field" id="landField">
-            <label for="c-land">زمین و محوطه‌سازی (میلیون تومان بر کیلووات)</label>
-            <input id="c-land" type="number" step="0.5" min="0" dir="ltr" value="15" />
-            <span class="field-hint">با ظرفیت بزرگ می‌شود، چون مساحت لازم بزرگ می‌شود.</span>
-          </div>
-
-          <div class="field" id="gridField">
-            <label for="c-grid">پست و خط انتقال (میلیارد تومان)</label>
-            <input id="c-grid" type="number" step="1" min="0" dir="ltr" value="20" />
+            <label for="c-cost">هزینهٔ احداث (میلیون تومان بر کیلووات)</label>
+            <input id="c-cost" type="number" step="0.5" min="1" dir="ltr" value={costPerKwFor('ground') / 1_000_000} />
             <span class="field-hint">
-              مبلغ ثابت است و با ظرفیت ضرب نمی‌شود؛ به فاصله تا شبکه و سطح ولتاژ بستگی دارد.
+              همان «میلیارد تومان بر مگاوات» است. پیش‌فرض زمینی {perMw(GROUND_COST.typical)} و روی سقف سوله {pct(ROOF_DISCOUNT)} درصد کمتر.
             </span>
           </div>
 
@@ -180,8 +172,8 @@ const seo = await seoProps(c.seo);
 
         <p class="out-note" id="outNote" hidden></p>
 
-        <h3 class="out-h">سرمایه صرف چه می‌شود؟</h3>
-        <div class="capex-bar" id="capexBar"></div>
+        <h3 class="out-h">مبنای هزینهٔ احداث</h3>
+        <p class="cost-basis" id="costBasis"></p>
 
         <h3 class="out-h">سود نیروگاه خورشیدی، به تفکیک روش فروش برق</h3>
         <p class="out-sub">بازگشت سرمایه از روز اتصال به شبکه حساب شده است — مدت ساخت جدا آمده.</p>
@@ -333,14 +325,13 @@ const seo = await seoProps(c.seo);
 
 <script>
   import {
-    EQUIPMENT_COST,
-    GRID_COST,
-    capacityFor,
-    LAND_COST,
+    ROOF_DISCOUNT,
     ROUTES,
     TARIFF,
     YIELD_BY_REGION,
     calculate,
+    costPerKwFor,
+    costRangeFor,
     type Assumptions,
     type Mount,
   } from '../data/solarModel';
@@ -361,12 +352,8 @@ const seo = await seoProps(c.seo);
     const investmentInput = $<HTMLInputElement>('c-investment');
     const mountSelect = $<HTMLSelectElement>('c-mount');
     const regionSelect = $<HTMLSelectElement>('c-region');
-    const equipInput = $<HTMLInputElement>('c-equip');
-    const landInput = $<HTMLInputElement>('c-land');
-    const gridInput = $<HTMLInputElement>('c-grid');
+    const costInput = $<HTMLInputElement>('c-cost');
     const omInput = $<HTMLInputElement>('c-om');
-    const landField = $<HTMLDivElement>('landField');
-    const gridField = $<HTMLDivElement>('gridField');
 
     /* جداکنندهٔ هزارگان و اعشار هم فارسی می‌شود، وگرنه عدد نیمه‌فارسی
        می‌ماند. معکوسش هنگام خواندن ورودی لازم است. */
@@ -396,10 +383,15 @@ const seo = await seoProps(c.seo);
       return Number(raw) || 0;
     };
 
+    /* کادر خالی یا صفر، تقسیم بر صفر می‌شود و ظرفیت بی‌نهایت می‌دهد؛ در
+       آن حالت به پیش‌فرض همان نوع نصب برمی‌گردیم. */
+    const readCost = (mount: Mount): number => {
+      const typed = Number(costInput.value) * 1_000_000;
+      return typed > 0 ? typed : costPerKwFor(mount);
+    };
+
     const assumptionsFrom = (): Assumptions => ({
-      equipmentCostPerKw: Number(equipInput.value) * 1_000_000,
-      landCostPerKw: Number(landInput.value) * 1_000_000,
-      gridCost: Number(gridInput.value) * 1_000_000_000,
+      costPerKw: readCost(mountSelect.value as Mount),
       yieldPerKw: YIELD_BY_REGION[regionSelect.value]!.kwhPerKw,
       mount: mountSelect.value as Mount,
       omRate: Number(omInput.value) / 100,
@@ -417,23 +409,17 @@ const seo = await seoProps(c.seo);
     const render = () => {
       const investment = readInvestment();
 
-      /* هزینهٔ تجهیزات پله‌ای است و پله از ظرفیت می‌آید، پس پیش‌فرضش باید
-         با هر تغییر سرمایه هماهنگ شود. پیش‌تر فقط دکمه‌های پیش‌فرض این کار
-         را می‌کردند و نتیجه‌اش این بود که یک مبلغ واحد، بسته به اینکه
-         تایپ شده باشد یا از دکمه آمده باشد، دو ظرفیت متفاوت می‌داد. */
-      if (!equipTouched && investment >= 50_000_000) {
-        const scaled = EQUIPMENT_COST[capacityFor(investment, { mount: mountSelect.value as Mount }).scale].typical;
-        const asMillions = String(scaled / 1_000_000);
-        if (equipInput.value !== asMillions) equipInput.value = asMillions;
+      /* پیش‌فرض هزینه به نوع نصب بستگی دارد — سقف سوله ارزان‌تر از زمینی
+         است — پس با عوض‌شدن نوع نصب باید جابه‌جا شود، مگر کاربر خودش
+         عدد گذاشته باشد. */
+      if (!costTouched) {
+        const asMillions = String(costPerKwFor(mountSelect.value as Mount) / 1_000_000);
+        if (costInput.value !== asMillions) costInput.value = asMillions;
       }
 
       const base = assumptionsFrom();
 
       $('investmentWords').textContent = investment ? `${toman(investment)} تومان` : '—';
-
-      // هزینهٔ محوطه فقط برای نصب زمینی معنا دارد
-      landField.hidden = base.mount === 'roof';
-      gridField.hidden = base.mount === 'roof';
 
       /* شیب پنل روی تولید اثر مستقیم دارد: برآورد پشت‌بامی بر مبنای شیب
          استاندارد ۳۰ درجه است و سقف تخت یا شیب‌دار کمتر تولید می‌کند. */
@@ -448,14 +434,10 @@ const seo = await seoProps(c.seo);
         $('outProduction').textContent = '—';
         $('outArea').textContent = '—';
         $('routeTable').innerHTML = '';
-        $('capexBar').innerHTML = '';
+        $('costBasis').textContent = '';
         const note = $('outNote');
-        note.innerHTML = message;
+        note.textContent = message;
         note.hidden = false;
-        $('toRoof')?.addEventListener('click', () => {
-          mountSelect.value = 'roof';
-          render();
-        });
       };
 
       if (investment < 50_000_000) {
@@ -465,73 +447,31 @@ const seo = await seoProps(c.seo);
 
       const mid = calculate(investment, base);
 
-      /* پست و خط انتقال پیش از هر پنلی ساخته می‌شوند. اگر سرمایه به آن
-         نرسد، نشان‌دادن ظرفیت صفر گیج‌کننده است؛ به‌جایش می‌گوییم چقدر کم
-         است و راه عملی را پیشنهاد می‌دهیم. */
-      if (mid.belowGridCost) {
-        blank(
-          `پست و خط انتقال به‌تنهایی حدود ${toman(base.gridCost)} تومان هزینه دارد و ` +
-            `پیش از نصب پنل‌ها ساخته می‌شود. با این سرمایه، نیروگاه زمینیِ مستقل شکل نمی‌گیرد — ` +
-            `اگر سقف یا سولهٔ موجود دارید، نصب پشت‌بامی با همین مبلغ جواب می‌دهد؛ ` +
-            `و اگر امکان اتصال به شبکهٔ موجود را دارید، رقم پست و خط را در ` +
-            `«فرض‌های پیشرفته» کم کنید. ` +
-            `<button type="button" class="note-action" id="toRoof">محاسبه به‌صورت پشت‌بامی</button>`,
-        );
-        return;
-      }
-
       $('outNote').hidden = true;
 
-      /* بازه از کم‌ترین و بیش‌ترین هزینهٔ منتشرشده ساخته می‌شود، نه از یک
-         درصد دلخواه — تا بازه واقعاً بازتاب اختلاف منابع باشد. */
-      const scale = mid.scale;
-      const cheap = calculate(investment, {
-        ...base,
-        equipmentCostPerKw: EQUIPMENT_COST[scale].min,
-        landCostPerKw: LAND_COST.min,
-        gridCost: GRID_COST.min,
-      });
-      const pricey = calculate(investment, {
-        ...base,
-        equipmentCostPerKw: EQUIPMENT_COST[scale].max,
-        landCostPerKw: LAND_COST.max,
-        gridCost: GRID_COST.max,
-      });
+      /* بازه از کم‌ترین و بیش‌ترین هزینهٔ احداث همین نوع نصب ساخته
+         می‌شود، نه از یک درصد دلخواه. */
+      const range = costRangeFor(base.mount);
+      const cheap = calculate(investment, { ...base, costPerKw: range.min });
+      const pricey = calculate(investment, { ...base, costPerKw: range.max });
 
       $('outCapacity').textContent = `حدود ${capacity(mid.capacityKw)}`;
-      /* اگر گران‌ترین حالت اصلاً جواب ندهد (پست و خط از کل سرمایه بیشتر
-         شود)، نوشتن «۰ کیلووات» در بازه گمراه‌کننده است. */
-      $('outCapacityRange').textContent = pricey.belowGridCost
-        ? `در گران‌ترین حالت، سرمایه به پست و خط نمی‌رسد`
-        : `بازه: ${capacity(pricey.capacityKw)} تا ${capacity(cheap.capacityKw)}`;
+      $('outCapacityRange').textContent =
+        `بازه: ${capacity(pricey.capacityKw)} تا ${capacity(cheap.capacityKw)}`;
 
-      /* تفکیک سرمایه مهم‌ترین چیزی است که سرمایه‌گذار زمینی باید ببیند:
-         سهم پست و خط انتقال در پروژهٔ کوچک می‌تواند از خود تجهیزات
-         بیشتر باشد، و همین است که پروژهٔ کوچکِ زمینی را بی‌صرفه می‌کند. */
-      const parts = [
-        { label: 'تجهیزات و نصب', value: mid.capex.equipment, cls: 'cx-equip' },
-        { label: 'زمین و محوطه', value: mid.capex.land, cls: 'cx-land' },
-        { label: 'پست و خط انتقال', value: mid.capex.grid, cls: 'cx-grid' },
-      ].filter((p) => p.value > 0);
-
-      $('capexBar').innerHTML = `
-        <div class="cx-track">
-          ${parts
-            .map(
-              (p) =>
-                `<span class="cx-seg ${p.cls}" style="width:${((p.value / investment) * 100).toFixed(1)}%"></span>`,
-            )
-            .join('')}
-        </div>
-        <ul class="cx-legend">
-          ${parts
-            .map(
-              (p) =>
-                `<li><i class="${p.cls}"></i>${p.label}<b>${toman(p.value)} تومان</b>
-                 <span>${fa(Math.round((p.value / investment) * 100))}٪</span></li>`,
-            )
-            .join('')}
-        </ul>`;
+      /* عددی که ظرفیت از آن در آمده باید جلوی چشم باشد: سرمایه‌گذار همین
+         را با پیش‌فاکتورش مقایسه می‌کند. تومان بر کیلووات تقسیم بر یک
+         میلیون، همان میلیارد تومان بر مگاوات است. */
+      const millions = (n: number) => fa(String(+(n / 1_000_000).toFixed(2)));
+      const roofPct = fa(String(+(ROOF_DISCOUNT * 100).toFixed(1)));
+      /* کادری که کاربر خالی کرده «عدد خودش» نیست؛ محاسبه در آن حالت با
+         پیش‌فرض انجام شده و متن هم باید همان را بگوید. */
+      const custom = costTouched && Number(costInput.value) > 0;
+      $('costBasis').textContent = custom
+        ? `هر مگاوات ${millions(base.costPerKw)} میلیارد تومان — عددی که خودتان در «فرض‌های پیشرفته» گذاشته‌اید.`
+        : base.mount === 'ground'
+          ? `هر مگاوات نیروگاه زمینی حدود ${millions(range.typical)} میلیارد تومان (بازه: ${millions(range.min)} تا ${millions(range.max)}). نصب روی سقف سوله ${roofPct} درصد ارزان‌تر تمام می‌شود.`
+          : `هر مگاوات روی سقف سوله حدود ${millions(range.typical)} میلیارد تومان (بازه: ${millions(range.min)} تا ${millions(range.max)}) — ${roofPct} درصد کمتر از نیروگاه زمینی.`;
       $('outProduction').textContent = `حدود ${fa(grouped(mid.firstYearProductionKwh))}`;
       $('outArea').textContent = `حدود ${area(mid.areaM2)}`;
       $('outAreaNote').textContent =
@@ -611,9 +551,7 @@ const seo = await seoProps(c.seo);
         investment: String(readInvestment()),
         mount: a.mount,
         region: regionSelect.value,
-        equip: equipInput.value,
-        land: landInput.value,
-        grid: gridInput.value,
+        cost: String(a.costPerKw / 1_000_000),
         om: omInput.value,
       });
       if (print) p.set('print', '1');
@@ -704,33 +642,30 @@ const seo = await seoProps(c.seo);
       render();
     });
 
-    for (const el of [mountSelect, regionSelect, equipInput, landInput, gridInput, omInput]) {
+    /* پیش‌فرض هزینه با نوع نصب عوض می‌شود، مگر کاربر خودش دست برده
+       باشد — در آن صورت به عددش دست نمی‌زنیم. این شنونده باید پیش از
+       شنونده‌های render ثبت شود: شنونده‌ها به ترتیب ثبت اجرا می‌شوند، و
+       اگر render اول برسد، اولین حرفی که کاربر تایپ کرده را با پیش‌فرض
+       رونویسی می‌کند. */
+    let costTouched = false;
+    costInput.addEventListener('input', () => { costTouched = true; });
+
+    for (const el of [mountSelect, regionSelect, costInput, omInput]) {
       el.addEventListener('input', render);
       // انتخابگرها در بعضی مرورگرها فقط change می‌دهند، نه input
       el.addEventListener('change', render);
     }
 
-    /* پیش‌فرض هزینهٔ تجهیزات با مقیاس عوض می‌شود، مگر کاربر خودش دست برده
-       باشد — در آن صورت به عددش دست نمی‌زنیم. */
-    let equipTouched = false;
-    equipInput.addEventListener('input', () => { equipTouched = true; });
-
     $('presets').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest('button[data-amount]');
       if (!btn) return;
       investmentInput.value = fa(grouped(Number(btn.getAttribute('data-amount'))));
-      if (!equipTouched) {
-        const kw = Number(btn.getAttribute("data-amount")) / 35_000_000;
-        const scale = kw < 200 ? 'small' : kw < 1000 ? 'commercial' : 'utility';
-        equipInput.value = String(EQUIPMENT_COST[scale].typical / 1_000_000);
-      }
       render();
     });
 
     /* پاسخ‌هایی که کاربر در پیش‌نمایش صفحهٔ اصلی داده بود (?amount=&region=)
-       همین‌جا اعمال می‌شود تا مجبور نباشد دوباره انتخاب کند. سرمایه از
-       همان مسیر دکمه‌های پیش‌فرض می‌رود تا هزینهٔ تجهیزات هم با مقیاس جور
-       شود. مقدار نامعتبر نادیده گرفته می‌شود. */
+       همین‌جا اعمال می‌شود تا مجبور نباشد دوباره انتخاب کند. مقدار نامعتبر
+       نادیده گرفته می‌شود. */
     const params = new URLSearchParams(location.search);
     const region = params.get('region');
     if (region && [...regionSelect.options].some((o) => o.value === region)) {
@@ -739,11 +674,6 @@ const seo = await seoProps(c.seo);
     const amount = Number(params.get('amount'));
     if (Number.isFinite(amount) && amount >= 100_000_000 && amount <= 10_000_000_000_000) {
       investmentInput.value = fa(grouped(amount));
-      if (!equipTouched) {
-        const kw = amount / 35_000_000;
-        const scale = kw < 200 ? 'small' : kw < 1000 ? 'commercial' : 'utility';
-        equipInput.value = String(EQUIPMENT_COST[scale].typical / 1_000_000);
-      }
     }
 
     render();
@@ -893,7 +823,7 @@ const seo = await seoProps(c.seo);
   .route-table :global(.route-nums i) { display: block; font-style: normal; font-size: 11.5px; color: var(--faint); opacity: .85; }
   .route-table :global(.route-sub) { display: block; margin-top: 3px; font-size: 12px; color: var(--yellow-2); }
 
-  /* ---------- تفکیک سرمایه ---------- */
+  /* ---------- مبنای هزینه و یادداشت ---------- */
   .out-sub { margin: -6px 0 14px; color: var(--faint); font-size: 13px; }
   .out-note {
     margin: 4px 0 18px; padding: 12px 14px;
@@ -901,32 +831,7 @@ const seo = await seoProps(c.seo);
     background: rgba(255,196,26,.06); color: var(--ink);
     font-size: 13.5px; line-height: 1.9;
   }
-  .out-note :global(.note-action) {
-    display: inline-block; margin-top: 8px;
-    padding: 7px 14px; border-radius: 999px;
-    border: 1px solid var(--yellow); background: transparent;
-    color: var(--yellow); font: inherit; font-size: 13px; font-weight: 700;
-    cursor: pointer;
-  }
-  .out-note :global(.note-action:hover) { background: var(--yellow); color: #111; }
-
-  .capex-bar { margin-bottom: 22px; }
-  .capex-bar :global(.cx-track) {
-    display: flex; height: 12px; border-radius: 999px; overflow: hidden;
-    background: var(--bg-2); border: 1px solid var(--line);
-  }
-  .capex-bar :global(.cx-seg) { display: block; height: 100%; }
-  .capex-bar :global(.cx-equip) { background: var(--yellow); }
-  .capex-bar :global(.cx-land) { background: var(--cerulean-3); }
-  .capex-bar :global(.cx-grid) { background: var(--cerulean-2); }
-  .capex-bar :global(.cx-legend) { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
-  .capex-bar :global(.cx-legend li) {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 13px; color: var(--muted);
-  }
-  .capex-bar :global(.cx-legend i) { width: 10px; height: 10px; border-radius: 3px; flex: none; }
-  .capex-bar :global(.cx-legend b) { margin-inline-start: auto; color: var(--ink); font-size: 13.5px; }
-  .capex-bar :global(.cx-legend span) { color: var(--faint); font-size: 12.5px; min-width: 42px; text-align: end; }
+  .cost-basis { margin: -4px 0 22px; color: var(--muted); font-size: 14px; line-height: 1.9; }
   .route-table :global(.route-na) {
     display: block;
     color: var(--faint);
