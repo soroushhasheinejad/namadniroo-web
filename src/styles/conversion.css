@@ -566,3 +566,18 @@ html.has-dialog { overflow: hidden; }
   .rail::-webkit-scrollbar { display: none; }
   .rail > * { flex: 0 0 78%; scroll-snap-align: start; }
 }
+
+/* ============================================================
+   صفحهٔ کمپین (Base با bare)
+   ============================================================ */
+/* شماره همیشه کامل دیده می‌شود، حتی در موبایل: در صفحهٔ کمپین منو و نوار
+   پایین نیست و این تنها راه تماس مستقیم بالای صفحه است. */
+.bare-header .bare-phone,
+.bare-header .bare-phone span { display: inline-flex; }
+.bare-header .bare-phone {
+  width: auto; height: auto; min-height: 40px; padding: 6px 14px;
+  border: 1px solid var(--line-2); border-radius: 999px; color: var(--ink);
+}
+.bare-footer { padding: 26px 0 30px; border-top: 1px solid var(--line); color: var(--faint); font-size: 13.5px; }
+.bare-footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; }
+.bare-footer a { color: var(--muted); }

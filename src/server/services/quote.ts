@@ -35,6 +35,50 @@ export interface VisitorContext {
   sessionId: string;
 }
 
+/* اولین سطر خط زمانی بسته به اینکه کاربر از برآورد چه خواسته بود */
+const REQUEST_LABEL: Record<string, string> = {
+  review: 'درخواست بررسی برآورد با کارشناس',
+  pdf: 'دریافت برگهٔ برآورد',
+};
+
+/**
+ * متنی که در ستون `estimate` می‌نشیند: خلاصهٔ برآورد و پس از آن پاسخ‌های
+ * کوتاه کاربر. هر دو را خود کاربر داده، پس جایشان کنار هم است و نه در
+ * یادداشت‌های تیم فروش. جداکننده خط تازه نیست، چون این ستون در خروجی CSV
+ * و فایل اکسل فروش هم می‌رود.
+ */
+function estimateText(input: QuoteInput): string | null {
+  return [input.estimate, input.qualifiers].filter(Boolean).join(' — ') || null;
+}
+
+async function noteReviewUpgrade(leadId: number, input: QuoteInput): Promise<void> {
+  try {
+    await logActivity({
+      leadId,
+      kind: 'system',
+      body:
+        `بعد از گرفتن برگهٔ برآورد، بررسی با کارشناس را هم خواست (${input.source || 'سایت'})` +
+        (input.qualifiers ? ` · ${input.qualifiers}` : '') +
+        (input.estimate ? ` · ${input.estimate}` : ''),
+    });
+  } catch (err) {
+    console.error('[quote] ثبت درخواست بررسی روی پروندهٔ موجود ناموفق:', err);
+  }
+  try {
+    await enqueueEmail({
+      to: process.env.MAIL_TO || 'sales@namadniroo.ir',
+      subject: 'درخواست بررسی برآورد با کارشناس — سایت نماد نیرو',
+      text:
+        `${input.name} (${input.phone}) که چند دقیقه پیش برگهٔ برآورد را گرفته بود، حالا بررسی با کارشناس را هم خواسته است.\n\n` +
+        (input.estimate ? `برآوردی که دیده بود:\n${input.estimate}\n` : '') +
+        (input.qualifiers ? `پاسخ‌های کاربر: ${input.qualifiers}\n` : '') +
+        `\nپرونده: https://namadniroo.ir/admin/leads/${leadId}\n`,
+    });
+  } catch (err) {
+    console.error('[quote] افزودن به صف ایمیل ناموفق بود:', err);
+  }
+}
+
 export async function submitQuote(
   input: QuoteInput,
   visitor?: VisitorContext | null,
@@ -44,6 +88,10 @@ export async function submitQuote(
      نمی‌بیند. */
   const duplicate = await recentDuplicate(input.phoneNormalized);
   if (duplicate) {
+    /* یک استثنا: کسی که اول برگهٔ برآورد را گرفته و بعد بررسی با کارشناس
+       را هم خواسته، گرم‌تر شده است. رکورد تازه نمی‌سازیم، ولی پرونده و
+       تیم فروش باید بدانند — وگرنه این درخواست بی‌صدا گم می‌شد. */
+    if (input.intent === 'review') await noteReviewUpgrade(duplicate.id, input);
     return { created: false, leadId: duplicate.id };
   }
 
@@ -70,7 +118,7 @@ export async function submitQuote(
     utmSource: input.utmSource ?? null,
     utmMedium: input.utmMedium ?? null,
     utmCampaign: input.utmCampaign ?? null,
-    estimate: input.estimate ?? null,
+    estimate: estimateText(input),
     visitorId: visitor?.visitorId ?? null,
     gaClientId: input.gaClientId ?? null,
     /* utm فرستاده‌شده از مرورگر فقط وقتی استفاده می‌شود که رویدادی در کار
@@ -116,7 +164,7 @@ export async function submitQuote(
               referrer: null,
             }
           : undefined,
-        props: { leadId: lead.id, area: input.area || '—' },
+        props: { leadId: lead.id, area: input.area || '—', ...(input.intent ? { intent: input.intent } : {}) },
       });
     })().catch((err) => console.error('[quote] ثبت رویداد لید ناموفق:', err));
   }
@@ -127,7 +175,7 @@ export async function submitQuote(
     leadId: lead.id,
     kind: 'system',
     body:
-      `درخواست از ${input.source || 'سایت'} ثبت شد` +
+      `${REQUEST_LABEL[input.intent ?? ''] ?? 'درخواست'} از ${input.source || 'سایت'} ثبت شد` +
       (touch?.channel ? ` · کانال: ${channelLabel(touch.channel)}` : '') +
       (profile ? ` · ${profile.pageviews} بازدید پیش از این فرم` : ''),
   }).catch((err) => console.error('[quote] ثبت خط زمانی ناموفق:', err));
@@ -137,9 +185,15 @@ export async function submitQuote(
   try {
     await enqueueEmail({
       to: process.env.MAIL_TO || 'sales@namadniroo.ir',
-      subject: 'درخواست مشاورهٔ جدید از سایت نماد نیرو',
+      subject:
+        input.intent === 'review'
+          ? 'درخواست بررسی برآورد با کارشناس — سایت نماد نیرو'
+          : 'درخواست مشاورهٔ جدید از سایت نماد نیرو',
       text:
         `درخواست جدید از فرم سایت namadniroo.ir\n\n` +
+        (input.intent === 'review'
+          ? `این شخص می‌خواهد برآورد ماشین‌حساب را با کارشناس مرور کند؛ با همین عددها تماس بگیرید.\n\n`
+          : '') +
         `نام و نام خانوادگی: ${input.name}\n` +
         `شمارهٔ تماس: ${input.phone}\n` +
         `ظرفیت موردنظر: ${input.capacity || '—'}\n` +
@@ -147,6 +201,7 @@ export async function submitQuote(
         `راه تماس دلخواه: ${input.contactVia || 'تماس تلفنی'}\n` +
         `صفحهٔ مبدأ: ${input.source || '—'}\n` +
         (input.estimate ? `\nبرآوردی که کاربر دیده بود:\n${input.estimate}\n` : '') +
+        (input.qualifiers ? `پاسخ‌های کاربر: ${input.qualifiers}\n` : '') +
         (touch?.channel ? `کانال ورود: ${channelLabel(touch.channel)}\n` : '') +
         `\nپروندهٔ کامل و مسیر کاربر: https://namadniroo.ir/admin/leads/${lead.id}\n`,
     });

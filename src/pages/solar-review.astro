@@ -1,0 +1,556 @@
+---
+import Base from '../layouts/Base.astro';
+import ExpertReview from '../components/ExpertReview.astro';
+import Stats from '../components/Stats.astro';
+import ProjectTile from '../components/ProjectTile.astro';
+import Icon from '../components/Icon.astro';
+import { YIELD_BY_REGION, calculate } from '../data/solarModel';
+import { capacityLabel, defaultAssumptions, fa as faNum, grouped, routeOutcomes, toman } from '../lib/estimate';
+import { listFeaturedProjects } from '../server/repos/content';
+import { getSiteSettings } from '../server/repos/siteSettings';
+import { seoProps } from '../server/seo/pageSeo';
+import { getPageContent } from '../server/repos/pageContent';
+import { reviewLandingPage } from '../data/pages';
+import { fa } from '../utils';
+
+export const prerender = false;
+
+/**
+ * صفحهٔ کمپین «برآورد کن، بعد با کارشناس بررسی کن».
+ *
+ * برای ترافیک تبلیغ و لینک مستقیم ساخته شده، نه گوگل (noindex پیش‌فرض):
+ * هدر بدون منو، یک کار در هر قدم، و همان مدل محاسبهٔ ماشین‌حساب اصلی تا
+ * عددی که کاربر اینجا می‌بیند با برگهٔ PDF و صفحهٔ ماشین‌حساب یکی باشد.
+ *
+ * پارامترهای `?amount=&region=&mount=` ورودی‌ها را از پیش پر می‌کنند؛
+ * مثلاً پست «با ۱۰ میلیارد چه نیروگاهی؟» می‌تواند مستقیم به همان عدد
+ * لینک بدهد.
+ */
+
+const [c, projects, { site }] = await Promise.all([
+  getPageContent(reviewLandingPage),
+  listFeaturedProjects(3).catch(() => []),
+  getSiteSettings(),
+]);
+const seo = await seoProps(c.seo);
+const regions = Object.entries(YIELD_BY_REGION);
+
+/* نمونهٔ خروجی کنار سرصفحه، از همان مدل و نه عدد دستی — اگر فرضی در
+   solarModel.ts عوض شود، نمونه هم با آن عوض می‌شود. */
+const SAMPLE_INVESTMENT = 10_000_000_000;
+const sampleA = defaultAssumptions('ground', 'high');
+const sample = calculate(SAMPLE_INVESTMENT, sampleA);
+const paybacks = routeOutcomes(SAMPLE_INVESTMENT, sampleA)
+  .map((o) => o.result?.paybackYears)
+  .filter((v): v is number => !!v);
+const paybackRange = paybacks.length
+  ? `${faNum(Math.min(...paybacks).toFixed(1))} تا ${faNum(Math.max(...paybacks).toFixed(1))} سال`
+  : '—';
+
+const presets = [
+  { amount: 5_000_000_000, label: '۵ میلیارد' },
+  { amount: 10_000_000_000, label: '۱۰ میلیارد' },
+  { amount: 30_000_000_000, label: '۳۰ میلیارد' },
+  { amount: 100_000_000_000, label: '۱۰۰ میلیارد' },
+];
+---
+<Base {...seo} bare>
+  <section class="lp-hero">
+    <div class="wrap">
+      <div class="lp-hero-grid">
+      <div>
+      {c.hero.eyebrow && <p class="eyebrow">{c.hero.eyebrow}</p>}
+      <h1 class="lp-title">{c.hero.title}</h1>
+      <p class="lp-lead">{c.hero.lead}</p>
+      <div class="lp-hero-actions">
+        <a class="btn btn-solid btn-lg" href="#calc">{c.hero.button}</a>
+        <a class="lp-call" href={site.phoneHref}>یا مستقیم تماس بگیرید: <span dir="ltr">{site.phone}</span></a>
+      </div>
+      </div>
+
+      <aside class="lp-sample" aria-label="نمونهٔ خروجی ماشین‌حساب">
+        <p class="lp-sample-tag">نمونهٔ خروجی</p>
+        <p class="lp-sample-in">سرمایهٔ {toman(SAMPLE_INVESTMENT)} تومان · زمینی · کرمان</p>
+        <dl>
+          <div><dt>ظرفیت قابل احداث</dt><dd>حدود {capacityLabel(sample.capacityKw)}</dd></div>
+          <div><dt>تولید سال اول</dt><dd>حدود {faNum(grouped(sample.firstYearProductionKwh))} kWh</dd></div>
+          <div><dt>بازگشت سرمایه</dt><dd>{paybackRange}</dd></div>
+        </dl>
+        <p class="lp-sample-review"><Icon name="check" />بعد: کارشناس همین عدد را با شرایط شما تطبیق می‌دهد</p>
+      </aside>
+      </div>
+
+      {c.steps.length > 0 && (
+        <ol class="lp-steps">
+          {c.steps.map((s, i) => (
+            <li>
+              <span class="lp-step-num">{fa(String(i + 1))}</span>
+              <b>{s.title}</b>
+              <span>{s.text}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  </section>
+
+  <section class="lp-calc" id="calc">
+    <div class="wrap">
+      <header class="lp-head">
+        {c.calcHead.eyebrow && <p class="eyebrow">{c.calcHead.eyebrow}</p>}
+        <h2 class="section-title">{c.calcHead.title}</h2>
+      </header>
+
+      <div class="lp-calc-grid">
+        <form class="lp-form" id="lpForm" novalidate>
+          <div class="qf-field">
+            <label for="lp-investment">سرمایهٔ موردنظر (تومان)</label>
+            <input id="lp-investment" type="text" inputmode="numeric" dir="rtl" value="۱۰٬۰۰۰٬۰۰۰٬۰۰۰" />
+            <span class="lp-words" id="lpWords">۱۰ میلیارد تومان</span>
+          </div>
+          <div class="lp-presets" id="lpPresets">
+            {presets.map((p) => <button type="button" data-amount={p.amount}>{p.label}</button>)}
+          </div>
+
+          <fieldset class="lp-group">
+            <legend class="qf-field-label">نوع نصب</legend>
+            <div class="qf-pills">
+              <label class="qf-pill"><input type="radio" name="mount" value="ground" checked /><span>زمینی</span></label>
+              <label class="qf-pill"><input type="radio" name="mount" value="roof" /><span>پشت‌بام یا سقف سوله</span></label>
+            </div>
+          </fieldset>
+
+          <div class="lp-group">
+            <label class="qf-field-label" for="lp-region">منطقه</label>
+            <select id="lp-region" class="ct-select">
+              {regions.map(([key, r]) => <option value={key} selected={key === 'high'}>{r.label}</option>)}
+            </select>
+          </div>
+
+          <p class="lp-full">
+            فرض‌های پیشرفته (قیمت خودتان، هزینهٔ نگه‌داری) در
+            <a href="/solar-calculator">ماشین‌حساب کامل</a>.
+          </p>
+        </form>
+
+        <div class="lp-out" aria-live="polite">
+          <div class="lp-nums">
+            <div><span>ظرفیت قابل احداث</span><b id="lpCapacity">—</b></div>
+            <div><span>تولید سال اول</span><b id="lpProduction">—</b><i>کیلووات‌ساعت</i></div>
+            <div><span id="lpAreaLabel">زمین لازم</span><b id="lpArea">—</b></div>
+          </div>
+
+          <p class="lp-note" id="lpNote" hidden></p>
+
+          <h3 class="lp-routes-h">سود به تفکیک روش فروش برق</h3>
+          <div class="lp-routes" id="lpRoutes"></div>
+          <p class="lp-foot">
+            تقریبی و به قیمت امروز؛ تورم و هزینهٔ زمین لحاظ نشده. عدد واقعی پروژهٔ شما را
+            کارشناس در قدم بعد می‌گوید.
+          </p>
+          <a class="btn btn-solid lp-next" href="#review">این عدد را با کارشناس بررسی کنید</a>
+        </div>
+      </div>
+
+      <ExpertReview c={c.review} uid="lp" />
+    </div>
+  </section>
+
+  <section class="lp-proof">
+    <div class="wrap">
+      <header class="lp-head">
+        {c.proofHead.eyebrow && <p class="eyebrow">{c.proofHead.eyebrow}</p>}
+        <h2 class="section-title">{c.proofHead.title}</h2>
+      </header>
+    </div>
+    <Stats />
+    {projects.length > 0 && (
+      <div class="wrap">
+        <div class="proj-grid">
+          {projects.map((p, i) => <ProjectTile p={p} large={i === 0} />)}
+        </div>
+      </div>
+    )}
+  </section>
+
+  {c.faq.length > 0 && (
+    <section class="home-faq" aria-labelledby="lp-faq-title">
+      <div class="wrap home-faq-grid">
+        <div class="home-faq-head">
+          <h2 id="lp-faq-title" class="section-title">پرسش‌های پرتکرار</h2>
+        </div>
+        <div class="home-faq-list">
+          {c.faq.map((f, i) => (
+            <details class="hfaq-item" open={i === 0}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="lp-cta">
+    <div class="wrap">
+      <h2>{c.cta.title}</h2>
+      <p>{c.cta.text}</p>
+      <a class="btn btn-solid btn-lg" href="#calc">{c.cta.label}</a>
+    </div>
+  </section>
+
+  {/* نوار ثابت موبایل. وقتی خود فرم بررسی روی صفحه است پنهان می‌شود تا
+      روی دکمه‌های فرم نیفتد. */}
+  <nav class="lp-bar" id="lpBar" aria-label="اقدام سریع">
+    <a class="lp-bar-call" href={site.phoneHref}>تماس</a>
+    <a class="btn btn-solid lp-bar-main" href="#review">بررسی رایگان با کارشناس</a>
+  </nav>
+</Base>
+
+<script>
+  import { calculate, type Mount } from '../data/solarModel';
+  import {
+    MIN_INVESTMENT,
+    areaLabel,
+    capacityLabel,
+    defaultAssumptions,
+    estimateDetail,
+    fa,
+    grouped,
+    latin,
+    publishEstimate,
+    routeOutcomes,
+    toman,
+  } from '../lib/estimate';
+
+  const trackOnce = (type: string, props?: Record<string, string | number | boolean>) =>
+    (window as any).nnTrackOnce?.(type, props);
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const form = $<HTMLFormElement>('lpForm');
+
+  if (form) {
+    const investmentInput = $<HTMLInputElement>('lp-investment');
+    const regionSelect = $<HTMLSelectElement>('lp-region');
+    const mount = (): Mount =>
+      (form.querySelector<HTMLInputElement>('input[name="mount"]:checked')?.value as Mount) ?? 'ground';
+
+    const readInvestment = () => Number(latin(investmentInput.value).replace(/[^\d]/g, '')) || 0;
+
+    const render = () => {
+      const investment = readInvestment();
+      $('lpWords').textContent = investment ? `${toman(investment)} تومان` : '—';
+      const note = $('lpNote');
+
+      if (investment < MIN_INVESTMENT) {
+        for (const id of ['lpCapacity', 'lpProduction', 'lpArea']) $(id).textContent = '—';
+        $('lpRoutes').innerHTML = '';
+        note.textContent = 'برای دیدن برآورد، مبلغ سرمایه را وارد کنید.';
+        note.hidden = false;
+        publishEstimate(null);
+        return;
+      }
+      note.hidden = true;
+
+      const a = defaultAssumptions(mount(), regionSelect.value);
+      const mid = calculate(investment, a);
+      $('lpCapacity').textContent = `حدود ${capacityLabel(mid.capacityKw)}`;
+      $('lpProduction').textContent = `حدود ${fa(grouped(mid.firstYearProductionKwh))}`;
+      $('lpArea').textContent = `حدود ${areaLabel(mid.areaM2)}`;
+      $('lpAreaLabel').textContent = a.mount === 'ground' ? 'زمین لازم' : 'سقف بدون سایهٔ لازم';
+
+      $('lpRoutes').innerHTML = routeOutcomes(investment, a)
+        .map(({ route, tariff, result }) => {
+          if (!result || tariff === null) {
+            return `<div class="lp-route"><b>${route.title}</b><span class="lp-route-na">برای این ظرفیت نرخ مصوب ندارد؛ از راه بورس یا مزایده</span></div>`;
+          }
+          const payback = result.paybackYears ? `${fa(result.paybackYears.toFixed(1))} سال` : 'بیش از ۲۰ سال';
+          return `
+            <div class="lp-route">
+              <b>${route.title}</b>
+              <span><i>سود سال اول</i>${toman(result.firstYearNet)} تومان</span>
+              <span><i>بازگشت سرمایه</i>${payback}</span>
+            </div>`;
+        })
+        .join('');
+
+      publishEstimate(estimateDetail(investment, a, regionSelect.value));
+      trackOnce('calc_result', {
+        kw: Math.round(mid.capacityKw),
+        investment: Math.round(investment / 1_000_000),
+        mount: a.mount,
+        region: regionSelect.value,
+      });
+    };
+
+    /* شروع = اولین دست‌زدن واقعی، نه باز شدن صفحه (همان قاعدهٔ ماشین‌حساب) */
+    form.addEventListener('input', () => trackOnce('calc_start'));
+    form.addEventListener('change', render);
+
+    investmentInput.addEventListener('input', () => {
+      const pos = investmentInput.selectionStart ?? 0;
+      const before = investmentInput.value.length;
+      const n = readInvestment();
+      investmentInput.value = n ? fa(grouped(n)) : '';
+      const shift = investmentInput.value.length - before;
+      investmentInput.setSelectionRange(pos + shift, pos + shift);
+      render();
+    });
+
+    $('lpPresets').addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('button[data-amount]');
+      if (!btn) return;
+      trackOnce('calc_start');
+      investmentInput.value = fa(grouped(Number(btn.getAttribute('data-amount'))));
+      render();
+    });
+
+    /* ورودی‌های از پیش پرشده از پیوند کمپین؛ مقدار نامعتبر نادیده گرفته می‌شود */
+    const params = new URLSearchParams(location.search);
+    const region = params.get('region');
+    if (region && [...regionSelect.options].some((o) => o.value === region)) regionSelect.value = region;
+    if (params.get('mount') === 'roof') {
+      form.querySelector<HTMLInputElement>('input[name="mount"][value="roof"]')!.checked = true;
+    }
+    const amount = Number(params.get('amount'));
+    if (Number.isFinite(amount) && amount >= 100_000_000 && amount <= 10_000_000_000_000) {
+      investmentInput.value = fa(grouped(amount));
+    }
+
+    render();
+  }
+
+  /* نوار موبایل وقتی فرم بررسی دیده می‌شود کنار می‌رود */
+  const bar = document.getElementById('lpBar');
+  const review = document.getElementById('review');
+  if (bar && review && 'IntersectionObserver' in window) {
+    new IntersectionObserver(([entry]) => {
+      bar.classList.toggle('is-away', !!entry?.isIntersecting);
+    }).observe(review);
+  }
+</script>
+
+<style>
+  .lp-hero {
+    padding: 64px 0 56px;
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(70% 90% at 85% 0%, rgba(255, 196, 26, 0.10), transparent 60%),
+      radial-gradient(60% 80% at 10% 100%, rgba(47, 92, 120, 0.28), transparent 65%),
+      var(--bg);
+  }
+  .lp-hero-grid { display: grid; grid-template-columns: 1fr 380px; gap: 48px; align-items: center; }
+
+  .lp-sample {
+    padding: 22px;
+    border: 1px solid var(--line-2);
+    border-radius: 16px;
+    background: rgba(18, 18, 18, 0.85);
+    box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8);
+  }
+  .lp-sample-tag {
+    display: inline-block;
+    margin: 0 0 10px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(255, 196, 26, 0.12);
+    color: var(--yellow);
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+  .lp-sample-in { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+  .lp-sample dl { display: grid; gap: 0; margin: 0; }
+  .lp-sample dl > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 11px 0;
+    border-top: 1px solid var(--line);
+  }
+  .lp-sample dt { color: var(--faint); font-size: 13.5px; }
+  .lp-sample dd { margin: 0; color: var(--yellow); font-size: 17px; font-weight: 800; }
+  .lp-sample-review {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: 6px 0 0;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line-2);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .lp-sample-review :global(svg) { flex: none; width: 18px; height: 18px; margin-top: 4px; color: var(--yellow); stroke-width: 2.2; }
+
+  .lp-title {
+    margin: 0;
+    max-width: 22ch;
+    font-size: clamp(28px, 4.4vw, 50px);
+    font-weight: 800;
+    line-height: var(--lead-display, 1.3);
+  }
+  .lp-lead { margin: 20px 0 0; max-width: 60ch; color: var(--muted); font-size: 17.5px; line-height: 1.95; }
+  .lp-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; margin-top: 28px; }
+  .lp-call { color: var(--muted); font-size: 15px; }
+  .lp-call span { color: var(--ink); font-weight: 700; }
+  .lp-call:hover span { color: var(--yellow); }
+
+  .lp-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 44px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .lp-steps li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 12px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: rgba(25, 25, 25, 0.7);
+  }
+  .lp-step-num {
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--line-2);
+    color: var(--yellow);
+    font-weight: 800;
+  }
+  .lp-steps li:first-child .lp-step-num { background: var(--yellow); border-color: var(--yellow); color: #1a1400; }
+  .lp-steps b { font-size: 15.5px; }
+  .lp-steps li > span:last-child { color: var(--muted); font-size: 14px; line-height: 1.8; }
+
+  .lp-calc { padding: 72px 0; scroll-margin-top: 70px; }
+  .lp-head { margin-bottom: 26px; }
+
+  .lp-calc-grid { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
+  .lp-form, .lp-out {
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: var(--bg-1);
+  }
+  .lp-form .qf-field { margin-bottom: 10px; }
+  .lp-words { color: var(--yellow); font-size: 13.5px; }
+  .lp-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .lp-presets button {
+    min-height: 38px;
+    padding: 6px 14px;
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .lp-presets button:hover { color: var(--yellow); border-color: var(--yellow); }
+  .lp-group { margin: 0 0 18px; padding: 0; border: 0; min-width: 0; }
+  .lp-group legend, .lp-group > label { display: block; padding: 0; margin-bottom: 8px; }
+  .lp-group .ct-select { width: 100%; }
+  .lp-full { margin: 4px 0 0; color: var(--faint); font-size: 13.5px; line-height: 1.8; }
+  .lp-full a { color: var(--yellow); }
+
+  .lp-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .lp-nums > div { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2); }
+  .lp-nums span { display: block; margin-bottom: 6px; color: var(--faint); font-size: 13px; }
+  .lp-nums b { display: block; color: var(--yellow); font-size: 21px; font-weight: 800; line-height: 1.45; }
+  .lp-nums i { display: block; margin-top: 4px; color: var(--faint); font-size: 12.5px; font-style: normal; }
+  .lp-note {
+    margin: 14px 0 0;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 196, 26, 0.35);
+    border-radius: 10px;
+    background: rgba(255, 196, 26, 0.06);
+    font-size: 14px;
+  }
+  .lp-routes-h { margin: 24px 0 10px; font-size: 16px; font-weight: 700; }
+  .lp-routes :global(.lp-route) {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 12px;
+    align-items: baseline;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+    font-size: 14.5px;
+  }
+  .lp-routes :global(.lp-route i) { display: block; color: var(--faint); font-size: 12px; font-style: normal; }
+  .lp-routes :global(.lp-route-na) { grid-column: span 2; color: var(--faint); font-size: 13px; }
+  .lp-foot { margin: 14px 0 0; color: var(--faint); font-size: 13px; line-height: 1.8; }
+  .lp-next { margin-top: 16px; }
+
+  .lp-proof { padding: 72px 0; background: var(--bg-1); border-block: 1px solid var(--line); }
+  .lp-proof .proj-grid { margin-top: 28px; }
+
+  .lp-cta { padding: 72px 0; text-align: center; }
+  .lp-cta h2 { margin: 0 0 12px; font-size: clamp(22px, 3vw, 30px); font-weight: 800; }
+  .lp-cta p { margin: 0 auto 24px; max-width: 54ch; color: var(--muted); line-height: 1.95; }
+
+  .lp-bar { display: none; }
+
+  @media (max-width: 1000px) {
+    .lp-calc-grid { grid-template-columns: 1fr; }
+    /* در صفحهٔ باریک ماشین‌حساب واقعی بلافاصله بعد از سرصفحه است؛ نمونه
+       فقط سرصفحه را بلند می‌کرد */
+    .lp-hero-grid { grid-template-columns: 1fr; }
+    .lp-sample { display: none; }
+  }
+  @media (min-width: 1001px) {
+    /* در دسکتاپ فرم بررسی همان زیر نتیجه است؛ دکمهٔ پرش لازم نیست */
+    .lp-next { display: none; }
+  }
+  @media (max-width: 767px) {
+    .lp-hero { padding: 40px 0 36px; }
+    .lp-lead { font-size: 16px; }
+    .lp-steps { grid-template-columns: 1fr; gap: 8px; margin-top: 30px; }
+    .lp-steps li { padding: 12px 14px; }
+    .lp-steps li > span:last-child { font-size: 13.5px; }
+    .lp-calc, .lp-proof, .lp-cta { padding: 52px 0; }
+    .lp-form, .lp-out { padding: 18px; }
+    .lp-nums { grid-template-columns: 1fr; gap: 8px; }
+    .lp-nums > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; padding: 12px 14px; }
+    .lp-nums span { margin: 0; }
+    .lp-nums b { font-size: 18px; }
+    .lp-nums i { margin: 0; width: 100%; text-align: end; }
+    .lp-routes :global(.lp-route) { grid-template-columns: 1fr 1fr; }
+    .lp-routes :global(.lp-route b) { grid-column: 1 / -1; }
+    .lp-next { display: flex; justify-content: center; }
+
+    .lp-bar {
+      position: fixed;
+      inset-inline: 0;
+      bottom: 0;
+      z-index: 40;
+      display: flex;
+      gap: 10px;
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(10, 10, 10, 0.96);
+      border-top: 1px solid var(--line);
+      transition: transform 0.25s var(--ease);
+    }
+    .lp-bar.is-away { transform: translateY(110%); }
+    .lp-bar-call {
+      display: grid;
+      place-items: center;
+      min-width: 76px;
+      border: 1px solid var(--line-2);
+      border-radius: 12px;
+      color: var(--ink);
+      font-weight: 700;
+    }
+    .lp-bar-main { flex: 1; justify-content: center; }
+    /* جای نوار ثابت پایین صفحه، تا فوتر زیرش پنهان نشود */
+    :global(.bare-footer) { padding-bottom: 96px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lp-bar { transition: none; }
+  }
+</style>

@@ -1,0 +1,454 @@
+---
+import Icon from './Icon.astro';
+import type { ReviewContent } from '../data/pages';
+import { getSiteSettings } from '../server/repos/siteSettings';
+
+/**
+ * «این برآورد را با یک کارشناس بررسی کنید» — قدم دوم قیف ماشین‌حساب.
+ *
+ * هم در خود ماشین‌حساب است و هم در صفحهٔ کمپین. صفحهٔ میزبان بعد از هر
+ * محاسبه رویداد `nn:estimate` را می‌فرستد (lib/estimate.ts) و این بخش
+ * خلاصهٔ همان برآورد را با درخواست می‌فرستد، تا کارشناس پیش از تماس
+ * بداند کاربر چه عددی دیده است.
+ *
+ * یک فرم با دو دکمه، نه دو فرم: «بررسی با کارشناس» و «فقط PDF». هر دو
+ * نام و شماره می‌خواهند، و دو فرم کنار هم با همان دو کادر فقط کاربر را
+ * سردرگم می‌کرد که کدام را پر کند. کسی که PDF گرفته، بعد از ثبت با یک
+ * ضربه می‌تواند بررسی را هم بخواهد.
+ */
+interface Props {
+  c: ReviewContent;
+  /** پیشوند شناسه‌ها، اگر روزی دو نسخه در یک صفحه بیاید */
+  uid?: string;
+}
+const { c, uid = 'xr' } = Astro.props;
+const id = (name: string) => `${uid}-${name}`;
+const { site } = await getSiteSettings();
+
+const siteOptions = [
+  { value: 'land', label: 'زمین دارم' },
+  { value: 'roof', label: 'سقف سوله یا ساختمان دارم' },
+  { value: 'none', label: 'هنوز نه' },
+];
+const timelineOptions = [
+  { value: 'now', label: 'همین حالا' },
+  { value: 'soon', label: '۳ تا ۶ ماه آینده' },
+  { value: 'research', label: 'فعلاً در حال بررسی' },
+];
+const viaOptions = [
+  { value: 'call', label: 'تماس تلفنی' },
+  { value: 'whatsapp', label: 'واتساپ' },
+  { value: 'bale', label: 'بله' },
+];
+---
+<section class="xr" id="review" aria-labelledby={id('title')} data-xr data-phone={site.phone} data-phone-href={site.phoneHref}>
+  <div class="xr-in">
+  <div class="xr-copy">
+    {c.eyebrow && <p class="xr-eyebrow">{c.eyebrow}</p>}
+    <h2 class="xr-title" id={id('title')}>{c.title}</h2>
+    <p class="xr-text">{c.text}</p>
+
+    <p class="xr-est" data-xr-est hidden>
+      <span>برآوردی که همراه درخواست می‌رود</span>
+      <b data-xr-est-text></b>
+    </p>
+
+    {c.checks.length > 0 && (
+      <ul class="xr-checks">
+        {c.checks.map((item) => (
+          <li><Icon name="check" />{item}</li>
+        ))}
+      </ul>
+    )}
+  </div>
+
+  <div class="xr-panel">
+    <form class="xr-form" novalidate data-xr-form>
+      <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true" />
+
+      <div class="qf-field">
+        <label for={id('name')}>نام و نام خانوادگی</label>
+        <input id={id('name')} name="name" type="text" autocomplete="name" required aria-describedby={id('name-err')} />
+        <span class="qf-field-err" id={id('name-err')}></span>
+      </div>
+      <div class="qf-field">
+        <label for={id('phone')}>شمارهٔ موبایل</label>
+        <input id={id('phone')} name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" placeholder="09xx xxx xxxx" required aria-describedby={id('phone-err')} />
+        <span class="qf-field-err" id={id('phone-err')}></span>
+      </div>
+
+      {/* دو پرسش اختیاری: به کارشناس می‌گویند اول با چه کسی تماس بگیرد و
+          از کجا شروع کند. هیچ‌کدام الزامی نیست تا فرم کوتاه بماند. */}
+      <fieldset class="xr-group">
+        <legend class="qf-field-label">زمین یا سقف دارید؟ <i>اختیاری</i></legend>
+        <div class="qf-pills">
+          {siteOptions.map((o) => (
+            <label class="qf-pill"><input type="radio" name="site" value={o.value} /><span>{o.label}</span></label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset class="xr-group">
+        <legend class="qf-field-label">کی می‌خواهید شروع کنید؟ <i>اختیاری</i></legend>
+        <div class="qf-pills">
+          {timelineOptions.map((o) => (
+            <label class="qf-pill"><input type="radio" name="timeline" value={o.value} /><span>{o.label}</span></label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset class="xr-group">
+        <legend class="qf-field-label">از چه راهی با شما در تماس باشیم؟</legend>
+        <div class="qf-pills">
+          {viaOptions.map((o, i) => (
+            <label class="qf-pill"><input type="radio" name="contact_via" value={o.value} checked={i === 0} /><span>{o.label}</span></label>
+          ))}
+        </div>
+      </fieldset>
+
+      <p class="qf-error" role="alert" data-xr-error></p>
+
+      <div class="xr-actions">
+        <button type="submit" name="intent" value="review" class="btn btn-solid btn-lg xr-main">{c.button}</button>
+        {c.pdfButton && (
+          <button type="submit" name="intent" value="pdf" class="xr-pdf" data-xr-pdf>{c.pdfButton}</button>
+        )}
+      </div>
+      {c.note && <p class="qf-privacy">{c.note}</p>}
+    </form>
+
+    <div class="xr-done" hidden tabindex="-1" data-xr-done>
+      <span class="qf-done-icon"><Icon name="check" /></span>
+      <p class="qf-done-title" data-xr-done-title>{c.doneTitle}</p>
+      <p class="xr-done-text" data-xr-done-text>{c.doneText}</p>
+
+      <a class="xr-report" data-xr-report href="/solar-calculator/report" target="_blank" rel="noopener" hidden>
+        برگهٔ برآوردتان را باز کنید یا ذخیره کنید (PDF)
+      </a>
+
+      {/* فقط بعد از «فقط PDF»: کسی که برگه را گرفته، با یک ضربه بررسی را
+          هم می‌خواهد — بدون پر کردن دوبارهٔ فرم. */}
+      <div class="xr-upgrade" data-xr-upgrade hidden>
+        <p>می‌خواهید کارشناس هم همین عدد را با شما مرور کند؟</p>
+        <button type="button" class="btn btn-solid" data-xr-upgrade-btn>بله، بررسی شود</button>
+      </div>
+
+      {c.prepare.length > 0 && (
+        <div class="xr-prepare" data-xr-prepare>
+          <b>برای اینکه تماس کوتاه و دقیق باشد، اگر دارید دم دست بگذارید:</b>
+          <ul>{c.prepare.map((p) => <li>{p}</li>)}</ul>
+        </div>
+      )}
+    </div>
+  </div>
+  </div>
+</section>
+
+<script>
+  import { ESTIMATE_EVENT, lastEstimate, type EstimateDetail } from '../lib/estimate';
+  import { normalizePhone } from '../lib/phone';
+
+  const track = (type: string, props?: Record<string, string | number | boolean>) =>
+    (window as any).nnTrack?.(type, props);
+  const trackOnce = (type: string, props?: Record<string, string | number | boolean>) =>
+    (window as any).nnTrackOnce?.(type, props);
+
+  /* همان رفتار فرم مشاوره: utm اولین صفحهٔ ورود در همین نشست نگه داشته
+     می‌شود. منبع اصلی مبدأ لید سرور است؛ این فقط پشتیبان است برای وقتی
+     که کوکی بازدیدکننده نرسیده باشد. */
+  const utm: Record<string, string> = {};
+  try {
+    const params = new URLSearchParams(location.search);
+    for (const k of ['utm_source', 'utm_medium', 'utm_campaign']) {
+      const v = params.get(k);
+      if (v) sessionStorage.setItem(k, v);
+      const stored = sessionStorage.getItem(k);
+      if (stored) utm[k] = stored;
+    }
+  } catch { /* حالت خصوصی مرورگر */ }
+
+  class ServerMessage extends Error {}
+
+  document.querySelectorAll<HTMLElement>('[data-xr]').forEach((root) => {
+    const form = root.querySelector<HTMLFormElement>('[data-xr-form]')!;
+    const error = root.querySelector<HTMLElement>('[data-xr-error]')!;
+    const done = root.querySelector<HTMLElement>('[data-xr-done]')!;
+    const estBox = root.querySelector<HTMLElement>('[data-xr-est]')!;
+    const estText = root.querySelector<HTMLElement>('[data-xr-est-text]')!;
+    const pdfBtn = root.querySelector<HTMLButtonElement>('[data-xr-pdf]');
+    const report = root.querySelector<HTMLAnchorElement>('[data-xr-report]')!;
+    const upgrade = root.querySelector<HTMLElement>('[data-xr-upgrade]')!;
+    const upgradeBtn = root.querySelector<HTMLButtonElement>('[data-xr-upgrade-btn]')!;
+    const doneTitle = root.querySelector<HTMLElement>('[data-xr-done-title]')!;
+    const doneText = root.querySelector<HTMLElement>('[data-xr-done-text]')!;
+    const nameInput = form.elements.namedItem('name') as HTMLInputElement;
+    const phoneInput = form.elements.namedItem('phone') as HTMLInputElement;
+    const original = { title: doneTitle.textContent ?? '', text: doneText.textContent ?? '' };
+
+    let estimate: EstimateDetail | null = null;
+    /* برآوردی که با درخواست فرستاده شد. اگر کاربر بعد از ثبت ورودی‌ها را
+       عوض کند، پیوند برگه باید همانی بماند که کارشناس در پرونده دارد. */
+    let sentEstimate: EstimateDetail | null = null;
+    let lastPayload: Record<string, unknown> | null = null;
+
+    const onEstimate = (detail: EstimateDetail | null) => {
+      estimate = detail;
+      estBox.hidden = !estimate;
+      estText.textContent = estimate?.summary ?? '';
+      /* بدون برآورد، برگه‌ای برای چاپ نیست؛ درخواست بررسی ولی همچنان
+         پذیرفته می‌شود — شماره‌ای که آمده نباید به‌خاطر یک کادر خالی برود. */
+      if (pdfBtn) pdfBtn.disabled = !estimate;
+    };
+    document.addEventListener(ESTIMATE_EVENT, (e) => onEstimate((e as CustomEvent<EstimateDetail | null>).detail));
+    onEstimate(lastEstimate());
+
+    const setFieldError = (input: HTMLInputElement, msg: string) => {
+      const note = root.querySelector<HTMLElement>(`#${input.getAttribute('aria-describedby')}`);
+      input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+      if (note) note.textContent = msg;
+    };
+    for (const inp of [nameInput, phoneInput]) inp.addEventListener('input', () => setFieldError(inp, ''));
+
+    /* شروع و رها کردن این فرم، جدا از فرم مشاوره شمرده می‌شود تا در
+       گزارش معلوم باشد نشت قیف دقیقاً در کدام قدم است. */
+    let touched = false;
+    let sent = false;
+    form.addEventListener('input', () => {
+      if (touched) return;
+      touched = true;
+      trackOnce('form_start', { from: location.pathname, form: 'review' });
+    });
+    addEventListener('pagehide', () => {
+      if (touched && !sent) track('form_abandon', { from: location.pathname, form: 'review' });
+    });
+
+    const send = async (payload: Record<string, unknown>) => {
+      const res = await fetch('/api/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.success) throw new ServerMessage(data.message || 'ارسال انجام نشد');
+    };
+
+    const showError = (err: unknown) => {
+      const msg = err instanceof ServerMessage ? err.message : 'اتصال برقرار نشد';
+      error.innerHTML = '';
+      error.append(`${msg}. دوباره امتحان کنید یا مستقیم تماس بگیرید: `);
+      const tel = document.createElement('a');
+      tel.href = root.dataset.phoneHref || '';
+      tel.dir = 'ltr';
+      tel.textContent = root.dataset.phone || '';
+      error.append(tel);
+    };
+
+    const showDone = (intent: 'review' | 'pdf') => {
+      form.hidden = true;
+      done.hidden = false;
+      if (sentEstimate) {
+        report.href = sentEstimate.reportUrl;
+        report.hidden = false;
+      }
+      upgrade.hidden = intent !== 'pdf';
+      if (intent === 'pdf') {
+        doneTitle.textContent = 'برگهٔ برآوردتان آماده است';
+        doneText.textContent = 'اگر برگه در زبانهٔ تازه باز نشد، از پیوند زیر بازش کنید.';
+      } else {
+        doneTitle.textContent = original.title;
+        doneText.textContent = original.text;
+      }
+      done.focus();
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitter = (e as SubmitEvent).submitter as HTMLButtonElement | null;
+      const intent = submitter?.value === 'pdf' ? 'pdf' : 'review';
+
+      let bad: HTMLInputElement | null = null;
+      if (nameInput.value.trim().length < 2) { setFieldError(nameInput, 'نامتان را بنویسید.'); bad ??= nameInput; }
+      if (!normalizePhone(phoneInput.value)) {
+        setFieldError(phoneInput, 'شماره را کامل بنویسید؛ مثلاً ۰۹۱۳۱۲۳۴۵۶۷');
+        bad ??= phoneInput;
+      }
+      if (bad) { bad.focus(); return; }
+
+      /* زبانهٔ برگه همین حالا و داخل خود رویداد کلیک باز می‌شود. اگر بعد
+         از await باز شود، مرورگر آن را پنجرهٔ ناخواسته می‌بیند و می‌بندد. */
+      const tab = intent === 'pdf' && estimate ? window.open('', '_blank') : null;
+
+      const buttons = [...form.querySelectorAll<HTMLButtonElement>('button[type="submit"]')];
+      const label = submitter?.textContent ?? '';
+      buttons.forEach((b) => { b.disabled = true; });
+      if (submitter) submitter.textContent = 'در حال ارسال…';
+      error.textContent = '';
+
+      sentEstimate = estimate;
+      const fields = Object.fromEntries(new FormData(form).entries());
+      lastPayload = {
+        ...fields,
+        ...utm,
+        area: 'سرمایه‌گذاری و احداث نیروگاه',
+        capacity: estimate?.capacity ?? '',
+        estimate: estimate?.summary ?? '',
+        source: location.pathname,
+        ga_client_id: (window as any).nnGaClientId?.() ?? '',
+      };
+
+      try {
+        await send({ ...lastPayload, intent });
+        sent = true;
+        /* فقط به GA4 — ثبت در آمار خودمان کار سرور است */
+        (window as any).nnGaOnly?.('lead_submit', { from: location.pathname, intent });
+        if (intent === 'pdf' && estimate) {
+          track('calc_report', { kw: estimate.kw });
+          if (tab) tab.location.href = estimate.printUrl;
+          else window.open(estimate.printUrl, '_blank');
+        }
+        showDone(intent);
+      } catch (err) {
+        tab?.close();
+        showError(err);
+      } finally {
+        buttons.forEach((b) => { b.disabled = false; });
+        if (pdfBtn) pdfBtn.disabled = !estimate;
+        if (submitter) submitter.textContent = label;
+      }
+    });
+
+    upgradeBtn.addEventListener('click', async () => {
+      if (!lastPayload) return;
+      upgradeBtn.disabled = true;
+      upgradeBtn.textContent = 'در حال ارسال…';
+      try {
+        await send({ ...lastPayload, intent: 'review' });
+        (window as any).nnGaOnly?.('lead_submit', { from: location.pathname, intent: 'review' });
+        showDone('review');
+      } catch (err) {
+        upgrade.querySelector('p')!.textContent =
+          err instanceof ServerMessage ? err.message : 'اتصال برقرار نشد؛ دوباره امتحان کنید.';
+      } finally {
+        upgradeBtn.disabled = false;
+        upgradeBtn.textContent = 'بله، بررسی شود';
+      }
+    });
+  });
+</script>
+
+<style>
+  .xr {
+    container-type: inline-size;
+    margin-top: 28px;
+    padding: 26px;
+    border: 1px solid rgba(255, 196, 26, 0.32);
+    border-radius: 16px;
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgba(255, 196, 26, 0.08), transparent 60%),
+      var(--bg-2);
+    scroll-margin-top: 90px;
+  }
+  .xr [hidden] { display: none !important; }
+  .xr-in { display: grid; grid-template-columns: 1fr 1.05fr; gap: 28px; align-items: start; }
+
+  .xr-eyebrow { margin: 0 0 8px; color: var(--yellow); font-size: 13.5px; font-weight: 700; }
+  .xr-title { margin: 0; font-size: clamp(20px, 2.4vw, 25px); font-weight: 800; line-height: 1.5; }
+  .xr-text { margin: 12px 0 0; color: var(--muted); font-size: 15px; line-height: 1.95; }
+
+  .xr-est {
+    margin: 16px 0 0;
+    padding: 10px 14px;
+    border-inline-start: 2px solid var(--yellow);
+    border-radius: 8px;
+    background: rgba(255, 196, 26, 0.06);
+    font-size: 13.5px;
+    line-height: 1.9;
+  }
+  .xr-est span { display: block; color: var(--faint); font-size: 12px; }
+  .xr-est b { font-weight: 600; color: var(--ink); }
+
+  .xr-checks { display: grid; gap: 10px; margin: 18px 0 0; padding: 0; list-style: none; }
+  .xr-checks li {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 8px;
+    align-items: start;
+    color: var(--ink);
+    font-size: 14.5px;
+    line-height: 1.8;
+  }
+  .xr-checks :global(svg) { width: 20px; height: 20px; margin-top: 3px; color: var(--yellow); stroke-width: 2.2; }
+
+  .xr-panel {
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg);
+  }
+  .xr-form .qf-field { margin-bottom: 14px; }
+  .xr-group { margin: 0 0 16px; padding: 0; border: 0; min-width: 0; }
+  .xr-group legend { padding: 0; margin-bottom: 8px; }
+  .xr-group legend i { font-style: normal; color: var(--faint); font-size: 12.5px; }
+  .xr .qf-pill span { min-height: 40px; padding: 6px 14px; font-size: 14px; }
+
+  .xr-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 4px; }
+  .xr-main { flex: 1 1 220px; justify-content: center; }
+  .xr-pdf {
+    padding: 8px 2px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+  .xr-pdf:hover { color: var(--ink); }
+  .xr-pdf:disabled { opacity: 0.45; cursor: not-allowed; }
+  .xr-form .qf-privacy { margin-top: 12px; }
+
+  .xr-done { text-align: center; }
+  .xr-done:focus { outline: none; }
+  .xr-done .qf-done-title { margin-bottom: 8px; }
+  .xr-done-text { margin: 0 auto; max-width: 40ch; color: var(--muted); font-size: 15px; line-height: 1.9; }
+  .xr-report {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--yellow);
+    font-weight: 700;
+    font-size: 14.5px;
+    text-underline-offset: 4px;
+  }
+  .xr-upgrade {
+    margin-top: 18px;
+    padding: 16px;
+    border: 1px solid rgba(255, 196, 26, 0.35);
+    border-radius: 12px;
+    background: rgba(255, 196, 26, 0.06);
+  }
+  .xr-upgrade p { margin: 0 0 12px; font-weight: 700; }
+  .xr-prepare {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    text-align: start;
+    font-size: 14px;
+    line-height: 1.9;
+  }
+  .xr-prepare b { display: block; margin-bottom: 6px; color: var(--muted); font-weight: 600; }
+  .xr-prepare ul { margin: 0; padding-inline-start: 18px; color: var(--ink); }
+
+  /* اندازهٔ ظرف ملاک است نه صفحه: همین بخش در ستون باریک ماشین‌حساب و در
+     عرض کامل صفحهٔ کمپین می‌نشیند. */
+  @container (max-width: 720px) {
+    .xr-in { grid-template-columns: 1fr; gap: 20px; }
+  }
+  /* در موبایل قاب دوم دور فرم فقط عرض کادرها را می‌خورد، به‌خصوص در
+     ماشین‌حساب که این بخش خودش داخل کارت نتیجه است. */
+  @media (max-width: 600px) {
+    .xr { padding: 18px; }
+    .xr-panel { padding: 0; border: 0; background: none; }
+  }
+</style>

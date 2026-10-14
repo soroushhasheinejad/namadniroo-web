@@ -6,6 +6,7 @@ import Footer from '../components/Footer.astro';
 import QuoteDialog from '../components/QuoteDialog.astro';
 import MobileBar from '../components/MobileBar.astro';
 import Analytics from '../components/Analytics.astro';
+import Icon from '../components/Icon.astro';
 import { getSiteSettings } from '../server/repos/siteSettings';
 import { getSeoSettings } from '../server/repos/seoSettings';
 import { organizationSchema } from '../server/seo/structuredData';
@@ -33,6 +34,12 @@ interface Props {
    * هم هست و باید به گوگل گفت کدام اصلی است؛ در حالت عادی خودکار است.
    */
   canonical?: string | null;
+  /**
+   * صفحهٔ کمپین: هدر فقط لوگو و شماره، بدون منو و فوتر کامل و نوار
+   * موبایل. کسی که از تبلیغ آمده یک کار دارد؛ هر پیوند اضافه راهی است
+   * برای بیرون رفتن از قیف.
+   */
+  bare?: boolean;
 }
 
 const {
@@ -44,6 +51,7 @@ const {
   noindex = false,
   preloadImage,
   canonical: canonicalOverride,
+  bare = false,
 } = Astro.props;
 
 const SITE = Astro.site ?? 'https://namadniroo.ir';
@@ -148,12 +156,35 @@ const { webmaster } = seo;
     <noscript><iframe src={`https://www.googletagmanager.com/ns.html?id=${webmaster.gtm}`}
       height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   )}
-  <Header />
+  {bare ? (
+    <header class="site-header bare-header">
+      <div class="wrap header-inner">
+        <a class="brand" href="/" aria-label={site.name}>
+          <img class="brand-logo" src="/assets/logo.png" alt={site.name} width="157" height="34" />
+        </a>
+        <a class="header-phone bare-phone" href={site.phoneHref} aria-label={`تماس: ${site.phone}`}>
+          <Icon name="phone" />
+          <span dir="ltr">{site.phone}</span>
+        </a>
+      </div>
+    </header>
+  ) : <Header />}
   <main>
     <slot />
   </main>
-  <Footer />
-  <MobileBar />
+  {bare ? (
+    <footer class="bare-footer">
+      <div class="wrap">
+        <span>{site.name} · {site.city}</span>
+        <a href="/">namadniroo.ir</a>
+      </div>
+    </footer>
+  ) : (
+    <>
+      <Footer />
+      <MobileBar />
+    </>
+  )}
   <QuoteDialog />
   <Analytics />
 

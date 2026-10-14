@@ -159,8 +159,8 @@ const journeySteps = journey.reduce<{ event: (typeof journey)[number]; count: nu
         </dl>
         {lead.estimate && (
           <p class="a-estimate">
-            <span>برآوردی که خودش در ماشین‌حساب دیده بود</span>
-            {lead.estimate}
+            <span>برآوردی که خودش در ماشین‌حساب دیده بود، و پاسخ‌هایش</span>
+            <span class="a-estimate-body">{lead.estimate}</span>
           </p>
         )}
       </div>
@@ -337,6 +337,7 @@ const journeySteps = journey.reduce<{ event: (typeof journey)[number]; count: nu
     font-size: 12.5px;
     line-height: 1.8;
   }
+  .a-estimate .a-estimate-body { display: inline; color: inherit; font-size: inherit; margin: 0; }
   .a-estimate span { display: block; color: var(--a-faint); font-size: 11px; margin-bottom: 2px; }
 
   /* خط زمانی: خط عمودی کم‌رنگ با نقطه روی هر رویداد */

@@ -70,4 +70,19 @@ describe('validateQuote', () => {
     expect(result.value.utmSource).toBe('instagram');
     expect(result.value.utmCampaign).toBe('bahar');
   });
+
+  it('نیت و پاسخ‌های فرم بررسی را فقط از فهرست مجاز می‌پذیرد', () => {
+    const ok = validateQuote({ ...valid, intent: 'review', site: 'roof', timeline: 'soon' });
+    expect(ok.ok && ok.value.intent).toBe('review');
+    expect(ok.ok && ok.value.qualifiers).toBe('سقف سوله یا ساختمان دارد · شروع در ۳ تا ۶ ماه آینده');
+
+    // فقط یکی از دو پرسش جواب داده شده
+    const half = validateQuote({ ...valid, timeline: 'now' });
+    expect(half.ok && half.value.qualifiers).toBe('می‌خواهد همین حالا شروع کند');
+
+    // مقدار ناشناخته متن آزاد نمی‌سازد
+    const odd = validateQuote({ ...valid, intent: 'admin', site: '<b>', timeline: 'x' });
+    expect(odd.ok && odd.value.intent).toBeUndefined();
+    expect(odd.ok && odd.value.qualifiers).toBeUndefined();
+  });
 });

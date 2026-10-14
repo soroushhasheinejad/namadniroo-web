@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
+import ExpertReview from '../components/ExpertReview.astro';
 import { breadcrumbSchema, faqSchema } from '../utils';
 import { CONSTRUCTION_MONTHS, DEGRADATION, GROUND_COST, SUN_DAYS, OM_RATE, ROOF_DISCOUNT, ROOF_TILT_DEG, ROUTES, SOURCES, TARIFF, UPDATED_AT, YEARS, YIELD_BY_REGION, costPerKwFor } from '../data/solarModel';
 import { fa } from '../utils';
@@ -180,28 +181,7 @@ const seo = await seoProps(c.seo);
         <div class="route-table" id="routeTable"></div>
         {c.resultsFoot && <p class="out-foot">{c.resultsFoot}</p>}
 
-        <div class="pdf-box">
-          <div class="pdf-copy">
-            <b>{c.pdf.title}</b>
-            <p>{c.pdf.text}</p>
-          </div>
-
-          <form class="pdf-form" id="pdfForm" novalidate>
-            <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp-field" aria-hidden="true" />
-            <div class="field-row">
-              <div class="field">
-                <label for="p-name">نام و نام خانوادگی</label>
-                <input id="p-name" name="name" type="text" autocomplete="name" required />
-              </div>
-              <div class="field">
-                <label for="p-phone">شمارهٔ تماس</label>
-                <input id="p-phone" name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" required />
-              </div>
-            </div>
-            <button type="submit" class="btn btn-solid btn-block" id="pdfBtn">{c.pdf.button}</button>
-            <p class="pdf-note" id="pdfNote">{c.pdf.note}</p>
-          </form>
-        </div>
+        <ExpertReview c={c.review} uid="calc" />
       </div>
     </div>
   </section>
@@ -318,7 +298,7 @@ const seo = await seoProps(c.seo);
     <div class="wrap">
       <h2>{c.cta.title}</h2>
       <p>{c.cta.text}</p>
-      <a class="btn btn-solid" id="ctaLink" href="/#quote">{c.cta.label}</a>
+      <a class="btn btn-solid" href="#review">{c.cta.label}</a>
     </div>
   </section>
 </Base>
@@ -335,6 +315,16 @@ const seo = await seoProps(c.seo);
     type Assumptions,
     type Mount,
   } from '../data/solarModel';
+  import {
+    areaLabel as area,
+    capacityLabel as capacity,
+    estimateDetail,
+    fa,
+    grouped,
+    latin,
+    publishEstimate,
+    toman,
+  } from '../lib/estimate';
 
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -342,8 +332,6 @@ const seo = await seoProps(c.seo);
      تابع ردیاب را کامپوننت Analytics روی window می‌گذارد؛ اگر به هر دلیل
      بالا نیامده باشد، این‌ها بی‌صدا رد می‌شوند و ماشین‌حساب کار خودش را
      می‌کند — آمار هرگز نباید ابزار را زمین بزند. */
-  const track = (type: string, props?: Record<string, string | number | boolean>) =>
-    (window as any).nnTrack?.(type, props);
   const trackOnce = (type: string, props?: Record<string, string | number | boolean>) =>
     (window as any).nnTrackOnce?.(type, props);
 
@@ -354,29 +342,6 @@ const seo = await seoProps(c.seo);
     const regionSelect = $<HTMLSelectElement>('c-region');
     const costInput = $<HTMLInputElement>('c-cost');
     const omInput = $<HTMLInputElement>('c-om');
-
-    /* جداکنندهٔ هزارگان و اعشار هم فارسی می‌شود، وگرنه عدد نیمه‌فارسی
-       می‌ماند. معکوسش هنگام خواندن ورودی لازم است. */
-    const fa = (v: string | number) =>
-      String(v)
-        .replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]!)
-        .replace(/,/g, '٬')
-        .replace(/\./g, '٫');
-    const latin = (v: string) =>
-      v
-        .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-        .replace(/٬/g, ',')
-        .replace(/٫/g, '.');
-
-    /** عدد بزرگ را به «میلیارد/میلیون تومان» می‌نویسد — خواندن ۱۲ رقم پشت‌سرهم سخت است */
-    const toman = (n: number): string => {
-      if (n >= 1_000_000_000_000) return `${fa((n / 1_000_000_000_000).toFixed(1))} هزار میلیارد`;
-      if (n >= 1_000_000_000) return `${fa((n / 1_000_000_000).toFixed(n < 10_000_000_000 ? 1 : 0))} میلیارد`;
-      if (n >= 1_000_000) return `${fa(Math.round(n / 1_000_000))} میلیون`;
-      return fa(Math.round(n).toLocaleString('en-US'));
-    };
-
-    const grouped = (n: number) => Math.round(n).toLocaleString('en-US');
 
     const readInvestment = (): number => {
       const raw = latin(investmentInput.value).replace(/[^\d]/g, '');
@@ -398,13 +363,6 @@ const seo = await seoProps(c.seo);
       degradation: 0.007,
       years: 20,
     });
-
-    /** ظرفیت را با واحد مناسب می‌نویسد */
-    const capacity = (kw: number) =>
-      kw >= 1000 ? `${fa((kw / 1000).toFixed(2))} مگاوات` : `${fa(Math.round(kw))} کیلووات`;
-
-    const area = (m2: number) =>
-      m2 >= 10_000 ? `${fa((m2 / 10_000).toFixed(1))} هکتار` : `${fa(Math.round(m2))} مترمربع`;
 
     const render = () => {
       const investment = readInvestment();
@@ -438,6 +396,7 @@ const seo = await seoProps(c.seo);
         const note = $('outNote');
         note.textContent = message;
         note.hidden = false;
+        publishEstimate(null);
       };
 
       if (investment < 50_000_000) {
@@ -526,10 +485,9 @@ const seo = await seoProps(c.seo);
 
       $('routeTable').innerHTML = rows.join('');
 
-      /* لینک دعوت به مشاوره، ظرفیت برآوردشده را با خودش می‌برد تا کارشناس
-         بداند کاربر دربارهٔ چه ابعادی پرسیده است. */
-      $<HTMLAnchorElement>('ctaLink').href =
-        `/contact?capacity=${encodeURIComponent(capacity(mid.capacityKw))}`;
+      /* بخش «بررسی با کارشناس» همین برآورد را همراه درخواست می‌فرستد تا
+         کارشناس بداند کاربر دربارهٔ چه ابعادی پرسیده است. */
+      publishEstimate(estimateDetail(investment, base, regionSelect.value));
 
       /* رسیدن به یک برآورد معتبر، مهم‌ترین نقطهٔ قیف است: از اینجا به بعد
          کاربر عددی از ما دارد. ظرفیت را هم می‌فرستیم تا در گزارش معلوم
@@ -541,87 +499,6 @@ const seo = await seoProps(c.seo);
         region: regionSelect.value,
       });
     };
-
-    /* ---------- دریافت PDF ---------- */
-
-    /** آدرس برگهٔ چاپی با همان فرض‌هایی که کاربر جلوی چشمش دارد */
-    const reportUrl = (print: boolean) => {
-      const a = assumptionsFrom();
-      const p = new URLSearchParams({
-        investment: String(readInvestment()),
-        mount: a.mount,
-        region: regionSelect.value,
-        cost: String(a.costPerKw / 1_000_000),
-        om: omInput.value,
-      });
-      if (print) p.set('print', '1');
-      return `/solar-calculator/report?${p}`;
-    };
-
-    /** خلاصهٔ یک‌خطی برآورد، برای اینکه کارشناس بداند کاربر چه دیده بود */
-    const estimateSummary = () => {
-      const investment = readInvestment();
-      const r = calculate(investment, assumptionsFrom());
-      const mount = assumptionsFrom().mount === 'ground' ? 'زمینی' : 'پشت‌بام';
-      return `سرمایه ${toman(investment)} تومان · ${mount} · ${YIELD_BY_REGION[regionSelect.value]!.label} · ظرفیت حدود ${capacity(r.capacityKw)} · تولید سال اول حدود ${fa(grouped(r.firstYearProductionKwh))} kWh`;
-    };
-
-    const pdfForm = $<HTMLFormElement>('pdfForm');
-    const pdfBtn = $<HTMLButtonElement>('pdfBtn');
-    const pdfNote = $('pdfNote');
-
-    pdfForm?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!pdfForm.checkValidity()) { pdfForm.reportValidity(); return; }
-
-      /* پنجره را همین حالا و داخل خود رویداد کلیک باز می‌کنیم. اگر بعد از
-         await باز شود، مرورگر آن را پنجرهٔ ناخواسته می‌بیند و می‌بندد. */
-      const tab = window.open('', '_blank');
-
-      pdfBtn.disabled = true;
-      pdfNote.textContent = 'در حال آماده‌سازی…';
-
-      const data = Object.fromEntries(new FormData(pdfForm).entries());
-
-      try {
-        const res = await fetch('/api/quote', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            ...data,
-            area: 'سرمایه‌گذاری و احداث نیروگاه',
-            capacity: capacity(calculate(readInvestment(), assumptionsFrom()).capacityKw),
-            source: location.pathname,
-            estimate: estimateSummary(),
-            ga_client_id: (window as any).nnGaClientId?.() ?? '',
-          }),
-        });
-        const out = await res.json();
-
-        if (out.success) {
-          /* فقط به GA4 — ثبت در آمار خودمان کار سرور است */
-          (window as any).nnGaOnly?.('lead_submit', { from: '/solar-calculator' });
-          track('calc_report', {
-            kw: Math.round(calculate(readInvestment(), assumptionsFrom()).capacityKw),
-          });
-          pdfNote.textContent = 'آماده شد. اگر برگه باز نشد، از دکمهٔ زیر استفاده کنید.';
-          pdfForm.insertAdjacentHTML(
-            'beforeend',
-            `<a class="pdf-fallback" href="${reportUrl(false)}" target="_blank" rel="noopener">باز کردن برگهٔ برآورد</a>`,
-          );
-          if (tab) tab.location.href = reportUrl(true);
-          else window.open(reportUrl(true), '_blank');
-        } else {
-          tab?.close();
-          pdfNote.textContent = out.message || 'ارسال با خطا مواجه شد؛ لطفاً دوباره تلاش کنید.';
-        }
-      } catch {
-        tab?.close();
-        pdfNote.textContent = 'ارتباط برقرار نشد؛ لطفاً دوباره تلاش کنید.';
-      } finally {
-        pdfBtn.disabled = false;
-      }
-    });
 
     /* شروع کار با ماشین‌حساب = اولین باری که کاربر واقعاً چیزی را دست
        می‌زند، نه باز شدن صفحه. باز شدن صفحه همان بازدید است و جداگانه
@@ -784,27 +661,6 @@ const seo = await seoProps(c.seo);
 
   .out-h { margin: 0 0 14px; font-size: 16px; font-weight: 700; }
   .out-foot { margin: 16px 0 0; color: var(--faint); font-size: 13px; line-height: 1.8; }
-
-  .pdf-box {
-    margin-top: 26px;
-    padding: 22px;
-    border: 1px solid rgba(255, 196, 26, 0.3);
-    border-radius: 12px;
-    background: rgba(255, 196, 26, 0.05);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    align-items: start;
-  }
-  .pdf-copy b { display: block; margin-bottom: 8px; font-size: 16px; color: var(--yellow); }
-  .pdf-copy p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.9; }
-  .pdf-note { margin: 12px 0 0; color: var(--faint); font-size: 12.5px; line-height: 1.8; }
-  .pdf-fallback { display: inline-block; margin-top: 10px; color: var(--yellow); font-size: 13.5px; }
-  .pdf-fallback:hover { text-decoration: underline; }
-
-  @media (max-width: 900px) {
-    .pdf-box { grid-template-columns: 1fr; gap: 16px; }
-  }
 
   .route-table :global(.route-row) {
     display: grid;

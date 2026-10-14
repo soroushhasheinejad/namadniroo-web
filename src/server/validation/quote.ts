@@ -25,6 +25,13 @@ export interface QuoteInput {
   estimate?: string;
   /** شناسهٔ کاربر گوگل آنالیتیکس، اگر مرورگر کوکی‌اش را داشته باشد */
   gaClientId?: string;
+  /**
+   * کاربر از برآورد چه می‌خواست: `review` یعنی بررسی با کارشناس، `pdf`
+   * فقط برگهٔ برآورد. فرم‌های دیگر این را نمی‌فرستند.
+   */
+  intent?: 'review' | 'pdf';
+  /** پاسخ‌های کوتاه فرم بررسی (زمین یا سقف، زمان شروع)، به فارسی */
+  qualifiers?: string;
 }
 
 /* فقط همین سه مقدار پذیرفته می‌شود. متن آزاد از بیرون در این ستون
@@ -34,6 +41,22 @@ export const CONTACT_VIA: Record<string, string> = {
   bale: 'پیام در بله',
   whatsapp: 'واتساپ',
 };
+
+/* پرسش‌های کوتاه فرم بررسی برآورد. مثل CONTACT_VIA فقط کلید پذیرفته
+   می‌شود و برچسب از همین‌جا می‌آید، چون کارشناس بر اساسش اولویت می‌دهد. */
+export const SITE_STATUS: Record<string, string> = {
+  land: 'زمین دارد',
+  roof: 'سقف سوله یا ساختمان دارد',
+  none: 'هنوز زمین یا سقف ندارد',
+};
+
+export const TIMELINE: Record<string, string> = {
+  now: 'می‌خواهد همین حالا شروع کند',
+  soon: 'شروع در ۳ تا ۶ ماه آینده',
+  research: 'فعلاً در حال بررسی است',
+};
+
+const INTENTS = new Set(['review', 'pdf']);
 
 export type ValidationResult =
   | { ok: true; value: QuoteInput }
@@ -85,6 +108,10 @@ export function validateQuote(body: Record<string, unknown>): ValidationResult {
       gaClientId: /^\d{6,12}\.\d{8,12}$/.test(clean(body.ga_client_id, 40))
         ? clean(body.ga_client_id, 40)
         : undefined,
+      intent: INTENTS.has(clean(body.intent)) ? (clean(body.intent) as 'review' | 'pdf') : undefined,
+      qualifiers:
+        [SITE_STATUS[clean(body.site)], TIMELINE[clean(body.timeline)]].filter(Boolean).join(' · ') ||
+        undefined,
     },
   };
 }
