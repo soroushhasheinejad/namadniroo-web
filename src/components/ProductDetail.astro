@@ -105,6 +105,9 @@ const pageSchema = [
             </p>
           )}
         <a class="btn btn-solid" href="/#quote">استعلام قیمت و موجودی</a>
+        {p.kind !== 'accessory' && (
+          <p class="p-tool">چند تا و با چه توانی؟ <a href="/solar-calculator/equipment">محاسبه پنل، اینورتر و باتری</a></p>
+        )}
         <ul class="p-tags" aria-label="برچسب‌های محصول">
           {tags.map((t) => (
             <li><span>{t.dim}</span><a href={t.href} rel={t.indexable ? undefined : 'nofollow'}>{t.label}</a></li>
@@ -157,6 +160,8 @@ const pageSchema = [
 </Base>
 
 <style>
+  .p-tool { margin: 16px 0 0; color: var(--muted); font-size: 14.5px; }
+  .p-tool a { color: var(--yellow); font-weight: 700; }
   .p-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; padding: 0; list-style: none; }
   .p-tags li { display: inline-flex; align-items: center; border: 1px solid var(--line-2); border-radius: 999px; overflow: hidden; font-size: 13.5px; }
   .p-tags span { padding: 5px 10px; background: var(--bg-2); color: var(--faint); }

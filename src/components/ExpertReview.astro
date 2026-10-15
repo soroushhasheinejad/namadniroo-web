@@ -197,7 +197,8 @@ const viaOptions = [
       estText.textContent = estimate?.summary ?? '';
       /* بدون برآورد، برگه‌ای برای چاپ نیست؛ درخواست بررسی ولی همچنان
          پذیرفته می‌شود — شماره‌ای که آمده نباید به‌خاطر یک کادر خالی برود. */
-      if (pdfBtn) pdfBtn.disabled = !estimate;
+      /* برآوردی که برگهٔ چاپی ندارد (ماشین‌حساب ابعاد تجهیزات) دکمهٔ PDF نمی‌گیرد */
+      if (pdfBtn) { pdfBtn.disabled = !estimate; pdfBtn.hidden = !!estimate && !estimate.reportUrl; }
     };
     document.addEventListener(ESTIMATE_EVENT, (e) => onEstimate((e as CustomEvent<EstimateDetail | null>).detail));
     onEstimate(lastEstimate());
@@ -246,9 +247,11 @@ const viaOptions = [
     const showDone = (intent: 'review' | 'pdf') => {
       form.hidden = true;
       done.hidden = false;
-      if (sentEstimate) {
+      if (sentEstimate?.reportUrl) {
         report.href = sentEstimate.reportUrl;
         report.hidden = false;
+      } else {
+        report.hidden = true;
       }
       upgrade.hidden = intent !== 'pdf';
       if (intent === 'pdf') {

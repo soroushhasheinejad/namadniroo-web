@@ -159,7 +159,7 @@ export const FACET_CONTENT: FacetDef[] = [
     faq: [
       { q: 'اینورتر ۵ کیلووات چند پنل می‌گیرد؟', a: 'به توان هر پنل بستگی دارد؛ تعداد پنل‌ها از تقسیم توان اینورتر (کمی بیشتر یا کمتر) بر توان هر پنل به دست می‌آید و چیدمان رشته‌ها باید در بازهٔ ولتاژ ورودی اینورتر بنشیند.' },
     ],
-    guides: ['solar-loan-1405', 'solar-plant-profit', 'ongrid-offgrid'],
+    guides: ['plant-5kw-1405', 'solar-loan-1405', 'solar-plant-profit', 'ongrid-offgrid'],
   },
   {
     type: 'inverter', slug: '10kw', dim: 'power', value: '10',
@@ -173,7 +173,7 @@ export const FACET_CONTENT: FacetDef[] = [
     faq: [
       { q: 'نیروگاه ۱۰ کیلوواتی چقدر سقف می‌خواهد؟', a: 'به توان و ابعاد پنل‌ها و شیب نصب بستگی دارد؛ ماشین‌حساب نماد نیرو سطح تقریبی را بر اساس نوع نصب نشان می‌دهد.' },
     ],
-    guides: ['plant-20kw-1405', 'ongrid-offgrid', 'payback-calculation'],
+    guides: ['plant-10kw-1405', 'plant-20kw-1405', 'ongrid-offgrid', 'payback-calculation'],
   },
   {
     type: 'inverter', slug: '50kw', dim: 'power', value: '50',
@@ -187,7 +187,7 @@ export const FACET_CONTENT: FacetDef[] = [
     faq: [
       { q: 'برای نیروگاه ۵۰ کیلوواتی یک اینورتر بگیرم یا دو تا؟', a: 'هر دو رایج است. دو اینورتر کوچک‌تر خرابی را به نیمی از نیروگاه محدود می‌کند؛ یک اینورتر هزینه و سیم‌کشی کمتری دارد.' },
     ],
-    guides: ['plant-100kw-1405', 'cost-per-kw-1405', 'industrial-solar-plant'],
+    guides: ['plant-50kw-1405', 'plant-100kw-1405', 'cost-per-kw-1405', 'industrial-solar-plant'],
   },
   {
     type: 'inverter', slug: '100kw', dim: 'power', value: '100',

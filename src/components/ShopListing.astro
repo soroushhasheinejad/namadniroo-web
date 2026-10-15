@@ -135,6 +135,12 @@ const schema = [
       </div>
 
       <aside class="shop-side" aria-label="دسته‌های مرتبط">
+        {type.kind !== 'accessory' && (
+          <div class="side-group side-tool">
+            <p class="side-title">چند {type.label} لازم دارید؟</p>
+            <a href="/solar-calculator/equipment">محاسبه پنل، اینورتر و باتری</a>
+          </div>
+        )}
         {sidebar.map((g) => (
           <div class="side-group">
             <p class="side-title">{g.title}</p>
@@ -222,6 +228,8 @@ const schema = [
   .side-group a { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; color: var(--muted); font-size: 14.5px; }
   .side-group a:hover { color: var(--yellow); }
   .side-group a span { color: var(--faint); font-size: 13px; }
+  .side-tool { border-color: rgba(255, 196, 26, .4); }
+  .side-tool a { color: var(--yellow); font-weight: 700; }
 
   .shop-comp { padding: 56px 0; background: var(--bg-1); border-block: 1px solid var(--line); }
   .shop-comp .section-title { font-size: clamp(20px, 2.4vw, 28px); }

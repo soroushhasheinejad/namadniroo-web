@@ -1,0 +1,660 @@
+---
+import Base from '../../layouts/Base.astro';
+import ExpertReview from '../../components/ExpertReview.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { breadcrumbSchema, faqSchema } from '../../utils';
+import { YIELD_BY_REGION } from '../../data/solarModel';
+import { aeModels } from '../../data/aesolarModels';
+import { listProducts } from '../../server/repos/content';
+import { seoProps } from '../../server/seo/pageSeo';
+import { getPageContent } from '../../server/repos/pageContent';
+import { equipmentCalculatorPage } from '../../data/pages';
+import { BATTERY, CLIMATE, DC_AC } from '../../lib/sizing';
+
+export const prerender = false;
+
+/**
+ * ماشین‌حساب ابعاد تجهیزات: چند پنل، چه اینورتری، چه رشته‌بندی‌ای، چه
+ * باتری‌ای. منطق در lib/sizing.ts است و این صفحه فقط ورودی می‌گیرد، نقشهٔ
+ * سامانه را می‌کشد و فهرست تجهیزات را می‌نویسد.
+ *
+ * پنل‌ها همان مدل‌های AE Solar انبارند و مشخصات الکتریکی‌شان از
+ * دیتاشیت (data/aesolarModels.ts)؛ رشته‌بندی بدون Voc و ضریب دمایی
+ * واقعی فقط حدس بود.
+ */
+
+const c = await getPageContent(equipmentCalculatorPage);
+const seo = await seoProps(c.seo);
+const products = await listProducts();
+
+const mm = (dims: string) => dims.split('×').map((x) => Number(x.trim()) / 1000);
+const panels = aeModels.map((m) => {
+  const top = m.rows[m.rows.length - 1]!;
+  const [l, w] = mm(m.dimensions);
+  return {
+    key: m.slug,
+    label: `${m.series} ${m.maxW}`,
+    w: top.pmax,
+    voc: top.voc,
+    vmp: top.vmp,
+    isc: top.isc,
+    tempVoc: m.tempVoc,
+    areaM2: l! * w!,
+    bifacial: m.bifacial,
+    href: m.shopSlug ? `/shop/${m.shopSlug}` : `/ae-solar/${m.slug}`,
+    shopSlug: m.shopSlug ?? null,
+    tech: m.tech,
+  };
+});
+
+/* کاتالوگ برای پیشنهاد «از انبار نماد نیرو»: کارت‌ها روی سرور ساخته
+   می‌شوند و اسکریپت فقط هم‌خوان‌ها را نشان می‌دهد */
+const catalog = products
+  .filter((p) => p.kind !== 'panel' || panels.some((x) => x.shopSlug === p.slug))
+  .map((p) => ({ slug: p.slug, kind: p.kind, subkind: p.subkind, phase: p.phase, pmin: p.powerMin, pmax: p.powerMax }));
+
+const regions = Object.entries(YIELD_BY_REGION);
+const data = { panels, catalog, climate: CLIMATE };
+
+const schema = [
+  breadcrumbSchema([
+    { name: 'ماشین‌حساب سود', href: '/solar-calculator' },
+    { name: c.hero.title, href: '/solar-calculator/equipment' },
+  ]),
+  faqSchema(c.faq),
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'ماشین‌حساب ابعاد تجهیزات خورشیدی نماد نیرو',
+    url: 'https://namadniroo.ir/solar-calculator/equipment',
+    applicationCategory: 'UtilitiesApplication',
+    operatingSystem: 'Web',
+    inLanguage: 'fa-IR',
+    isAccessibleForFree: true,
+    featureList: ['محاسبه تعداد پنل خورشیدی', 'محاسبه توان اینورتر', 'رشته‌بندی پنل‌ها با دیتاشیت', 'محاسبه باتری خورشیدی', 'زاویهٔ نصب پنل'],
+    publisher: { '@id': 'https://namadniroo.ir/#organization' },
+  },
+];
+---
+<Base {...seo} schema={schema}>
+  <header class="sz-head">
+    <div class="wrap">
+      <nav class="breadcrumb" aria-label="مسیر صفحه">
+        <a href="/">خانه</a><span>/</span><a href="/solar-calculator">ماشین‌حساب سود</a><span>/</span><b>ابعاد تجهیزات</b>
+      </nav>
+      <h1>{c.hero.title}</h1>
+      <p>{c.hero.lead}</p>
+    </div>
+  </header>
+
+  <section class="sz">
+    <div class="wrap sz-grid">
+      <form class="sz-form" id="szForm" novalidate>
+        <fieldset class="sz-step">
+          <legend><span class="sz-n">۱</span>از کجا شروع می‌کنید؟</legend>
+          <div class="seg seg-3" role="radiogroup" aria-label="مبنای محاسبه">
+            <label><input type="radio" name="m" value="bill" checked /><span>قبض برق</span></label>
+            <label><input type="radio" name="m" value="area" /><span>سطح سقف یا زمین</span></label>
+            <label><input type="radio" name="m" value="power" /><span>توان مشخص</span></label>
+          </div>
+
+          <div class="sz-pane" data-pane="bill">
+            <label class="sz-label" for="kwh">مصرف ماهانه</label>
+            <div class="sz-input"><input id="kwh" name="kwh" type="text" inputmode="numeric" dir="ltr" value="400" /><span>کیلووات‌ساعت</span></div>
+            <div class="chips" data-for="kwh"><button type="button" data-v="250">۲۵۰</button><button type="button" data-v="400">۴۰۰</button><button type="button" data-v="1000">۱٬۰۰۰</button><button type="button" data-v="5000">۵٬۰۰۰</button><button type="button" data-v="50000">۵۰٬۰۰۰</button></div>
+            <p class="sz-hint">«مصرف کل» قبض را بر تعداد ماه‌های دوره تقسیم کنید.</p>
+            <label class="sz-label" for="cov">چه سهمی از مصرف را بپوشاند؟ <output id="covOut">۱۰۰٪</output></label>
+            <input id="cov" name="cov" type="range" min="25" max="150" step="5" value="100" />
+          </div>
+
+          <div class="sz-pane" data-pane="area" hidden>
+            <label class="sz-label" for="area">سطح بدون سایه</label>
+            <div class="sz-input"><input id="area" name="area" type="text" inputmode="numeric" dir="ltr" value="100" /><span>مترمربع</span></div>
+            <div class="chips" data-for="area"><button type="button" data-v="30">۳۰</button><button type="button" data-v="100">۱۰۰</button><button type="button" data-v="500">۵۰۰</button><button type="button" data-v="10000">یک هکتار</button></div>
+            <p class="sz-hint">فقط بخشی از سقف یا زمین که در طول روز سایه نمی‌گیرد.</p>
+          </div>
+
+          <div class="sz-pane" data-pane="power" hidden>
+            <label class="sz-label" for="kw">توان پنل‌ها</label>
+            <div class="sz-input"><input id="kw" name="kw" type="text" inputmode="decimal" dir="ltr" value="5" /><span>کیلووات</span></div>
+            <div class="chips" data-for="kw"><button type="button" data-v="5">۵</button><button type="button" data-v="10">۱۰</button><button type="button" data-v="50">۵۰</button><button type="button" data-v="100">۱۰۰</button><button type="button" data-v="1000">یک مگاوات</button></div>
+          </div>
+        </fieldset>
+
+        <fieldset class="sz-step">
+          <legend><span class="sz-n">۲</span>چه سامانه‌ای؟</legend>
+          <div class="opt-2" role="radiogroup" aria-label="نوع سامانه">
+            <label class="opt"><input type="radio" name="sys" value="grid" checked /><span><b>متصل به شبکه</b><i>فروش برق یا کم‌کردن قبض، بدون باتری</i></span></label>
+            <label class="opt"><input type="radio" name="sys" value="hybrid" /><span><b>هیبرید با باتری</b><i>برق پشتیبان برای مصرف‌های مهم در قطعی</i></span></label>
+          </div>
+          <div class="sz-pane" data-pane="hybrid" hidden>
+            <label class="sz-label" for="bkw">مصرف ضروری در قطعی <output id="bkwOut"></output></label>
+            <input id="bkw" name="bkw" type="range" min="0.5" max="20" step="0.5" value="2" />
+            <p class="sz-hint">یخچال، روشنایی و مودم حدود ۱ کیلووات؛ کولر آبی کوچک حدود ۰٫۵ کیلووات دیگر.</p>
+            <label class="sz-label" for="bh">چند ساعت پشتیبانی؟ <output id="bhOut"></output></label>
+            <input id="bh" name="bh" type="range" min="1" max="12" step="1" value="4" />
+          </div>
+        </fieldset>
+
+        <fieldset class="sz-step">
+          <legend><span class="sz-n">۳</span>کجا نصب می‌شود؟</legend>
+          <label class="sz-label" for="reg">منطقه</label>
+          <select id="reg" name="reg" class="sz-select">
+            {regions.map(([key, r]) => <option value={key} selected={key === 'high'}>{r.label}</option>)}
+          </select>
+          <div class="sz-row">
+            <div>
+              <span class="sz-label">محل نصب</span>
+              <div class="seg" role="radiogroup" aria-label="محل نصب">
+                <label><input type="radio" name="mount" value="roof" checked /><span>پشت‌بام</span></label>
+                <label><input type="radio" name="mount" value="ground" /><span>زمین</span></label>
+              </div>
+            </div>
+            <div>
+              <span class="sz-label">انشعاب برق</span>
+              <div class="seg" role="radiogroup" aria-label="فاز انشعاب">
+                <label><input type="radio" name="ph" value="auto" checked /><span>نمی‌دانم</span></label>
+                <label><input type="radio" name="ph" value="single" /><span>تک‌فاز</span></label>
+                <label><input type="radio" name="ph" value="three" /><span>سه‌فاز</span></label>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="sz-step">
+          <legend><span class="sz-n">۴</span>کدام پنل؟</legend>
+          <div class="panels" role="radiogroup" aria-label="مدل پنل">
+            {panels.map((p, i) => (
+              <label class="opt pnl">
+                <input type="radio" name="pan" value={p.key} checked={i === 0} />
+                <span>
+                  <b dir="ltr">{p.w} W</b>
+                  <i>AE Solar {p.label.split(' ')[0]}{p.bifacial ? '، دوطرفه' : ''}</i>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p class="sz-hint">مشخصات الکتریکی از دیتاشیت رسمی هر مدل. <a href="/ae-solar">مقایسهٔ مدل‌ها</a></p>
+        </fieldset>
+      </form>
+
+      <div class="sz-out">
+        <figure class="schem" aria-label="نقشهٔ تک‌خطی سامانه">
+          <svg id="schem" viewBox="0 0 640 400" role="img" aria-labelledby="schemTitle">
+            <title id="schemTitle">نقشهٔ تک‌خطی سامانهٔ خورشیدی</title>
+            <defs>
+              <pattern id="bp" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M20 0H0V20" fill="none" stroke="rgba(95,131,155,.16)" stroke-width="1" />
+              </pattern>
+            </defs>
+            <rect width="640" height="400" fill="url(#bp)" />
+            <g id="schemBody"></g>
+          </svg>
+          <figcaption id="schemCap"></figcaption>
+        </figure>
+
+        <div class="keys" aria-live="polite">
+          <div><b id="kArray">—</b><span>توان پنل‌ها</span></div>
+          <div><b id="kProd">—</b><span>تولید ماهانهٔ میانگین</span></div>
+          <div><b id="kThird">—</b><span id="kThirdLabel">پوشش مصرف</span></div>
+        </div>
+        <p class="sz-note" id="szNote" hidden></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bom-sec" aria-labelledby="bomTitle">
+    <div class="wrap">
+      <h2 id="bomTitle" class="bom-title">فهرست تجهیزات</h2>
+      <dl class="bom" id="bom"></dl>
+      <p class="bom-foot">
+        بازهٔ ولتاژ اینورتر «رایج» همان رده است؛ عدد دقیق را از دیتاشیت اینورتر انتخابی بگیرید. هزینهٔ تقریبی از مدل
+        <a href="/solar-calculator">ماشین‌حساب سود نیروگاه</a> است و باتری در آن نیست.
+      </p>
+    </div>
+  </section>
+
+  <section class="picks-sec" aria-labelledby="picksTitle">
+    <div class="wrap">
+      <h2 id="picksTitle" class="bom-title">هم‌خوان با این محاسبه، در انبار نماد نیرو</h2>
+      <p class="picks-empty" id="picksEmpty" hidden>
+        اینورتری با این توان و فاز در فهرست فروشگاه نیست؛ کارشناس معادلش را پیشنهاد می‌دهد. همهٔ مدل‌ها در
+        <a href="/shop/inverter">اینورتر خورشیدی</a>.
+      </p>
+      <div class="picks" id="picks">
+        {products.filter((p) => catalog.some((x) => x.slug === p.slug)).map((p) => (
+          <div class="pick" data-slug={p.slug} hidden><ProductCard p={p} /></div>
+        ))}
+      </div>
+      <p class="picks-links" id="picksLinks"></p>
+    </div>
+  </section>
+
+  <section class="method-sec">
+    <div class="wrap">
+      <details class="method">
+        <summary>این عددها چطور حساب شده‌اند</summary>
+        <div class="method-body">
+          <p><b>توان پنل‌ها.</b> از قبض: مصرف سالانه × سهم پوشش ÷ تولید سالانهٔ هر کیلووات در منطقه (همان ضرایب <a href="/solar-calculator">ماشین‌حساب سود</a>، با افت ۰٫۷ درصدی سال اول). از سطح: سطح ÷ ۶ مترمربع بر کیلووات روی سقف یا ۱۵ مترمربع روی زمین (با فاصلهٔ ردیف‌ها). تعداد پنل به بالا گرد می‌شود، و در حالت سطح به پایین.</p>
+          <p><b>اینورتر.</b> توان پنل‌ها ÷ {DC_AC.grid.toString().replace('.', '٫')} برای سامانهٔ متصل به شبکه و ÷ {DC_AC.hybrid.toString().replace('.', '٫')} برای هیبرید، گرد به اندازهٔ رایج بعدی بازار؛ در هیبرید دست‌کم به اندازهٔ مصرف ضروری. تا ۶ کیلووات تک‌فاز و بالاتر سه‌فاز پیشنهاد می‌شود. بالاتر از ۱۲۵ کیلووات، چند اینورتر ۱۰۰ کیلوواتی.</p>
+          <p><b>رشته‌بندی.</b> بیشترین پنل در رشته: ولتاژ مدار باز پنل در سردترین دمای منطقه (ضریب دمایی Voc از دیتاشیت) نباید از سقف ولتاژ ورودی اینورتر بگذرد. کمترین: ولتاژ کاری پنل در دمای سلول ۷۰ درجه نباید زیر کف بازهٔ MPPT برود. رشته‌ها هم‌اندازه گرفته می‌شوند، پس تعداد پنل ممکن است کمی بالا برود.</p>
+          <p><b>باتری.</b> مصرف ضروری × ساعت پشتیبانی = انرژی مفید؛ تقسیم بر عمق تخلیهٔ {Math.round(BATTERY.dod * 100).toLocaleString('fa-IR')} درصد و بازده {Math.round(BATTERY.efficiency * 100).toLocaleString('fa-IR')} درصد = ظرفیت اسمی، در ماژول‌های لیتیوم‌آهن‌فسفات ۴۸ ولتی رایج ۵٫۱۲ کیلووات‌ساعتی.</p>
+          <p><b>کابل DC.</b> جریان طراحی هر رشته = جریان اتصال کوتاه پنل × ۱٫۲۵. سطح مقطع نهایی از طول مسیر و افت ولتاژ مجاز تعیین می‌شود.</p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <div class="wrap review-wrap">
+    <ExpertReview c={c.review} uid="eq" />
+  </div>
+
+  {c.faq.length > 0 && (
+    <section class="home-faq" aria-labelledby="eqFaq">
+      <div class="wrap home-faq-grid">
+        <div class="home-faq-head">
+          <h2 id="eqFaq" class="section-title">پرسش‌های پرتکرار دربارهٔ محاسبهٔ تجهیزات خورشیدی</h2>
+          <p>برای سود و بازگشت سرمایه، <a href="/solar-calculator">ماشین‌حساب سود نیروگاه</a>؛ برای سازه، <a href="/magazine/solar-panel-mounting-structure">راهنمای سازهٔ پنل</a>.</p>
+        </div>
+        <div class="home-faq-list">
+          {c.faq.map((f, i) => (
+            <details class="hfaq-item" open={i === 0}><summary>{f.q}</summary><p>{f.a}</p></details>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <script type="application/json" id="szData" set:html={JSON.stringify(data).replace(/</g, '\\u003c')}></script>
+</Base>
+
+<script>
+  import { YIELD_BY_REGION } from '../../data/solarModel';
+  import { size, type Mode, type PanelSpec, type PhasePref, type Sizing, type SizingInput, type System } from '../../lib/sizing';
+  import { fa, grouped, latin, publishEstimate, toman } from '../../lib/estimate';
+
+  type CatalogItem = { slug: string; kind: string; subkind: string | null; phase: string | null; pmin: number | null; pmax: number | null };
+  type PanelData = PanelSpec & { shopSlug: string | null; tech: string };
+  const data = JSON.parse(document.getElementById('szData')!.textContent!) as { panels: PanelData[]; catalog: CatalogItem[] };
+  const form = document.getElementById('szForm') as HTMLFormElement;
+  const $ = (id: string) => document.getElementById(id)!;
+  const track = (type: string, props?: Record<string, string | number>) => (window as any).nnTrackOnce?.(type, props);
+
+  const num = (v: string) => Number(latin(v).replace(/[^\d.]/g, '')) || 0;
+  const dec = (n: number, d = 1) => fa(String(+n.toFixed(d)));
+  const kw = (n: number) => (n >= 1000 ? `${dec(n / 1000, 2)} مگاوات` : `${dec(n, n < 10 ? 2 : 1)} کیلووات`);
+  const m2 = (n: number) => (n >= 10000 ? `${dec(n / 10000, 1)} هکتار` : `${fa(grouped(n))} مترمربع`);
+  const radio = (name: string) => (form.querySelector(`input[name="${name}"]:checked`) as HTMLInputElement).value;
+
+  function read(): SizingInput {
+    const panel = data.panels.find((p) => p.key === radio('pan')) ?? data.panels[0]!;
+    return {
+      mode: radio('m') as Mode,
+      monthlyKwh: num(($('kwh') as HTMLInputElement).value),
+      coverage: Number(($('cov') as HTMLInputElement).value),
+      areaM2: num(($('area') as HTMLInputElement).value),
+      targetKw: num(($('kw') as HTMLInputElement).value),
+      system: radio('sys') as System,
+      mount: radio('mount') as 'roof' | 'ground',
+      region: ($('reg') as HTMLSelectElement).value,
+      phase: radio('ph') as PhasePref,
+      panel,
+      backupKw: Number(($('bkw') as HTMLInputElement).value),
+      backupHours: Number(($('bh') as HTMLInputElement).value),
+    };
+  }
+
+  /* ---------------- نقشهٔ تک‌خطی ---------------- */
+  const NS = 'http://www.w3.org/2000/svg';
+  /* متن SVG جهت صفحه (rtl) را به ارث می‌برد و آنجا text-anchor برعکس
+     می‌شود: start لبهٔ راست متن است. هر برچسب جهت و لنگرش را صریح می‌گیرد. */
+  const label = (x: number, y: number, cls: string, txt: string, align: 'right' | 'left' | 'center', dir: 'rtl' | 'ltr' = 'rtl') =>
+    svg('text', { x, y, class: cls, direction: dir, 'text-anchor': align === 'center' ? 'middle' : (align === 'right') === (dir === 'rtl') ? 'start' : 'end' }, txt);
+  const svg = (tag: string, attrs: Record<string, string | number>, text?: string) => {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+
+  function drawSchematic(s: Sizing, inp: SizingInput) {
+    const g = $('schemBody');
+    g.replaceChildren();
+    const hybrid = inp.system === 'hybrid';
+
+    // خورشید
+    const sun = svg('g', { transform: 'translate(604 34)' });
+    sun.append(svg('circle', { r: 15, fill: '#FFC41A' }));
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4;
+      sun.append(svg('line', { x1: Math.cos(a) * 21, y1: Math.sin(a) * 21, x2: Math.cos(a) * 28, y2: Math.sin(a) * 28, stroke: '#FFC41A', 'stroke-width': 2.4, 'stroke-linecap': 'round' }));
+    }
+    g.append(sun);
+
+    // آرایهٔ پنل: هر ردیف یک رشته، همان‌طور که سیم‌کشی می‌شود
+    const maxRows = 6, maxCols = 12;
+    const rows = Math.min(s.strings.count, maxRows);
+    const cols = Math.min(s.strings.perString, maxCols);
+    const cw = 13, ch = 20, gap = 3;
+    const arrW = cols * (cw + gap) - gap;
+    const x0 = 600 - arrW, y0 = 92;
+    const arr = svg('g', { class: 'arr' });
+    for (let r = 0; r < rows; r++) {
+      const y = y0 + r * (ch + 9);
+      for (let c2 = 0; c2 < cols; c2++) {
+        arr.append(svg('rect', { x: x0 + c2 * (cw + gap), y, width: cw, height: ch, rx: 1.5, fill: '#0F4C72', stroke: '#5F839B', 'stroke-width': 1 }));
+      }
+      if (s.strings.perString > maxCols) arr.append(label(x0 - 6, y + 14, 'sm', `${fa(s.strings.perString - maxCols)}+`, 'right'));
+      arr.append(svg('line', { x1: x0 + arrW + 4, y1: y + ch / 2, x2: 616, y2: y + ch / 2, class: 'wire' }));
+    }
+    const arrBottom = y0 + rows * (ch + 9) - 9;
+    // باس DC سمت راست آرایه، به پایین و به اینورتر
+    g.append(svg('path', { d: `M616 ${y0 + ch / 2} V${arrBottom + 26} H330`, class: 'flow dc' }));
+    if (s.strings.count > maxRows) arr.append(label(600, arrBottom + 18, 'sm', `و ${fa(s.strings.count - maxRows)} رشتهٔ دیگر`, 'right'));
+    g.append(arr);
+    g.append(label(600, 80, 'lbl', `${fa(s.panels)} پنل ${fa(inp.panel.w)} وات، ${fa(s.strings.count)} رشته`, 'right'));
+
+    // اینورتر
+    const iy = arrBottom + 4;
+    const inv = svg('g', { transform: `translate(232 ${iy})` });
+    inv.append(svg('rect', { width: 98, height: 46, rx: 6, class: 'box' }));
+    inv.append(svg('path', { d: 'M18 27 q8 -14 16 0 t16 0', fill: 'none', stroke: '#FFC41A', 'stroke-width': 2.2 }));
+    inv.append(label(88, 20, 'sm', 'DC', 'right', 'ltr'));
+    inv.append(label(88, 37, 'sm', 'AC', 'right', 'ltr'));
+    g.append(inv);
+    const invLabel = s.inverter.units > 1 ? `${fa(s.inverter.units)} اینورتر ${fa(s.inverter.unitKw)} کیلوواتی` : `اینورتر ${fa(String(s.inverter.unitKw).replace('.', '٫'))} کیلووات`;
+    g.append(label(281, iy + 66, 'lbl', invLabel, 'center'));
+    g.append(label(281, iy + 84, 'sm', `${s.phase === 'single' ? 'تک‌فاز' : 'سه‌فاز'}${hybrid ? '، هیبرید' : ''}`, 'center'));
+
+    // باتری
+    if (s.battery) {
+      const by = iy + 100;
+      g.append(svg('path', { d: `M281 ${iy + 46} V${by}`, class: 'flow bat' }));
+      const bat = svg('g', { transform: `translate(246 ${by})` });
+      bat.append(svg('rect', { width: 70, height: 34, rx: 5, class: 'box' }));
+      bat.append(svg('rect', { x: 70, y: 11, width: 5, height: 12, rx: 1, fill: '#5F839B' }));
+      const cells = Math.min(s.battery.modules, 6);
+      for (let i = 0; i < cells; i++) bat.append(svg('rect', { x: 8 + i * 9.5, y: 8, width: 7, height: 18, rx: 1, fill: '#FFC41A' }));
+      g.append(bat);
+      g.append(label(326, by + 22, 'lbl', `باتری ${dec(s.battery.nominalKwh, 1)} کیلووات‌ساعت`, 'left'));
+    }
+
+    // خروجی AC: مصرف و شبکه
+    const ay = iy + 23;
+    g.append(svg('path', { d: `M232 ${ay} H150 M150 ${ay} V${ay - 46} H112 M150 ${ay} V${ay + 46} H112`, class: 'flow ac' }));
+    const house = svg('g', { transform: `translate(58 ${ay - 74})` });
+    house.append(svg('path', { d: 'M4 26 L27 6 L50 26 V52 H4 Z', class: 'box' }));
+    house.append(svg('rect', { x: 21, y: 34, width: 12, height: 18, fill: '#5F839B' }));
+    g.append(house);
+    g.append(label(85, ay - 6, 'lbl', 'مصرف', 'center'));
+    const pylon = svg('g', { transform: `translate(66 ${ay + 22})` });
+    pylon.append(svg('path', { d: 'M20 0 L6 52 M20 0 L34 52 M10 36 H30 M13 22 H27 M2 10 H38', fill: 'none', stroke: '#B4B4B4', 'stroke-width': 2 }));
+    g.append(pylon);
+    g.append(label(86, ay + 92, 'lbl', 'شبکه', 'center'));
+
+    const svgEl = $('schem') as unknown as SVGSVGElement;
+    const h = Math.max(300, s.battery ? iy + 150 : iy + 130);
+    svgEl.setAttribute('viewBox', `0 0 640 ${h}`);
+    (svgEl.querySelector('rect') as SVGRectElement).setAttribute('height', String(h));
+
+    // جریان انرژی فقط پس از تغییر ورودی حرکت می‌کند، نه دائم
+    svgEl.classList.remove('live');
+    void svgEl.getBoundingClientRect();
+    svgEl.classList.add('live');
+
+    $('schemCap').textContent = `رشته‌ها ${fa(s.strings.perString)}‌تایی؛ هر ردیف در نقشه یک رشته است.`;
+  }
+
+  /* ---------------- فهرست تجهیزات ---------------- */
+  function row(label: string, value: string, detail: string, href?: string) {
+    const v = href ? `<a href="${href}">${value}</a>` : value;
+    return `<div class="bom-row"><dt>${label}</dt><dd><b>${v}</b><span>${detail}</span></dd></div>`;
+  }
+
+  function drawBom(s: Sizing, inp: SizingInput) {
+    const p = inp.panel as PanelData;
+    const st = s.strings;
+    const rows = [
+      row('پنل خورشیدی', `${fa(s.panels)} پنل ${fa(p.w)} وات`, `AE Solar ${p.label}، ${p.tech}. توان کل ${kw(s.arrayKw)}، سطح خود پنل‌ها ${m2(s.panelAreaM2)}`, p.href),
+      row('اینورتر', s.inverter.units > 1 ? `${fa(s.inverter.units)} دستگاه ${fa(s.inverter.unitKw)} کیلوواتی` : `${fa(String(s.inverter.unitKw).replace('.', '٫'))} کیلووات، ${s.phase === 'single' ? 'تک‌فاز' : 'سه‌فاز'}`,
+        `${inp.system === 'hybrid' ? 'هیبرید' : 'متصل به شبکه'}؛ نسبت توان پنل به اینورتر ${dec(s.inverter.ratio, 2)}`, `/shop/inverter${inp.system === 'hybrid' ? '/hybrid' : s.phase === 'three' ? '/three-phase' : '/single-phase'}`),
+      row('رشته‌بندی', st.tooFew ? `کمتر از یک رشتهٔ کامل` : `${fa(st.count)} رشتهٔ ${fa(st.perString)}‌تایی`,
+        st.tooFew ? `برای ردهٔ «${s.window.label}» دست‌کم ${fa(st.nMin)} پنل در رشته لازم است`
+          : `بازهٔ مجاز ${fa(st.nMin)} تا ${fa(st.nMax)} پنل؛ ولتاژ مدار باز در سرما ${fa(Math.round(st.perString * st.vocCold))} ولت (سقف ${fa(s.window.vMax)})، ولتاژ کاری در گرما ${fa(Math.round(st.perString * st.vmpHot))} ولت`),
+    ];
+    if (s.battery) rows.push(row('باتری', `${dec(s.battery.nominalKwh, 1)} کیلووات‌ساعت`, `حدود ${fa(s.battery.modules)} ماژول ۵٫۱۲ کیلووات‌ساعتی لیتیوم‌آهن‌فسفات؛ ${dec(s.battery.usableKwh, 1)} کیلووات‌ساعت انرژی مفید برای ${fa(inp.backupHours)} ساعت`, '/shop/battery'));
+    rows.push(
+      row('سازه و زاویه', `رو به جنوب، شیب ${fa(s.tilt[0])} تا ${fa(s.tilt[1])} درجه`, `${inp.mount === 'roof' ? 'سازهٔ پشت‌بامی' : 'سازهٔ زمینی ثابت'}؛ سطح لازم با فاصلهٔ ردیف‌ها ${m2(s.footprintM2)}`, '/magazine/solar-panel-mounting-structure'),
+      row('کابل DC', '۴ یا ۶ میلی‌متر مربع خورشیدی', `جریان طراحی هر رشته ${dec(st.designCurrent, 1)} آمپر؛ سطح مقطع نهایی از طول مسیر`),
+      row('تولید', `${fa(grouped(s.firstYearKwh))} کیلووات‌ساعت در سال اول`, `میانگین ماهانه ${fa(grouped(s.monthlyKwh))} کیلووات‌ساعت؛ تابستان بیشتر، زمستان کمتر`),
+      row('هزینهٔ تقریبی', `${toman(s.cost.min)} تا ${toman(s.cost.max)} تومان`, `کلید در دست و بدون باتری، با قیمت مهر ۱۴۰۵`, '/solar-calculator'),
+    );
+    $('bom').innerHTML = rows.join('');
+  }
+
+  /* ---------------- پیشنهاد از انبار ---------------- */
+  function drawPicks(s: Sizing, inp: SizingInput) {
+    const p = inp.panel as PanelData;
+    const sub = inp.system === 'hybrid' ? 'hybrid' : 'string';
+    let anyInv = false;
+    for (const item of data.catalog) {
+      let show = false;
+      if (item.kind === 'inverter') {
+        const lo = (item.pmin ?? item.pmax ?? 0) * 0.85, hi = (item.pmax ?? item.pmin ?? 0) * 1.15;
+        show = item.subkind === sub && item.phase === s.phase && s.inverter.unitKw >= lo && s.inverter.unitKw <= hi;
+        anyInv ||= show;
+      } else if (item.kind === 'panel') show = item.slug === p.shopSlug;
+      else if (item.kind === 'storage') show = !!s.battery;
+      else if (item.kind === 'accessory') show = true;
+      const el = document.querySelector<HTMLElement>(`.pick[data-slug="${item.slug}"]`);
+      if (el) el.hidden = !show;
+    }
+    $('picksEmpty').hidden = anyInv;
+    const facet = [5, 10, 50, 100].find((t) => Math.abs(s.inverter.unitKw - t) <= t * 0.15);
+    $('picksLinks').innerHTML = [
+      facet ? `<a href="/shop/inverter/${facet}kw">اینورتر ${fa(facet)} کیلووات</a>` : '',
+      `<a href="/shop/inverter/${s.phase === 'three' ? 'three-phase' : 'single-phase'}">اینورتر ${s.phase === 'three' ? 'سه‌فاز' : 'تک‌فاز'}</a>`,
+      inp.system === 'hybrid' ? '<a href="/shop/battery">باتری خورشیدی</a>' : '',
+      p.bifacial ? '<a href="/shop/panel/bifacial">پنل دوطرفه</a>' : '<a href="/shop/panel">پنل خورشیدی</a>',
+    ].filter(Boolean).join(' ');
+  }
+
+  /* ---------------- حالت در نشانی، برای اشتراک‌گذاری ---------------- */
+  const KEYS = ['m', 'kwh', 'cov', 'area', 'kw', 'sys', 'mount', 'reg', 'ph', 'pan', 'bkw', 'bh'];
+  function toUrl() {
+    const fd = new FormData(form);
+    const q = new URLSearchParams();
+    for (const k of KEYS) { const v = fd.get(k); if (v !== null && v !== '') q.set(k, latin(String(v))); }
+    history.replaceState(null, '', `${location.pathname}?${q}`);
+  }
+  function fromUrl() {
+    const q = new URLSearchParams(location.search);
+    for (const k of KEYS) {
+      const v = q.get(k);
+      if (v === null) continue;
+      const radios = form.querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${k}"]`);
+      if (radios.length) radios.forEach((r) => (r.checked = r.value === v));
+      else { const el = form.elements.namedItem(k) as HTMLInputElement | HTMLSelectElement | null; if (el) el.value = v; }
+    }
+  }
+
+  /* ---------------- اجرا ---------------- */
+  let touched = false;
+  function render() {
+    const inp = read();
+    document.querySelectorAll<HTMLElement>('[data-pane]').forEach((el) => {
+      const k = el.dataset.pane!;
+      el.hidden = k === 'hybrid' ? inp.system !== 'hybrid' : k !== inp.mode;
+    });
+    $('covOut').textContent = `${fa(inp.coverage)}٪`;
+    $('bkwOut').textContent = `${dec(inp.backupKw)} کیلووات`;
+    $('bhOut').textContent = `${fa(inp.backupHours)} ساعت`;
+
+    const empty = (inp.mode === 'bill' && inp.monthlyKwh < 20) || (inp.mode === 'area' && inp.areaM2 < 5) || (inp.mode === 'power' && inp.targetKw < 0.5);
+    const note = $('szNote');
+    if (empty) {
+      note.hidden = false;
+      note.textContent = 'برای دیدن نتیجه، مقدار مرحلهٔ اول را وارد کنید.';
+      publishEstimate(null);
+      return;
+    }
+    const s = size(inp);
+    note.hidden = !s.phaseNote && !s.strings.tooFew;
+    note.textContent = s.strings.tooFew ? `این تعداد پنل برای یک رشتهٔ اینورتر کم است؛ دست‌کم ${fa(s.strings.nMin)} پنل لازم است.` : s.phaseNote ?? '';
+
+    $('kArray').textContent = kw(s.arrayKw);
+    $('kProd').textContent = `${fa(grouped(s.monthlyKwh))} کیلووات‌ساعت`;
+    if (s.coveragePct !== null) { $('kThird').textContent = `${fa(Math.round(s.coveragePct))}٪`; $('kThirdLabel').textContent = 'پوشش مصرف ماهانه'; }
+    else { $('kThird').textContent = m2(s.footprintM2); $('kThirdLabel').textContent = 'سطح لازم'; }
+
+    drawSchematic(s, inp);
+    drawBom(s, inp);
+    drawPicks(s, inp);
+
+    const regionLabel = YIELD_BY_REGION[inp.region]?.label ?? '';
+    publishEstimate({
+      summary: `ابعاد تجهیزات: ${fa(s.panels)} پنل ${fa(inp.panel.w)} وات (${kw(s.arrayKw)})، اینورتر ${s.inverter.units > 1 ? `${fa(s.inverter.units)}×${fa(s.inverter.unitKw)}` : fa(s.inverter.unitKw)} کیلووات ${s.phase === 'single' ? 'تک‌فاز' : 'سه‌فاز'} ${inp.system === 'hybrid' ? 'هیبرید' : 'متصل به شبکه'}، ${fa(s.strings.count)} رشتهٔ ${fa(s.strings.perString)}‌تایی${s.battery ? `، باتری ${dec(s.battery.nominalKwh, 1)} کیلووات‌ساعت` : ''}، ${inp.mount === 'roof' ? 'پشت‌بام' : 'زمینی'}، ${regionLabel}`,
+      capacity: kw(s.arrayKw),
+      kw: Math.round(s.arrayKw),
+      reportUrl: '',
+      printUrl: '',
+    });
+    if (touched) {
+      toUrl();
+      track('calc_result', { tool: 'equipment', kw: Math.round(s.arrayKw), sys: inp.system });
+    }
+  }
+
+  form.addEventListener('input', () => { if (!touched) { touched = true; track('calc_start', { tool: 'equipment' }); } render(); });
+  form.addEventListener('change', render);
+  form.addEventListener('submit', (e) => e.preventDefault());
+  form.querySelectorAll<HTMLElement>('.chips').forEach((box) => box.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button');
+    if (!b) return;
+    ($(box.dataset.for!) as HTMLInputElement).value = b.dataset.v!;
+    if (!touched) { touched = true; track('calc_start', { tool: 'equipment' }); }
+    render();
+  }));
+  fromUrl();
+  render();
+</script>
+
+<style>
+  .sz-head { padding: 54px 0 26px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, rgba(10, 61, 93, .22), transparent); }
+  .sz-head h1 { margin: 6px 0 0; font-size: clamp(28px, 4vw, 44px); font-weight: 800; line-height: 1.35; }
+  .sz-head p { margin: 14px 0 0; max-width: 64ch; color: var(--muted); font-size: 17px; line-height: 1.95; }
+  .breadcrumb b { color: var(--ink); font-weight: 600; }
+
+  .sz { padding: 34px 0 20px; }
+  .sz-grid { display: grid; grid-template-columns: minmax(0, 430px) minmax(0, 1fr); gap: 30px; align-items: start; }
+
+  /* ---------- فرم ---------- */
+  .sz-form { display: grid; gap: 14px; }
+  .sz-step { margin: 0; padding: 20px 20px 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-1); min-width: 0; }
+  .sz-step legend { display: flex; align-items: center; gap: 10px; padding: 0 6px; font-weight: 800; font-size: 17px; }
+  .sz-n { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--yellow); color: var(--yellow); font-size: 14px; }
+  .sz-label { display: flex; justify-content: space-between; gap: 8px; margin: 16px 0 8px; color: var(--muted); font-size: 14px; }
+  .sz-label output { color: var(--yellow); font-weight: 700; }
+  .sz-hint { margin: 8px 0 0; color: var(--faint); font-size: 13px; line-height: 1.8; }
+  .sz-hint a { color: var(--yellow); }
+  .sz [hidden] { display: none !important; }
+
+  .sz-input { display: flex; align-items: center; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg); overflow: hidden; }
+  .sz-input:focus-within { border-color: var(--yellow); }
+  .sz-input input { flex: 1; min-width: 0; height: 52px; padding: 0 14px; border: 0; background: none; color: var(--ink); font: inherit; font-size: 20px; font-weight: 700; outline: none; text-align: left; }
+  .sz-input span { padding: 0 14px; color: var(--faint); font-size: 14px; border-inline-start: 1px solid var(--line); line-height: 52px; }
+  .sz-select { width: 100%; height: 48px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg); color: var(--ink); font: inherit; font-size: 14.5px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chips button { min-height: 36px; padding: 4px 13px; border: 1px solid var(--line-2); border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 13.5px; cursor: pointer; }
+  .chips button:hover { color: var(--yellow); border-color: var(--yellow); }
+
+  .seg { display: inline-flex; flex-wrap: wrap; padding: 4px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg); gap: 2px; }
+  .seg-3 { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+  .seg label { position: relative; }
+  .seg input, .opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg span { display: grid; place-items: center; min-height: 40px; padding: 4px 12px; border-radius: 9px; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; line-height: 1.5; }
+  .seg input:checked + span { background: var(--yellow); color: #1a1400; }
+  .seg input:focus-visible + span, .opt input:focus-visible + span { outline: 2px solid var(--yellow); outline-offset: 2px; }
+  .sz-row { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: end; }
+
+  .opt-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+  .opt span { display: grid; gap: 4px; height: 100%; padding: 13px 14px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg); cursor: pointer; }
+  .opt b { font-size: 15px; }
+  .opt i { font-style: normal; color: var(--faint); font-size: 12.5px; line-height: 1.7; }
+  .opt input:checked + span { border-color: var(--yellow); background: rgba(255, 196, 26, .07); }
+  .opt input:checked + span b { color: var(--yellow); }
+  .panels { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .pnl b { font-size: 18px; text-align: right; }
+
+  input[type="range"] { width: 100%; accent-color: var(--yellow); }
+
+  /* ---------- نقشه ---------- */
+  .sz-out { position: sticky; top: 92px; display: grid; gap: 14px; }
+  .schem { margin: 0; border: 1px solid var(--line); border-radius: 14px; background: #08131b; overflow: hidden; }
+  .schem svg { display: block; width: 100%; height: auto; }
+  .schem figcaption { padding: 10px 16px 12px; color: var(--faint); font-size: 12.5px; border-top: 1px solid var(--line); }
+  .schem :global(.box) { fill: #0d2433; stroke: #5F839B; stroke-width: 1.5; }
+  .schem :global(.lbl) { fill: #F4F3F1; font: 600 13px var(--font); }
+  .schem :global(.sm) { fill: #B4B4B4; font: 500 11px var(--font); }
+  .schem :global(.wire) { stroke: #5F839B; stroke-width: 1.4; }
+  .schem :global(.flow) { fill: none; stroke: #FFC41A; stroke-width: 2.4; stroke-linejoin: round; stroke-dasharray: 7 6; }
+  .schem :global(svg.live .flow) { animation: flow 1.4s linear 1; }
+  @keyframes flow { from { stroke-dashoffset: 52; } to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) { .schem :global(svg.live .flow) { animation: none; } }
+
+  /* در موبایل نقشه تا نصف کوچک می‌شود؛ متنش به همان نسبت درشت‌تر */
+  @media (max-width: 560px) {
+    .schem :global(.lbl) { font-size: 21px; }
+    .schem :global(.sm) { font-size: 17px; }
+  }
+  .keys { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 14px; background: var(--bg-1); }
+  .keys > div { padding: 16px 16px 14px; }
+  .keys > div + div { border-inline-start: 1px solid var(--line); }
+  .keys b { display: block; color: var(--yellow); font-size: 21px; font-weight: 800; line-height: 1.4; }
+  .keys span { color: var(--faint); font-size: 13px; }
+  .sz-note { margin: 0; padding: 12px 14px; border: 1px solid rgba(255, 196, 26, .35); border-radius: 12px; background: rgba(255, 196, 26, .06); font-size: 14px; line-height: 1.9; }
+
+  /* ---------- فهرست تجهیزات ---------- */
+  .bom-sec, .picks-sec { padding: 30px 0 10px; }
+  .bom-title { margin: 0 0 16px; font-size: 22px; font-weight: 800; }
+  .bom { margin: 0; border-top: 2px solid var(--yellow); }
+  .bom :global(.bom-row) { display: grid; grid-template-columns: 170px 1fr; gap: 18px; padding: 15px 4px; border-bottom: 1px solid var(--line); }
+  .bom :global(dt) { color: var(--faint); font-size: 14.5px; font-weight: 600; padding-top: 2px; }
+  .bom :global(dd) { margin: 0; display: grid; gap: 4px; }
+  .bom :global(dd b) { font-size: 17px; font-weight: 800; }
+  .bom :global(dd b a) { color: var(--ink); text-decoration: underline; text-decoration-color: rgba(255, 196, 26, .55); text-underline-offset: 5px; }
+  .bom :global(dd b a:hover) { color: var(--yellow); }
+  .bom :global(dd span) { color: var(--muted); font-size: 14px; line-height: 1.85; }
+  .bom-foot { margin: 14px 0 0; color: var(--faint); font-size: 13px; line-height: 1.9; }
+  .bom-foot a, .picks-empty a, .home-faq-head a { color: var(--yellow); }
+
+  .picks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .picks-empty { color: var(--muted); font-size: 14.5px; line-height: 1.9; }
+  .picks-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; }
+  .picks-links :global(a) { padding: 6px 14px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); font-size: 14px; }
+  .picks-links :global(a:hover) { color: var(--yellow); border-color: var(--yellow); }
+
+  .method-sec { padding: 28px 0 0; }
+  .method { border: 1px solid var(--line); border-radius: 14px; background: var(--bg-1); }
+  .method summary { padding: 16px 20px; cursor: pointer; font-weight: 700; }
+  .method-body { padding: 0 20px 14px; }
+  .method-body p { margin: 0 0 12px; color: var(--muted); font-size: 14.5px; line-height: 2; max-width: 80ch; }
+  .method-body b { color: var(--ink); }
+  .method-body a { color: var(--yellow); }
+  .review-wrap { padding-top: 10px; }
+
+  @media (max-width: 1000px) {
+    .sz-grid { grid-template-columns: 1fr; }
+    .sz-out { position: static; }
+    .picks { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .sz-row { grid-template-columns: 1fr; }
+    .opt-2, .panels { grid-template-columns: 1fr 1fr; }
+    .keys { grid-template-columns: 1fr; }
+    .keys > div + div { border-inline-start: 0; border-top: 1px solid var(--line); }
+    .bom :global(.bom-row) { grid-template-columns: 1fr; gap: 4px; }
+    .picks { grid-template-columns: 1fr; }
+  }
+</style>
