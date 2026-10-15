@@ -259,6 +259,15 @@ const pageSchema = [
             ))}
           </div>
         )}
+
+        {/* پدر به پدر: صفحهٔ برند به دسته‌های پنل فروشگاه و مکملش (اینورتر) */}
+        <p class="ae-shop-links">
+          همهٔ پنل‌ها در <a href="/shop/panel">پنل خورشیدی</a>
+          · <a href="/shop/panel/bifacial">پنل دوطرفه</a>
+          · <a href="/shop/panel/550w">پنل ۵۵۰ وات</a>
+          · <a href="/shop/panel/700w">پنل ۷۰۰ وات</a>
+          — و برای کنار این پنل‌ها، <a href="/shop/inverter">اینورتر خورشیدی</a>.
+        </p>
       </div>
     </section>
 
@@ -342,3 +351,8 @@ const pageSchema = [
 
   </div>
 </Base>
+
+<style>
+  .ae-shop-links { margin: 22px 0 0; color: var(--muted); line-height: 2.1; }
+  .ae-shop-links a { color: var(--yellow); text-underline-offset: 4px; }
+</style>

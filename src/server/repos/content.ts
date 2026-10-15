@@ -33,6 +33,12 @@ export interface ProductView {
   specUnit: string;
   cat: 'home' | 'industrial';
   kind: 'inverter' | 'panel' | 'storage' | 'accessory';
+  /** ابعاد دسته‌بندی و برچسب — data/shopTaxonomy.ts */
+  subkind: string | null;
+  phase: 'single' | 'three' | null;
+  powerMin: number | null;
+  powerMax: number | null;
+  official: boolean;
   body: string | null;
   featured: boolean;
   image: ImageRef | null;
@@ -61,6 +67,11 @@ export function listProducts(): Promise<ProductView[]> {
         specUnit: products.specUnit,
         cat: products.cat,
         kind: products.kind,
+        subkind: products.subkind,
+        phase: products.phase,
+        powerMin: products.powerMin,
+        powerMax: products.powerMax,
+        official: products.official,
         body: products.body,
         featured: products.featured,
         seoTitle: products.seoTitle,
@@ -103,6 +114,11 @@ function toProductView(row: Record<string, any>): ProductView {
     specUnit: row.specUnit,
     cat: row.cat,
     kind: row.kind,
+    subkind: row.subkind ?? null,
+    phase: row.phase ?? null,
+    powerMin: row.powerMin ?? null,
+    powerMax: row.powerMax ?? null,
+    official: !!row.official,
     body: row.body,
     featured: row.featured,
     image: toImageRef(row, row.name),

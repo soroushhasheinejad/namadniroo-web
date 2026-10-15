@@ -1,0 +1,19 @@
+---
+import ShopListing from '../../../components/ShopListing.astro';
+import { listProducts } from '../../../server/repos/content';
+import { facetOf, productsOfFacet, typeBySlug } from '../../../data/shopTaxonomy';
+
+export const prerender = false;
+
+/**
+ * صفحهٔ نیت جست‌وجو: /shop/inverter/hybrid، /shop/inverter/fronius،
+ * /shop/panel/550w … فقط صفحه‌هایی که در shopTaxonomyContent.ts تعریف
+ * شده‌اند و دست‌کم یک محصول دارند ساخته می‌شوند؛ بقیه ۴۰۴.
+ */
+const { type: typeSlug, facet: facetSlug } = Astro.params;
+const type = typeBySlug(typeSlug!);
+const facet = type ? facetOf(type.slug, facetSlug!) : undefined;
+const all = await listProducts();
+if (!type || !facet || productsOfFacet(facet, all).length === 0) return Astro.rewrite('/404');
+---
+<ShopListing type={type} facet={facet} all={all} />

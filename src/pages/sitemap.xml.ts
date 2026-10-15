@@ -3,6 +3,7 @@ import { listArticles, listProducts } from '../server/repos/content';
 import { getPageContent } from '../server/repos/pageContent';
 import { PAGES } from '../data/pages';
 import { aeModels } from '../data/aesolarModels';
+import { TYPES, liveFacets, productsOfFacet, productsOfType } from '../data/shopTaxonomy';
 
 export const prerender = false;
 
@@ -57,6 +58,9 @@ async function staticPages(): Promise<Entry[]> {
     .map((p) => ({ path: p.path, ...(HINTS[p.path] ?? { changefreq: 'monthly', priority: '0.6' }) }));
 }
 
+const latest = (list: { updatedAt: Date }[]): Date | undefined =>
+  list.length ? new Date(Math.max(...list.map((p) => new Date(p.updatedAt).getTime()))) : undefined;
+
 const escapeXml = (value: string): string =>
   value.replace(/[<>&'"]/g, (c) => `&${{ '<': 'lt', '>': 'gt', '&': 'amp', "'": 'apos', '"': 'quot' }[c]};`);
 
@@ -83,6 +87,21 @@ export const GET: APIRoute = async () => {
     /* صفحهٔ هر مدل AE Solar — دادهٔ کد است نه دیتابیس، پس `noindex` هم
        ندارد که فیلتر شود. */
     ...aeModels.map((m) => ({ path: `/ae-solar/${m.slug}`, changefreq: 'monthly', priority: '0.7' })),
+
+    /* صفحه‌های نوع و نیت فروشگاه. lastmod همان تازه‌ترین ویرایش
+       محصول‌هایشان است، چون محتوای فهرست با محصول‌ها عوض می‌شود. */
+    ...TYPES.filter((t) => productsOfType(t, products).length > 0).map((t) => ({
+      path: `/shop/${t.slug}`,
+      lastmod: latest(productsOfType(t, products)),
+      changefreq: 'weekly',
+      priority: '0.8',
+    })),
+    ...liveFacets(products).map((f) => ({
+      path: `/shop/${f.type}/${f.slug}`,
+      lastmod: latest(productsOfFacet(f, products)),
+      changefreq: 'weekly',
+      priority: '0.7',
+    })),
 
     /* محصول و مقاله‌ای که ویراستار `noindex` زده در نقشه نمی‌آید — فرستادن
        نشانی‌ای که خودمان از گوگل پنهانش کرده‌ایم سیگنال متناقض است. */

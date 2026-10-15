@@ -1,0 +1,239 @@
+---
+import Base from '../layouts/Base.astro';
+import ProductCard from './ProductCard.astro';
+import RelatedArticles from './RelatedArticles.astro';
+import { breadcrumbSchema, faqSchema } from '../utils';
+import type { ProductView } from '../server/repos/content';
+import {
+  BRANDS,
+  CAT_LABEL,
+  PHASE_LABEL,
+  SUBKIND_LABEL,
+  applyQueryFilters,
+  brandKey,
+  complementTypes,
+  productsOfFacet,
+  productsOfType,
+  sidebarFor,
+  type FacetDef,
+  type TypeDef,
+} from '../data/shopTaxonomy';
+
+/**
+ * صفحهٔ فهرست فروشگاه: هم صفحهٔ نوع (/shop/inverter) و هم صفحهٔ نیت
+ * (/shop/inverter/hybrid). هر چهار جهت لینک‌سازی اینجا دیده می‌شود:
+ * مسیر راهنما (فرزند به پدر)، محصول‌ها و لینک‌های درون‌متن (پدر به فرزند)،
+ * ستون کناری (هم‌سطح‌ها و پدر به پدر) و کاروسل مکمل (فرزندان مکمل).
+ */
+interface Props {
+  type: TypeDef;
+  facet?: FacetDef;
+  all: ProductView[];
+}
+const { type, facet, all } = Astro.props;
+const page = facet ?? type;
+const base = facet ? `/shop/${type.slug}/${facet.slug}` : `/shop/${type.slug}`;
+
+const inScope = facet ? productsOfFacet(facet, all) : productsOfType(type, all);
+/* فیلتر کوئری‌استرینگ: middleware برای این نشانی‌ها noindex می‌فرستد */
+const q = Astro.url.searchParams;
+const filtered = applyQueryFilters(inScope, q);
+const isFiltered = filtered.length !== inScope.length || [...q.keys()].some((k) => k !== 'page');
+
+/* فقط بُعدهایی که در همین فهرست بیش از یک مقدار دارند فیلتر می‌شوند */
+const uniq = <T,>(xs: (T | null)[]) => [...new Set(xs.filter((x): x is T => x !== null))];
+const filterDims = [
+  { key: 'brand', title: 'برند', values: uniq(inScope.map((p) => brandKey(p.brand))).map((v) => ({ v, label: BRANDS[v] ?? v })) },
+  { key: 'phase', title: 'فاز', values: uniq(inScope.map((p) => p.phase)).map((v) => ({ v, label: PHASE_LABEL[v] })) },
+  { key: 'cat', title: 'کاربرد', values: uniq(inScope.map((p) => p.cat)).map((v) => ({ v, label: CAT_LABEL[v] })) },
+  { key: 'subkind', title: 'نوع', values: uniq(inScope.map((p) => p.subkind)).map((v) => ({ v, label: SUBKIND_LABEL[v] ?? v })) },
+].filter((d) => d.values.length > 1 && !(facet && d.key === facet.dim));
+const withParam = (key: string, v: string) => {
+  const p = new URLSearchParams(q);
+  if (p.get(key) === v) p.delete(key); else p.set(key, v);
+  const s = p.toString();
+  return s ? `${base}?${s}` : base;
+};
+
+const sidebar = sidebarFor(type, facet, all);
+const compTypes = complementTypes(type.kind, facet?.dim === 'subkind' ? facet.value : undefined);
+const compProducts = compTypes
+  .flatMap((t) => productsOfType(t, all))
+  /* هم‌کاربرد جلوتر: کسی که اینورتر نیروگاهی می‌بیند، پنل نیروگاهی می‌خواهد */
+  .sort((a, b) => Number(b.cat === (inScope[0]?.cat ?? b.cat)) - Number(a.cat === (inScope[0]?.cat ?? a.cat)))
+  .slice(0, 8);
+
+/* لینک درون‌متنی: [متن](/نشانی) ← <a>. متن پیش از آن escape می‌شود. */
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const inline = (s: string) => esc(s).replace(/\[([^\]]+)\]\((\/[^)\s]*)\)/g, '<a href="$2">$1</a>');
+
+const trail = [
+  { name: 'فروشگاه', href: '/shop' },
+  { name: type.h1, href: `/shop/${type.slug}` },
+  ...(facet ? [{ name: facet.h1, href: base }] : []),
+];
+const schema = [
+  breadcrumbSchema(trail),
+  ...(page.faq.length ? [faqSchema(page.faq)] : []),
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: page.h1,
+    url: new URL(base, 'https://namadniroo.ir').href,
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: inScope.map((p, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        url: new URL(`/shop/${p.slug}`, 'https://namadniroo.ir').href,
+        name: p.name,
+      })),
+    },
+  },
+];
+---
+<Base title={page.title} description={page.description} schema={schema} canonical={base}>
+  <div class="article-head shop-head">
+    <div class="wrap">
+      <nav class="breadcrumb" aria-label="مسیر صفحه">
+        <a href="/">خانه</a>
+        {trail.map((c, i) => (
+          <>
+            <span>/</span>
+            {i === trail.length - 1 ? <b aria-current="page">{c.name}</b> : <a href={c.href}>{c.name}</a>}
+          </>
+        ))}
+      </nav>
+      <h1 class="article-title">{page.h1}</h1>
+      <div class="shop-intro">
+        {page.intro.map((para) => <p set:html={inline(para)} />)}
+      </div>
+    </div>
+  </div>
+
+  <section class="shop-sec">
+    <div class="wrap shop-layout">
+      <div class="shop-main">
+        {filterDims.length > 0 && (
+          <div class="shop-filters" aria-label="فیلتر">
+            {filterDims.map((d) => (
+              <div class="sf-row">
+                <span class="sf-title">{d.title}</span>
+                {d.values.map(({ v, label }) => (
+                  <a class:list={['sf-chip', q.get(d.key) === v && 'is-on']} href={withParam(d.key, v)} rel="nofollow">{label}</a>
+                ))}
+              </div>
+            ))}
+            {isFiltered && <a class="sf-clear" href={base}>نمایش همه</a>}
+          </div>
+        )}
+
+        <p class="shop-count">{filtered.length.toLocaleString('fa-IR')} محصول</p>
+        <div class="shop-grid">
+          {filtered.map((p) => <ProductCard p={p} />)}
+        </div>
+      </div>
+
+      <aside class="shop-side" aria-label="دسته‌های مرتبط">
+        {sidebar.map((g) => (
+          <div class="side-group">
+            <p class="side-title">{g.title}</p>
+            <ul>
+              {g.links.map((l) => (
+                <li><a href={l.href}>{l.label}{l.count !== undefined && <span>{l.count.toLocaleString('fa-IR')}</span>}</a></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </aside>
+    </div>
+  </section>
+
+  {compProducts.length > 0 && (
+    <section class="shop-comp">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">معمولاً همراه {page.h1}</p>
+          <h2 class="section-title">
+            {compTypes.map((t, i) => (
+              <>{i > 0 && '، '}<a href={`/shop/${t.slug}`}>{t.h1}</a></>
+            ))}
+          </h2>
+        </header>
+        <div class="comp-rail">
+          {compProducts.map((p) => <ProductCard p={p} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {page.faq.length > 0 && (
+    <section class="home-faq" aria-labelledby="shop-faq-title">
+      <div class="wrap home-faq-grid">
+        <div class="home-faq-head">
+          <h2 id="shop-faq-title" class="section-title">پرسش‌های پرتکرار دربارهٔ {page.h1}</h2>
+        </div>
+        <div class="home-faq-list">
+          {page.faq.map((f, i) => (
+            <details class="hfaq-item" open={i === 0}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <RelatedArticles slugs={page.guides} title={`راهنمای انتخاب ${page.h1}`} />
+
+  <section class="cta-band">
+    <div class="wrap">
+      <h2>برای پروژه‌تان کدام مدل مناسب است؟</h2>
+      <p>کارشناسان نماد نیرو مدل، توان و قیمت روز را بر اساس شرایط پروژهٔ شما پیشنهاد می‌دهند.</p>
+      <a class="btn btn-solid" href="/contact" data-quote>استعلام قیمت و مشاوره</a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .shop-head { padding-bottom: 8px; }
+  .shop-intro { max-width: 78ch; }
+  .shop-intro p { margin: 14px 0 0; color: var(--muted); font-size: 16.5px; line-height: 2; }
+  .shop-intro :global(a), .section-title a { color: var(--yellow); text-underline-offset: 4px; }
+  .breadcrumb b { color: var(--ink); font-weight: 600; }
+
+  .shop-layout { display: grid; grid-template-columns: 1fr 270px; gap: 32px; align-items: start; }
+  .shop-main .shop-grid { grid-template-columns: repeat(3, 1fr); }
+  .shop-count { margin: 0 0 14px; color: var(--faint); font-size: 14px; }
+
+  .shop-filters { display: grid; gap: 10px; margin-bottom: 22px; padding: 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg-1); }
+  .sf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .sf-title { min-width: 56px; color: var(--faint); font-size: 13.5px; }
+  .sf-chip { padding: 5px 14px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); font-size: 14px; }
+  .sf-chip:hover { color: var(--yellow); border-color: var(--yellow); }
+  .sf-chip.is-on { color: var(--yellow); border-color: var(--yellow); background: rgba(255, 196, 26, .08); }
+  .sf-clear { justify-self: start; color: var(--yellow); font-size: 14px; }
+
+  .shop-side { position: sticky; top: 96px; display: grid; gap: 18px; }
+  .side-group { padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg-1); }
+  .side-title { margin: 0 0 10px; font-weight: 700; font-size: 15px; }
+  .side-group ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+  .side-group a { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; color: var(--muted); font-size: 14.5px; }
+  .side-group a:hover { color: var(--yellow); }
+  .side-group a span { color: var(--faint); font-size: 13px; }
+
+  .shop-comp { padding: 56px 0; background: var(--bg-1); border-block: 1px solid var(--line); }
+  .shop-comp .section-title { font-size: clamp(20px, 2.4vw, 28px); }
+  .comp-rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(240px, 280px); gap: 18px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory; }
+  .comp-rail > :global(*) { scroll-snap-align: start; }
+
+  @media (max-width: 1000px) {
+    .shop-layout { grid-template-columns: 1fr; }
+    .shop-side { position: static; }
+    .shop-main .shop-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .shop-main .shop-grid { grid-template-columns: 1fr; }
+  }
+</style>

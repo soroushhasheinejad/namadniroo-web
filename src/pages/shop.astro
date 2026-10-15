@@ -10,6 +10,7 @@ import { listProducts } from '../server/repos/content';
 import { seoProps } from '../server/seo/pageSeo';
 import { getPageContent } from '../server/repos/pageContent';
 import { shopPage } from '../data/pages';
+import { TYPES, liveFacets, productsOfType } from '../data/shopTaxonomy';
 
 /* محتوا از دیتابیس می‌آید، پس صفحه باید روی سرور ساخته شود تا تغییرات پنل
    بدون بیلد دوباره دیده شوند. لایهٔ کش باعث می‌شود این کار در عمل هزینهٔ
@@ -17,6 +18,11 @@ import { shopPage } from '../data/pages';
 export const prerender = false;
 
 const products = await listProducts();
+
+/* پدر به فرزند: هر نوع کالا با صفحه‌های نیتش، بالای فهرست کامل */
+const live = liveFacets(products);
+const types = TYPES.map((t) => ({ t, count: productsOfType(t, products).length, facets: live.filter((f) => f.type === t.slug) }))
+  .filter((x) => x.count > 0);
 
 const pageSchema = breadcrumbSchema([{ name: 'فروشگاه', href: '/shop' }]);
 const c = await getPageContent(shopPage);
@@ -29,6 +35,19 @@ const seo = await seoProps(c.seo);
     title={c.hero.title}
     lead={c.hero.lead}
   />
+
+  <section class="shop-types" aria-label="دسته‌های فروشگاه">
+    <div class="wrap shop-types-grid">
+      {types.map(({ t, count, facets }) => (
+        <div class="type-card">
+          <a class="type-name" href={`/shop/${t.slug}`}>{t.h1}<span>{count.toLocaleString('fa-IR')} محصول</span></a>
+          {facets.length > 0 && (
+            <ul>{facets.map((f) => <li><a href={`/shop/${t.slug}/${f.slug}`}>{f.h1}</a></li>)}</ul>
+          )}
+        </div>
+      ))}
+    </div>
+  </section>
 
   <section class="shop-sec">
     <div class="wrap">
@@ -52,3 +71,17 @@ const seo = await seoProps(c.seo);
     </div>
   </section>
 </Base>
+
+<style>
+  .shop-types { padding: 34px 0 6px; }
+  .shop-types-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .type-card { padding: 18px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg-1); }
+  .type-name { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 18px; font-weight: 800; color: var(--ink); }
+  .type-name span { color: var(--faint); font-size: 13px; font-weight: 500; }
+  .type-name:hover { color: var(--yellow); }
+  .type-card ul { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+  .type-card li a { display: inline-block; padding: 4px 11px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); font-size: 13px; }
+  .type-card li a:hover { color: var(--yellow); border-color: var(--yellow); }
+  @media (max-width: 1000px) { .shop-types-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .shop-types-grid { grid-template-columns: 1fr; } }
+</style>

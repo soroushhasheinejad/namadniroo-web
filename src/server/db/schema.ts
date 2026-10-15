@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 /**
@@ -124,6 +124,18 @@ export const products = sqliteTable(
     specUnit: text('spec_unit').notNull(),
     cat: text('cat', { enum: ['home', 'industrial'] }).notNull(),
     kind: text('kind', { enum: ['inverter', 'panel', 'storage', 'accessory'] }).notNull(),
+    /* --- ابعاد دسته‌بندی و برچسب (data/shopTaxonomy.ts) ---
+       این‌ها تعیین می‌کنند محصول در کدام صفحهٔ دسته و نیت جست‌وجو بیاید و
+       چه برچسب‌هایی بگیرد؛ خالی‌ماندنشان فقط یعنی محصول در آن صفحه‌ها نیست. */
+    /** زیرنوع: hybrid | string (اینورتر)، bifacial | monofacial (پنل)، battery | all-in-one (ذخیره‌ساز)، monitoring (جانبی) */
+    subkind: text('subkind'),
+    /** فاز اینورتر */
+    phase: text('phase', { enum: ['single', 'three'] }),
+    /** بازهٔ توان: کیلووات برای اینورتر، وات برای پنل، کیلووات‌ساعت برای ذخیره‌ساز */
+    powerMin: real('power_min'),
+    powerMax: real('power_max'),
+    /** از نمایندگی رسمی سازنده، با ضمانت رسمی — فقط وقتی واقعاً هست */
+    official: bool('official').notNull().default(false),
     imageMediaId: integer('image_media_id'),
     /** توضیح بلند محصول (مارک‌داون) */
     body: text('body'),

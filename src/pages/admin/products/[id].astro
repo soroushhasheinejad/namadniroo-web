@@ -7,6 +7,7 @@ import { getDb } from '../../../server/db/client';
 import { products } from '../../../server/db/schema';
 import { deleteContent, saveContent, slugify } from '../../../server/services/content';
 import { listMedia } from '../../../server/media/store';
+import { KIND_FIELDS } from '../../../data/shopTaxonomyAdmin';
 
 export const prerender = false;
 
@@ -41,6 +42,12 @@ if (Astro.request.method === 'POST') {
       specUnit: String(form.get('specUnit') ?? '').trim(),
       cat: String(form.get('cat') ?? 'home'),
       kind: String(form.get('kind') ?? 'inverter'),
+      /* ابعاد دسته‌بندی؛ مقدار ناشناخته ذخیره نمی‌شود */
+      subkind: KIND_FIELDS.subkinds.includes(String(form.get('subkind'))) ? String(form.get('subkind')) : null,
+      phase: ['single', 'three'].includes(String(form.get('phase'))) ? String(form.get('phase')) : null,
+      powerMin: Number(form.get('powerMin')) > 0 ? Number(form.get('powerMin')) : null,
+      powerMax: Number(form.get('powerMax')) > 0 ? Number(form.get('powerMax')) : null,
+      official: form.get('official') === '1',
       body: String(form.get('body') ?? '').trim() || null,
       imageMediaId: mediaId > 0 ? mediaId : null,
       sortOrder: Number(form.get('sortOrder')) || 999,
@@ -145,6 +152,44 @@ const p = row ?? null;
           </select>
         </div>
       </div>
+
+      <fieldset class="a-field" style="border:1px solid var(--a-line, #333);border-radius:8px;padding:12px 14px">
+        <legend style="padding:0 6px">دسته‌بندی و برچسب در فروشگاه</legend>
+        <p class="a-hint">این‌ها تعیین می‌کنند محصول در کدام صفحهٔ دسته بیاید (مثلاً «اینورتر هیبرید»، «اینورتر سه‌فاز»، «اینورتر ۵ کیلووات») و چه برچسب‌هایی بگیرد.</p>
+        <div class="a-row">
+          <div class="a-field">
+            <label for="subkind">زیرنوع</label>
+            <select class="a-select" id="subkind" name="subkind">
+              <option value="">—</option>
+              {KIND_FIELDS.groups.map((g) => (
+                <optgroup label={g.label}>
+                  {g.options.map((o) => <option value={o.value} selected={p?.subkind === o.value}>{o.label}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <div class="a-field">
+            <label for="phase">فاز (اینورتر)</label>
+            <select class="a-select" id="phase" name="phase">
+              <option value="">—</option>
+              <option value="single" selected={p?.phase === 'single'}>تک‌فاز</option>
+              <option value="three" selected={p?.phase === 'three'}>سه‌فاز</option>
+            </select>
+          </div>
+        </div>
+        <div class="a-row">
+          <div class="a-field">
+            <label for="powerMin">کمترین توان</label>
+            <input class="a-input" id="powerMin" name="powerMin" type="number" step="any" dir="ltr" value={p?.powerMin ?? ''} />
+          </div>
+          <div class="a-field">
+            <label for="powerMax">بیشترین توان</label>
+            <input class="a-input" id="powerMax" name="powerMax" type="number" step="any" dir="ltr" value={p?.powerMax ?? ''} />
+          </div>
+        </div>
+        <p class="a-hint">واحد توان: اینورتر کیلووات، پنل وات، ذخیره‌ساز کیلووات‌ساعت. برای مدل تک‌توان هر دو را یکی بگذارید.</p>
+        <label class="a-check"><input type="checkbox" name="official" value="1" checked={p?.official ?? false} /> از نمایندگی رسمی سازنده با ضمانت رسمی (فقط وقتی واقعاً هست)</label>
+      </fieldset>
 
       <div class="a-field">
         <label for="body">توضیح محصول</label>

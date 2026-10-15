@@ -96,7 +96,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
      شود، وگرنه هر لینک قدیمی وردپرس دو بازدید می‌ساخت. */
   trackPageview(context);
 
-  return next();
+  /* کوئری‌استرینگ صفحهٔ تازه نمی‌سازد. فیلتر برند و فاز در فروشگاه،
+     مقدارهای از پیش پرشدهٔ ماشین‌حساب و پارامترهای کمپین همه نسخهٔ دیگری
+     از یک صفحهٔ تمیزند؛ آن نسخهٔ تمیز ایندکس می‌شود و این‌ها فقط بودجهٔ
+     خزیدن را هدر می‌دهند. follow می‌ماند تا لینک‌هایشان دنبال شود.
+     صفحه‌بندی (?page=) مستثناست. */
+  const response = await next();
+  if ([...context.url.searchParams.keys()].some((k) => k !== 'page')) {
+    response.headers.set('X-Robots-Tag', 'noindex, follow');
+  }
+  return response;
 });
 
 /**

@@ -71,6 +71,20 @@
       "when": 1791196446943,
       "tag": "0009_lead_ga_client_id",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1792099293276,
+      "tag": "0010_outstanding_stingray",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1792099317350,
+      "tag": "0011_product_taxonomy_backfill",
+      "breakpoints": true
     }
   ]
 }
