@@ -8,7 +8,8 @@ const { p, showCat = true } = Astro.props;
 ---
 <article class="product-card" data-cat={p.cat}>
   <div class="product-thumb">
-    {showCat && <span class="product-cat">{categoryLabel[p.cat]}</span>}
+    {/* ابزار نصب خانگی یا صنعتی ندارد */}
+    {showCat && p.kind !== 'tool' && <span class="product-cat">{categoryLabel[p.cat]}</span>}
     {p.image
       ? <DbImage image={p.image} class="product-img" sizes="(max-width: 700px) 45vw, 300px" />
       : <span class="thumb-brand" set:html={p.brand} />}

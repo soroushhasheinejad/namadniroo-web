@@ -2,15 +2,13 @@
 import Base from '../layouts/Base.astro';
 import RelatedArticles from '../components/RelatedArticles.astro';
 import PageHero from '../components/PageHero.astro';
-import FilterBar from '../components/FilterBar.astro';
 import ProductCard from '../components/ProductCard.astro';
-import { filters } from '../data/site';
 import { breadcrumbSchema } from '../utils';
 import { listProducts } from '../server/repos/content';
 import { seoProps } from '../server/seo/pageSeo';
 import { getPageContent } from '../server/repos/pageContent';
 import { shopPage } from '../data/pages';
-import { TYPES, liveFacets, productsOfType } from '../data/shopTaxonomy';
+import { TYPES, liveFacets, productsOfType, shopSections } from '../data/shopTaxonomy';
 
 /* محتوا از دیتابیس می‌آید، پس صفحه باید روی سرور ساخته شود تا تغییرات پنل
    بدون بیلد دوباره دیده شوند. لایهٔ کش باعث می‌شود این کار در عمل هزینهٔ
@@ -23,6 +21,9 @@ const products = await listProducts();
 const live = liveFacets(products);
 const types = TYPES.map((t) => ({ t, count: productsOfType(t, products).length, facets: live.filter((f) => f.type === t.slug) }))
   .filter((x) => x.count > 0);
+
+/* فهرست کامل، دسته‌به‌دسته: اینورترها بر اساس کاربرد، بقیه بر اساس نوع */
+const sections = shopSections(products);
 
 const pageSchema = breadcrumbSchema([{ name: 'فروشگاه', href: '/shop' }]);
 const c = await getPageContent(shopPage);
@@ -49,14 +50,30 @@ const seo = await seoProps(c.seo);
     </div>
   </section>
 
-  <section class="shop-sec">
-    <div class="wrap">
-      <FilterBar items={filters.products} label="فیلتر محصولات" />
-      <div class="shop-grid">
-        {products.map((p) => <ProductCard p={p} />)}
-      </div>
+  <nav class="shop-jump" aria-label="دسته‌های محصولات">
+    <div class="wrap shop-jump-row">
+      {sections.map(({ section, items }) => (
+        <a href={`#${section.id}`}>{section.title}<span>{items.length.toLocaleString('fa-IR')}</span></a>
+      ))}
     </div>
-  </section>
+  </nav>
+
+  {sections.map(({ section, items }) => (
+    <section class="shop-sec shop-group" id={section.id}>
+      <div class="wrap">
+        <header class="group-head">
+          <div>
+            <h2 class="group-title">{section.title}</h2>
+            <p class="group-lead">{section.lead} · {items.length.toLocaleString('fa-IR')} محصول</p>
+          </div>
+          {section.href && <a class="group-more" href={section.href}>همهٔ {section.title} ←</a>}
+        </header>
+        <div class="shop-grid">
+          {items.map((p) => <ProductCard p={p} />)}
+        </div>
+      </div>
+    </section>
+  ))}
 
   <RelatedArticles
     slugs={['inverter-role', 'how-panel-works', 'ongrid-offgrid']}
@@ -82,6 +99,18 @@ const seo = await seoProps(c.seo);
   .type-card ul { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
   .type-card li a { display: inline-block; padding: 4px 11px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); font-size: 13px; }
   .type-card li a:hover { color: var(--yellow); border-color: var(--yellow); }
+  .shop-jump { position: sticky; top: 72px; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); padding: 12px 0; margin-top: 18px; }
+  .shop-jump-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  .shop-jump-row::-webkit-scrollbar { display: none; }
+  .shop-jump a { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); font-size: 13.5px; white-space: nowrap; }
+  .shop-jump a span { color: var(--faint); font-size: 12px; }
+  .shop-jump a:hover { color: var(--yellow); border-color: var(--yellow); }
+  .shop-group { scroll-margin-top: 150px; padding: 40px 0 24px; }
+  .group-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 18px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+  .group-title { margin: 0; font-size: 24px; font-weight: 800; color: var(--ink); }
+  .group-lead { margin: 4px 0 0; color: var(--faint); font-size: 14px; }
+  .group-more { flex: none; color: var(--yellow); font-size: 14px; font-weight: 700; }
   @media (max-width: 1000px) { .shop-types-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .group-head { flex-direction: column; align-items: flex-start; } .group-title { font-size: 20px; } }
   @media (max-width: 560px) { .shop-types-grid { grid-template-columns: 1fr; } }
 </style>

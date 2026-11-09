@@ -1,7 +1,7 @@
 import { SUBKINDS_BY_KIND, SUBKIND_LABEL } from './shopTaxonomy';
 
 /** گزینه‌های فرم محصول در پنل، از همان تعریف‌های ساختار فروشگاه */
-const KIND_LABEL = { inverter: 'اینورتر', panel: 'پنل', storage: 'ذخیره‌ساز', accessory: 'جانبی' } as const;
+const KIND_LABEL = { inverter: 'اینورتر', panel: 'پنل', storage: 'ذخیره‌ساز', accessory: 'جانبی', tool: 'ابزار نصب' } as const;
 
 export const KIND_FIELDS = {
   groups: (Object.keys(SUBKINDS_BY_KIND) as (keyof typeof SUBKINDS_BY_KIND)[]).map((k) => ({

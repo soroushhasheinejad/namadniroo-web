@@ -1,6 +1,7 @@
 /**
  * تصاویر مخزن را وارد کتابخانهٔ رسانه می‌کند و به محصولاتِ بی‌تصویر وصلشان
- * می‌کند.
+ * می‌کند: از روی `products.json`، یا برای محصولی که آنجا نیست از روی فایلی
+ * که نامش همان نامک محصول است.
  *
  * برخلاف `db:seed` چیزی را بازنویسی نمی‌کند: تصویری که در پنل برای یک
  * محصول انتخاب شده دست‌نخورده می‌ماند و فقط ردیف‌هایی پر می‌شوند که هنوز
@@ -74,6 +75,27 @@ async function linkProducts(byFilename: Map<string, number>): Promise<void> {
       .update(products)
       .set({ imageMediaId: mediaId, updatedAt: new Date() })
       .where(and(eq(products.slug, p.id), isNull(products.imageMediaId)))
+      .returning({ slug: products.slug });
+
+    linked += done.length;
+  }
+
+  /* محصولاتی که از مایگریشن آمده‌اند و در `products.json` نیستند: فایلی
+     هم‌نام نامکشان در `src/assets/products` (مثل fronius-eco-25-0-3-s.jpg)
+     تصویرشان است. همان شرط `isNull` اینجا هم هست. */
+  const bare = await db
+    .select({ slug: products.slug })
+    .from(products)
+    .where(isNull(products.imageMediaId));
+
+  for (const { slug } of bare) {
+    const mediaId = ['.jpg', '.png', '.webp'].map((ext) => byFilename.get(slug + ext)).find(Boolean);
+    if (!mediaId) continue;
+
+    const done = await db
+      .update(products)
+      .set({ imageMediaId: mediaId, updatedAt: new Date() })
+      .where(and(eq(products.slug, slug), isNull(products.imageMediaId)))
       .returning({ slug: products.slug });
 
     linked += done.length;

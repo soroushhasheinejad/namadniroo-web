@@ -9,6 +9,7 @@ import {
   liveFacets,
   matches,
   productCrumbs,
+  shopSections,
   sidebarFor,
   tagsOf,
   typeBySlug,
@@ -45,8 +46,8 @@ describe('ساختار فروشگاه', () => {
     for (const t of TYPES) expect(all.some((p) => p.slug === t.slug)).toBe(false);
   });
 
-  it('دقیقاً چهار نوع کالا، هر کدام با نوع دیتابیس (این ساختار بیلد تایپ‌چک نمی‌شود)', () => {
-    expect(TYPES.map((t) => `${t.slug}:${t.kind}`)).toEqual(['inverter:inverter', 'panel:panel', 'battery:storage', 'monitoring:accessory']);
+  it('دقیقاً پنج نوع کالا، هر کدام با نوع دیتابیس (این ساختار بیلد تایپ‌چک نمی‌شود)', () => {
+    expect(TYPES.map((t) => `${t.slug}:${t.kind}`)).toEqual(['inverter:inverter', 'panel:panel', 'battery:storage', 'monitoring:accessory', 'tools:tool']);
     for (const f of FACETS) expect(f.dim && f.value && f.type).toBeTruthy();
   });
 
@@ -136,5 +137,53 @@ describe('مکمل‌ها و ستون کناری', () => {
     const inv = all.filter((p) => p.kind === 'inverter');
     expect(applyQueryFilters(inv, new URLSearchParams('brand=fronius&phase=three')).map((p) => p.slug)).toEqual(['fronius-symo', 'fronius-tauro']);
     expect(applyQueryFilters(inv, new URLSearchParams('evil=1')).length).toBe(inv.length);
+  });
+});
+
+/* کالاهای فهرست موجودی ۱۳ آبان ۱۴۰۵، با مقدارهای مایگریشن 0012 */
+const stock: TaxProduct[] = [
+  P({ slug: 'fronius-primo-5-0-1', brand: 'FRONIUS', kind: 'inverter', cat: 'home', subkind: 'string', phase: 'single', powerMin: 5, powerMax: 5 }),
+  P({ slug: 'sunways-stt-5ktl', brand: 'SUNWAYS', kind: 'inverter', cat: 'home', subkind: 'string', phase: 'three', powerMin: 5, powerMax: 5 }),
+  P({ slug: 'kaco-blueplanet-10-0-nx3-m2', brand: 'KACO', kind: 'inverter', cat: 'home', subkind: 'string', phase: 'three', powerMin: 10, powerMax: 10 }),
+  P({ slug: 'fronius-eco-25-0-3-s', brand: 'FRONIUS', kind: 'inverter', cat: 'industrial', subkind: 'string', phase: 'three', powerMin: 25, powerMax: 25 }),
+  P({ slug: 'huawei-sun2000-50ktl-m3', brand: 'HUAWEI', kind: 'inverter', cat: 'industrial', subkind: 'string', phase: 'three', powerMin: 50, powerMax: 50 }),
+  P({ slug: 'goodwe-gw250k-ht', brand: 'GOODWE', kind: 'inverter', cat: 'industrial', subkind: 'string', phase: 'three', powerMin: 250, powerMax: 250 }),
+  P({ slug: 'deye-ae-fs2-0-2h2', brand: 'DEYE', kind: 'storage', cat: 'home', subkind: 'all-in-one', powerMin: 2, powerMax: 2 }),
+  P({ slug: 'pntech-mc4-connector', brand: 'PNTECH', kind: 'tool', cat: 'home' }),
+];
+const catalog = [...all, ...stock];
+const sectionOf = (slug: string) => shopSections(catalog).find((s) => s.items.some((p) => p.slug === slug))!.section.id;
+
+describe('بخش‌های صفحهٔ فروشگاه', () => {
+  it('هر محصول دقیقاً در یک بخش می‌آید و هیچ محصولی جا نمی‌ماند', () => {
+    const placed = shopSections(catalog).flatMap((s) => s.items.map((p) => p.slug));
+    expect(placed.sort()).toEqual(catalog.map((p) => p.slug).sort());
+  });
+
+  it('اینورترها بر اساس کاربرد تقسیم می‌شوند، نه فقط نوع', () => {
+    expect(sectionOf('deye-sun-g05')).toBe('hybrid');
+    expect(sectionOf('fronius-primo-5-0-1')).toBe('single-phase');
+    expect(sectionOf('sunways-stt-5ktl')).toBe('three-phase');
+    expect(sectionOf('fronius-eco-25-0-3-s')).toBe('three-phase');
+    expect(sectionOf('huawei-sun2000-50ktl-m3')).toBe('commercial');
+    expect(sectionOf('sunways-stt')).toBe('commercial');
+    expect(sectionOf('goodwe-gw250k-ht')).toBe('utility');
+    expect(sectionOf('sineng-sp350k')).toBe('utility');
+  });
+
+  it('ابزار نصب بخش و صفحهٔ نوع خودش را دارد و با مانیتورینگ قاطی نمی‌شود', () => {
+    expect(sectionOf('pntech-mc4-connector')).toBe('tools');
+    expect(sectionOf('deye-logger')).toBe('monitoring');
+    expect(typeBySlug('tools')!.kind).toBe('tool');
+  });
+
+  it('برند تازه‌ها کلید درست می‌گیرند و ابزار برچسب کاربرد نمی‌گیرد', () => {
+    expect(brandKey('KACO')).toBe('kaco');
+    expect(brandKey('HUAWEI')).toBe('huawei');
+    expect(tagsOf(stock.at(-1)!, catalog).some((t) => t.dim === 'کاربرد')).toBe(false);
+  });
+
+  it('نامک محصول‌های تازه با نامک نوع‌ها یکی نیست', () => {
+    for (const t of TYPES) expect(stock.some((p) => p.slug === t.slug)).toBe(false);
   });
 });

@@ -32,7 +32,7 @@ export interface ProductView {
   spec: string;
   specUnit: string;
   cat: 'home' | 'industrial';
-  kind: 'inverter' | 'panel' | 'storage' | 'accessory';
+  kind: 'inverter' | 'panel' | 'storage' | 'accessory' | 'tool';
   /** ابعاد دسته‌بندی و برچسب — data/shopTaxonomy.ts */
   subkind: string | null;
   phase: 'single' | 'three' | null;

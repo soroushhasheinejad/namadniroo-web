@@ -1,7 +1,7 @@
 /**
  * ساختار درختی فروشگاه و قاعده‌های برچسب و لینک‌سازی.
  *
- *   فروشگاه ← نوع کالا (اینورتر، پنل، باتری، مانیتورینگ) ← صفحهٔ نیت (هیبرید،
+ *   فروشگاه ← نوع کالا (اینورتر، پنل، باتری، مانیتورینگ، ابزار نصب) ← صفحهٔ نیت (هیبرید،
  *   سه‌فاز، ۵ کیلووات، اینورتر فرونیوس …) ← محصول
  *
  * نوع کالا همان «بخش» نیروگاه است: پنل تولید می‌کند، اینورتر تبدیل، باتری
@@ -22,7 +22,7 @@
 
 import { FACET_CONTENT, TYPE_CONTENT } from './shopTaxonomyContent';
 
-export type Kind = 'inverter' | 'panel' | 'storage' | 'accessory';
+export type Kind = 'inverter' | 'panel' | 'storage' | 'accessory' | 'tool';
 
 /** حداقل چیزی که این ماژول از یک محصول لازم دارد */
 export interface TaxProduct {
@@ -83,6 +83,9 @@ export const BRANDS: Record<string, string> = {
   sineng: 'Sineng',
   sunways: 'Sunways',
   trina: 'Trina Solar',
+  kaco: 'KACO',
+  huawei: 'Huawei',
+  pntech: 'PNTECH',
 };
 
 /** برند ذخیره‌شده در دیتابیس («AE&nbsp;SOLAR»، «FRONIUS») ← کلید برند */
@@ -108,11 +111,12 @@ export const SUBKINDS_BY_KIND: Record<Kind, string[]> = {
   panel: ['bifacial', 'monofacial'],
   storage: ['battery', 'all-in-one'],
   accessory: ['monitoring'],
+  tool: [],
 };
 
 export const PHASE_LABEL = { single: 'تک‌فاز', three: 'سه‌فاز' } as const;
 export const CAT_LABEL = { home: 'خانگی و تجاری کوچک', industrial: 'صنعتی و نیروگاهی' } as const;
-export const POWER_UNIT: Record<Kind, string> = { inverter: 'کیلووات', panel: 'وات', storage: 'کیلووات‌ساعت', accessory: '' };
+export const POWER_UNIT: Record<Kind, string> = { inverter: 'کیلووات', panel: 'وات', storage: 'کیلووات‌ساعت', accessory: '', tool: '' };
 
 /* ---------------------------------------------------------------- نوع‌ها */
 
@@ -163,6 +167,50 @@ export const productsOfFacet = <P extends TaxProduct>(f: FacetDef, all: P[]): P[
  */
 export const liveFacets = (all: TaxProduct[]): FacetDef[] => FACETS.filter((f) => all.some((p) => matches(f, p)));
 
+/* ---------------------------------------------------------------- بخش‌های صفحهٔ فروشگاه */
+
+/**
+ * دسته‌بندی فهرست کامل /shop. نوع کالا برای اینورتر کافی نیست: کسی که
+ * اینورتر ۵ کیلووات خانه می‌خواهد و کسی که برای کارخانه ۱۰۰ کیلووات، در دو
+ * دنیای جدا خرید می‌کنند. پس اینورترها بر اساس کاربرد واقعی تقسیم می‌شوند و
+ * بقیهٔ نوع‌ها همان نوع‌اند. هر محصول در اولین بخشی می‌آید که با آن جور است؛
+ * بخش آخر هر نوع شرطی ندارد تا هیچ محصولی از فهرست جا نماند.
+ */
+export interface ShopSection {
+  id: string;
+  title: string;
+  /** یک خط زیر عنوان: برای چه کسی است */
+  lead: string;
+  /** صفحهٔ ایندکس‌شدنی همین دسته، اگر هست */
+  href: string | null;
+  test: (p: TaxProduct) => boolean;
+}
+
+const topPower = (p: TaxProduct) => p.powerMax ?? p.powerMin ?? 0;
+const isInverter = (p: TaxProduct) => p.kind === 'inverter';
+
+export const SHOP_SECTIONS: ShopSection[] = [
+  { id: 'hybrid', title: 'اینورتر هیبرید', lead: 'با باتری؛ برق پشتیبان در قطعی', href: '/shop/inverter/hybrid', test: (p) => isInverter(p) && p.subkind === 'hybrid' },
+  { id: 'single-phase', title: 'اینورتر تک‌فاز متصل به شبکه', lead: 'خانه، ویلا و واحد تجاری کوچک', href: '/shop/inverter/single-phase', test: (p) => isInverter(p) && p.phase === 'single' },
+  { id: 'three-phase', title: 'اینورتر سه‌فاز تا ۲۵ کیلووات', lead: 'ساختمان، کارگاه و پله‌های الزام انشعاب', href: '/shop/inverter/three-phase', test: (p) => isInverter(p) && p.phase === 'three' && topPower(p) <= 25 },
+  { id: 'commercial', title: 'اینورتر تجاری و صنعتی', lead: 'تا ۱۵۰ کیلووات؛ سقف سوله و کارخانه', href: null, test: (p) => isInverter(p) && topPower(p) <= 150 },
+  { id: 'utility', title: 'اینورتر نیروگاهی', lead: 'بالای ۱۵۰ کیلووات؛ نیروگاه مگاواتی', href: null, test: isInverter },
+  { id: 'panel', title: 'پنل خورشیدی', lead: 'تک‌رو و دوطرفه', href: '/shop/panel', test: (p) => p.kind === 'panel' },
+  { id: 'storage', title: 'باتری و ذخیره‌ساز انرژی', lead: 'ذخیره‌ساز یکپارچه، باتری لیتیومی و ذخیره‌ساز بالکنی', href: '/shop/battery', test: (p) => p.kind === 'storage' },
+  { id: 'monitoring', title: 'مانیتورینگ', lead: 'پایش تولید و هشدار خطا', href: '/shop/monitoring', test: (p) => p.kind === 'accessory' },
+  { id: 'tools', title: 'ابزار و لوازم نصب', lead: 'کانکتور و ابزار اتصال ایمن', href: '/shop/tools', test: (p) => p.kind === 'tool' },
+];
+
+/** محصول‌های هر بخش، به ترتیب فهرست؛ بخش بی‌محصول نمی‌آید */
+export function shopSections<P extends TaxProduct>(all: P[]): { section: ShopSection; items: P[] }[] {
+  const buckets = new Map<string, P[]>(SHOP_SECTIONS.map((s) => [s.id, []]));
+  for (const p of all) {
+    const s = SHOP_SECTIONS.find((x) => x.test(p));
+    if (s) buckets.get(s.id)!.push(p);
+  }
+  return SHOP_SECTIONS.map((section) => ({ section, items: buckets.get(section.id)! })).filter((x) => x.items.length > 0);
+}
+
 /* ---------------------------------------------------------------- برچسب محصول */
 
 export interface Tag {
@@ -193,7 +241,8 @@ export function tagsOf(p: TaxProduct, all: TaxProduct[]): Tag[] {
   const tags: Tag[] = [{ dim: 'نوع', label: t.label, href: `/shop/${t.slug}`, indexable: true }];
   if (p.subkind && SUBKIND_LABEL[p.subkind]) tags.push(tag('زیرنوع', 'subkind', p.subkind, SUBKIND_LABEL[p.subkind]!));
   if (p.phase) tags.push(tag('فاز', 'phase', p.phase, PHASE_LABEL[p.phase]));
-  tags.push(tag('کاربرد', 'cat', p.cat, CAT_LABEL[p.cat]));
+  /* ابزار نصب کاربرد خانگی یا صنعتی ندارد؛ برچسب کاربرد برایش گمراه‌کننده است */
+  if (p.kind !== 'tool') tags.push(tag('کاربرد', 'cat', p.cat, CAT_LABEL[p.cat]));
 
   const bk = brandKey(p.brand);
   /* برند AE Solar صفحهٔ نمایندگی خودش را دارد؛ برچسب برند پنل به آن می‌رود */
@@ -241,13 +290,14 @@ export function productCrumbs(p: TaxProduct, all: TaxProduct[]): Crumb[] {
  */
 export const COMPLEMENTS: Record<string, string[]> = {
   'inverter:hybrid': ['storage', 'panel', 'accessory'],
-  'inverter:string': ['panel', 'accessory'],
-  inverter: ['panel', 'accessory'],
-  panel: ['inverter', 'accessory'],
+  'inverter:string': ['panel', 'accessory', 'tool'],
+  inverter: ['panel', 'accessory', 'tool'],
+  panel: ['inverter', 'tool', 'accessory'],
   'storage:battery': ['inverter:hybrid', 'accessory', 'panel'],
   'storage:all-in-one': ['panel', 'accessory'],
   storage: ['inverter:hybrid', 'panel'],
   accessory: ['inverter', 'storage'],
+  tool: ['panel', 'inverter'],
 };
 
 const complementKeys = (p: Pick<TaxProduct, 'kind' | 'subkind'>) =>

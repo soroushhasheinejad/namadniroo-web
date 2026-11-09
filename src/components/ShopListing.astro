@@ -135,7 +135,7 @@ const schema = [
       </div>
 
       <aside class="shop-side" aria-label="دسته‌های مرتبط">
-        {type.kind !== 'accessory' && (
+        {type.kind !== 'accessory' && type.kind !== 'tool' && (
           <div class="side-group side-tool">
             <p class="side-title">چند {type.label} لازم دارید؟</p>
             <a href="/solar-calculator/equipment">محاسبه پنل، اینورتر و باتری</a>

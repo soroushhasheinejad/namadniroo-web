@@ -19,6 +19,7 @@ const guides: Record<typeof p.kind, string[]> = {
   panel: ['how-panel-works', 'panel-washing', 'plant-components'],
   storage: ['ongrid-offgrid', 'inverter-role', 'solar-vs-generator'],
   accessory: ['plant-components', 'maintenance-kpi', 'om-plant'],
+  tool: ['plant-components', 'solar-panel-mounting-structure', 'maintenance-kpi'],
 };
 
 /* پنل AE Solar صفحهٔ مشخصات کامل هم دارد؛ این دو باید به هم پیوند بدهند */
@@ -37,6 +38,8 @@ const relatedHref = crumbs[crumbs.length - 1]!;
 /* فرزندان مکمل: کاروسل «معمولاً همراه این محصول» */
 const complements = complementProducts(p, all, 8);
 
+/* ابزار نصب کاربرد خانگی یا صنعتی ندارد؛ برچسبش خود نوع است */
+const catText = p.kind === 'tool' ? 'ابزار نصب' : categoryLabel[p.cat];
 // نام برند بدون &nbsp; که در بعضی رکوردها برای جلوگیری از شکست خط آمده
 const brandPlain = p.brand.replace(/&nbsp;/g, ' ').trim();
 
@@ -57,7 +60,7 @@ const pageSchema = [
     name: p.name,
     description,
     brand: { '@type': 'Brand', name: brandPlain },
-    category: categoryLabel[p.cat],
+    category: catText,
     ...(p.image ? { image: new URL(p.image.url, 'https://namadniroo.ir').href } : {}),
     /* فروشگاه لیدجن است و قیمت آنلاین ندارد، پس `Offer` نمی‌آید: Offer بدون
        قیمت را گوگل نمی‌پذیرد، و قبلاً با price: '0' به گوگل گفته می‌شد
@@ -80,7 +83,7 @@ const pageSchema = [
         <a href="/">خانه</a>
         {crumbs.map((c) => (<><span>/</span><a href={c.href}>{c.name}</a></>))}
       </nav>
-      <span class="mag-tag">{categoryLabel[p.cat]}</span>
+      <span class="mag-tag">{catText}</span>
       <h1 class="article-title">{p.name}</h1>
       <p class="article-meta" dir="ltr">{brandPlain} · {p.spec} {p.specUnit}</p>
     </div>
@@ -105,7 +108,7 @@ const pageSchema = [
             </p>
           )}
         <a class="btn btn-solid" href="/#quote">استعلام قیمت و موجودی</a>
-        {p.kind !== 'accessory' && (
+        {p.kind !== 'accessory' && p.kind !== 'tool' && (
           <p class="p-tool">چند تا و با چه توانی؟ <a href="/solar-calculator/equipment">محاسبه پنل، اینورتر و باتری</a></p>
         )}
         <ul class="p-tags" aria-label="برچسب‌های محصول">

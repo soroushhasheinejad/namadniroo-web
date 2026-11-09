@@ -123,7 +123,7 @@ export const products = sqliteTable(
     /** واحد و توضیح مشخصه، مثل «kW · تک‌فاز» */
     specUnit: text('spec_unit').notNull(),
     cat: text('cat', { enum: ['home', 'industrial'] }).notNull(),
-    kind: text('kind', { enum: ['inverter', 'panel', 'storage', 'accessory'] }).notNull(),
+    kind: text('kind', { enum: ['inverter', 'panel', 'storage', 'accessory', 'tool'] }).notNull(),
     /* --- ابعاد دسته‌بندی و برچسب (data/shopTaxonomy.ts) ---
        این‌ها تعیین می‌کنند محصول در کدام صفحهٔ دسته و نیت جست‌وجو بیاید و
        چه برچسب‌هایی بگیرد؛ خالی‌ماندنشان فقط یعنی محصول در آن صفحه‌ها نیست. */
