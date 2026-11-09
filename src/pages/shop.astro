@@ -19,8 +19,19 @@ const products = await listProducts();
 
 /* پدر به فرزند: هر نوع کالا با صفحه‌های نیتش، بالای فهرست کامل */
 const live = liveFacets(products);
-const types = TYPES.map((t) => ({ t, count: productsOfType(t, products).length, facets: live.filter((f) => f.type === t.slug) }))
+const types = TYPES.map((t) => ({ t, count: productsOfType(t, products).length }))
   .filter((x) => x.count > 0);
+
+/* یک خط زیر نام هر دسته، تا کاشی‌ها هم‌قد بمانند و فهرست بلند صفحه‌های
+   نیت (که فقط اینورتر دارد) کارت‌ها را نامتقارن نکند؛ آن صفحه‌ها پایین‌تر
+   در یک ردیف «جست‌وجوهای پرتکرار» آمده‌اند. */
+const TYPE_LEAD: Record<string, string> = {
+  inverter: 'هیبرید، تک‌فاز، سه‌فاز تا نیروگاهی',
+  panel: 'تک‌رو و دوطرفه',
+  battery: 'ذخیره‌ساز یکپارچه و باتری لیتیومی',
+  monitoring: 'دیتالاگر و پایش تولید',
+  tools: 'کانکتور MC4 و ابزار اتصال',
+};
 
 /* فهرست کامل، دسته‌به‌دسته: اینورترها بر اساس کاربرد، بقیه بر اساس نوع */
 const sections = shopSections(products);
@@ -38,22 +49,34 @@ const seo = await seoProps(c.seo);
   />
 
   <section class="shop-types" aria-label="دسته‌های فروشگاه">
-    <div class="wrap shop-types-grid">
-      {types.map(({ t, count, facets }) => (
-        <div class="type-card">
-          <a class="type-name" href={`/shop/${t.slug}`}>{t.h1}<span>{count.toLocaleString('fa-IR')} محصول</span></a>
-          {facets.length > 0 && (
-            <ul>{facets.map((f) => <li><a href={`/shop/${t.slug}/${f.slug}`}>{f.h1}</a></li>)}</ul>
-          )}
+    <div class="wrap">
+      <div class="type-tiles">
+        {types.map(({ t, count }) => (
+          <a class="type-tile" href={`/shop/${t.slug}`} title={t.h1}>
+            <span class="tile-count">{count.toLocaleString('fa-IR')} محصول</span>
+            <span class="tile-name">{t.label}</span>
+            <span class="tile-lead">{TYPE_LEAD[t.slug] ?? ''}</span>
+            <span class="tile-go">مشاهده ←</span>
+          </a>
+        ))}
+      </div>
+      {live.length > 0 && (
+        <div class="shop-popular">
+          <span class="popular-label">جست‌وجوهای پرتکرار</span>
+          <ul>{live.map((f) => <li><a href={`/shop/${f.type}/${f.slug}`}>{f.h1}</a></li>)}</ul>
         </div>
-      ))}
+      )}
     </div>
   </section>
 
   <nav class="shop-jump" aria-label="دسته‌های محصولات">
     <div class="wrap shop-jump-row">
-      {sections.map(({ section, items }) => (
-        <a href={`#${section.id}`}>{section.title}<span>{items.length.toLocaleString('fa-IR')}</span></a>
+      <span class="jump-label">اینورتر</span>
+      {sections.map(({ section, items }, i) => (
+        <>
+          {i > 0 && section.id === 'panel' && <span class="jump-sep" aria-hidden="true"></span>}
+          <a href={`#${section.id}`}>{section.short}<span>{items.length.toLocaleString('fa-IR')}</span></a>
+        </>
       ))}
     </div>
   </nav>
@@ -91,18 +114,25 @@ const seo = await seoProps(c.seo);
 
 <style>
   .shop-types { padding: 34px 0 6px; }
-  .shop-types-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-  .type-card { padding: 18px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg-1); }
-  .type-name { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 18px; font-weight: 800; color: var(--ink); }
-  .type-name span { color: var(--faint); font-size: 13px; font-weight: 500; }
-  .type-name:hover { color: var(--yellow); }
-  .type-card ul { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
-  .type-card li a { display: inline-block; padding: 4px 11px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); font-size: 13px; }
-  .type-card li a:hover { color: var(--yellow); border-color: var(--yellow); }
+  .type-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+  .type-tile { display: flex; flex-direction: column; gap: 6px; padding: 18px 18px 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg-1); color: var(--ink); transition: border-color .2s, transform .2s; }
+  .type-tile:hover { border-color: var(--yellow); transform: translateY(-2px); }
+  .tile-count { color: var(--faint); font-size: 12.5px; }
+  .tile-name { font-size: 21px; font-weight: 800; line-height: 1.35; }
+  .tile-lead { color: var(--muted); font-size: 13.5px; line-height: 1.6; flex: 1; }
+  .tile-go { color: var(--yellow); font-size: 13.5px; font-weight: 700; margin-top: 4px; }
+  .shop-popular { display: flex; gap: 14px; align-items: baseline; margin-top: 18px; }
+  .popular-label { flex: none; color: var(--faint); font-size: 13px; }
+  .shop-popular ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+  .shop-popular li a { display: inline-block; padding: 4px 11px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); font-size: 13px; }
+  .shop-popular li a:hover { color: var(--yellow); border-color: var(--yellow); }
   .shop-jump { position: sticky; top: 72px; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); padding: 12px 0; margin-top: 18px; }
   .shop-jump-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
   .shop-jump-row::-webkit-scrollbar { display: none; }
-  .shop-jump a { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); font-size: 13.5px; white-space: nowrap; }
+  .shop-jump a { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .shop-jump-row { align-items: center; }
+  .jump-label { flex: none; color: var(--faint); font-size: 13px; }
+  .jump-sep { flex: none; width: 1px; height: 20px; background: var(--line-2); margin: 0 6px; }
   .shop-jump a span { color: var(--faint); font-size: 12px; }
   .shop-jump a:hover { color: var(--yellow); border-color: var(--yellow); }
   .shop-group { scroll-margin-top: 150px; padding: 40px 0 24px; }
@@ -110,7 +140,7 @@ const seo = await seoProps(c.seo);
   .group-title { margin: 0; font-size: 24px; font-weight: 800; color: var(--ink); }
   .group-lead { margin: 4px 0 0; color: var(--faint); font-size: 14px; }
   .group-more { flex: none; color: var(--yellow); font-size: 14px; font-weight: 700; }
-  @media (max-width: 1000px) { .shop-types-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 760px) { .shop-popular { flex-direction: column; gap: 8px; } }
+  @media (max-width: 560px) { .type-tiles { grid-template-columns: repeat(2, 1fr); } .tile-name { font-size: 18px; } }
   @media (max-width: 560px) { .group-head { flex-direction: column; align-items: flex-start; } .group-title { font-size: 20px; } }
-  @media (max-width: 560px) { .shop-types-grid { grid-template-columns: 1fr; } }
 </style>

@@ -179,6 +179,8 @@ export const liveFacets = (all: TaxProduct[]): FacetDef[] => FACETS.filter((f) =
 export interface ShopSection {
   id: string;
   title: string;
+  /** نام کوتاه در نوار پرش بالای فهرست */
+  short: string;
   /** یک خط زیر عنوان: برای چه کسی است */
   lead: string;
   /** صفحهٔ ایندکس‌شدنی همین دسته، اگر هست */
@@ -190,15 +192,15 @@ const topPower = (p: TaxProduct) => p.powerMax ?? p.powerMin ?? 0;
 const isInverter = (p: TaxProduct) => p.kind === 'inverter';
 
 export const SHOP_SECTIONS: ShopSection[] = [
-  { id: 'hybrid', title: 'اینورتر هیبرید', lead: 'با باتری؛ برق پشتیبان در قطعی', href: '/shop/inverter/hybrid', test: (p) => isInverter(p) && p.subkind === 'hybrid' },
-  { id: 'single-phase', title: 'اینورتر تک‌فاز متصل به شبکه', lead: 'خانه، ویلا و واحد تجاری کوچک', href: '/shop/inverter/single-phase', test: (p) => isInverter(p) && p.phase === 'single' },
-  { id: 'three-phase', title: 'اینورتر سه‌فاز تا ۲۵ کیلووات', lead: 'ساختمان، کارگاه و پله‌های الزام انشعاب', href: '/shop/inverter/three-phase', test: (p) => isInverter(p) && p.phase === 'three' && topPower(p) <= 25 },
-  { id: 'commercial', title: 'اینورتر تجاری و صنعتی', lead: 'تا ۱۵۰ کیلووات؛ سقف سوله و کارخانه', href: null, test: (p) => isInverter(p) && topPower(p) <= 150 },
-  { id: 'utility', title: 'اینورتر نیروگاهی', lead: 'بالای ۱۵۰ کیلووات؛ نیروگاه مگاواتی', href: null, test: isInverter },
-  { id: 'panel', title: 'پنل خورشیدی', lead: 'تک‌رو و دوطرفه', href: '/shop/panel', test: (p) => p.kind === 'panel' },
-  { id: 'storage', title: 'باتری و ذخیره‌ساز انرژی', lead: 'ذخیره‌ساز یکپارچه، باتری لیتیومی و ذخیره‌ساز بالکنی', href: '/shop/battery', test: (p) => p.kind === 'storage' },
-  { id: 'monitoring', title: 'مانیتورینگ', lead: 'پایش تولید و هشدار خطا', href: '/shop/monitoring', test: (p) => p.kind === 'accessory' },
-  { id: 'tools', title: 'ابزار و لوازم نصب', lead: 'کانکتور و ابزار اتصال ایمن', href: '/shop/tools', test: (p) => p.kind === 'tool' },
+  { id: 'hybrid', title: 'اینورتر هیبرید', short: 'هیبرید', lead: 'با باتری؛ برق پشتیبان در قطعی', href: '/shop/inverter/hybrid', test: (p) => isInverter(p) && p.subkind === 'hybrid' },
+  { id: 'single-phase', title: 'اینورتر تک‌فاز متصل به شبکه', short: 'تک‌فاز', lead: 'خانه، ویلا و واحد تجاری کوچک', href: '/shop/inverter/single-phase', test: (p) => isInverter(p) && p.phase === 'single' },
+  { id: 'three-phase', title: 'اینورتر سه‌فاز تا ۲۵ کیلووات', short: 'سه‌فاز تا ۲۵ کیلووات', lead: 'ساختمان، کارگاه و پله‌های الزام انشعاب', href: '/shop/inverter/three-phase', test: (p) => isInverter(p) && p.phase === 'three' && topPower(p) <= 25 },
+  { id: 'commercial', title: 'اینورتر تجاری و صنعتی', short: 'تجاری و صنعتی', lead: 'تا ۱۵۰ کیلووات؛ سقف سوله و کارخانه', href: null, test: (p) => isInverter(p) && topPower(p) <= 150 },
+  { id: 'utility', title: 'اینورتر نیروگاهی', short: 'نیروگاهی', lead: 'بالای ۱۵۰ کیلووات؛ نیروگاه مگاواتی', href: null, test: isInverter },
+  { id: 'panel', title: 'پنل خورشیدی', short: 'پنل', lead: 'تک‌رو و دوطرفه', href: '/shop/panel', test: (p) => p.kind === 'panel' },
+  { id: 'storage', title: 'باتری و ذخیره‌ساز انرژی', short: 'ذخیره‌ساز', lead: 'ذخیره‌ساز یکپارچه، باتری لیتیومی و ذخیره‌ساز بالکنی', href: '/shop/battery', test: (p) => p.kind === 'storage' },
+  { id: 'monitoring', title: 'مانیتورینگ', short: 'مانیتورینگ', lead: 'پایش تولید و هشدار خطا', href: '/shop/monitoring', test: (p) => p.kind === 'accessory' },
+  { id: 'tools', title: 'ابزار و لوازم نصب', short: 'ابزار نصب', lead: 'کانکتور و ابزار اتصال ایمن', href: '/shop/tools', test: (p) => p.kind === 'tool' },
 ];
 
 /** محصول‌های هر بخش، به ترتیب فهرست؛ بخش بی‌محصول نمی‌آید */
