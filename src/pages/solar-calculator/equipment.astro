@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import ExpertReview from '../../components/ExpertReview.astro';
 import ProductCard from '../../components/ProductCard.astro';
+import RelatedArticles from '../../components/RelatedArticles.astro';
 import { breadcrumbSchema, faqSchema } from '../../utils';
 import { YIELD_BY_REGION } from '../../data/solarModel';
 import { aeModels } from '../../data/aesolarModels';
@@ -235,11 +236,11 @@ const schema = [
       <details class="method">
         <summary>این عددها چطور حساب شده‌اند</summary>
         <div class="method-body">
-          <p><b>توان پنل‌ها.</b> از قبض: مصرف سالانه × سهم پوشش ÷ تولید سالانهٔ هر کیلووات در منطقه (همان ضرایب <a href="/solar-calculator">ماشین‌حساب سود</a>، با افت ۰٫۷ درصدی سال اول). از سطح: سطح ÷ ۶ مترمربع بر کیلووات روی سقف یا ۱۵ مترمربع روی زمین (با فاصلهٔ ردیف‌ها). تعداد پنل به بالا گرد می‌شود، و در حالت سطح به پایین.</p>
-          <p><b>اینورتر.</b> توان پنل‌ها ÷ {DC_AC.grid.toString().replace('.', '٫')} برای سامانهٔ متصل به شبکه و ÷ {DC_AC.hybrid.toString().replace('.', '٫')} برای هیبرید، گرد به اندازهٔ رایج بعدی بازار؛ در هیبرید دست‌کم به اندازهٔ مصرف ضروری. تا ۶ کیلووات تک‌فاز و بالاتر سه‌فاز پیشنهاد می‌شود. بالاتر از ۱۲۵ کیلووات، چند اینورتر ۱۰۰ کیلوواتی.</p>
-          <p><b>رشته‌بندی.</b> بیشترین پنل در رشته: ولتاژ مدار باز پنل در سردترین دمای منطقه (ضریب دمایی Voc از دیتاشیت) نباید از سقف ولتاژ ورودی اینورتر بگذرد. کمترین: ولتاژ کاری پنل در دمای سلول ۷۰ درجه نباید زیر کف بازهٔ MPPT برود. رشته‌ها هم‌اندازه گرفته می‌شوند، پس تعداد پنل ممکن است کمی بالا برود.</p>
-          <p><b>باتری.</b> مصرف ضروری × ساعت پشتیبانی = انرژی مفید؛ تقسیم بر عمق تخلیهٔ {Math.round(BATTERY.dod * 100).toLocaleString('fa-IR')} درصد و بازده {Math.round(BATTERY.efficiency * 100).toLocaleString('fa-IR')} درصد = ظرفیت اسمی، در ماژول‌های لیتیوم‌آهن‌فسفات ۴۸ ولتی رایج ۵٫۱۲ کیلووات‌ساعتی.</p>
-          <p><b>کابل DC.</b> جریان طراحی هر رشته = جریان اتصال کوتاه پنل × ۱٫۲۵. سطح مقطع نهایی از طول مسیر و افت ولتاژ مجاز تعیین می‌شود.</p>
+          <p><b>توان پنل‌ها.</b> از قبض: مصرف سالانه × سهم پوشش ÷ تولید سالانهٔ هر کیلووات در منطقه (همان ضرایب <a href="/solar-calculator">ماشین‌حساب سود</a>، با افت ۰٫۷ درصدی سال اول). از سطح: سطح ÷ ۶ مترمربع بر کیلووات روی سقف یا ۱۵ مترمربع روی زمین (با فاصلهٔ ردیف‌ها). تعداد پنل به بالا گرد می‌شود، و در حالت سطح به پایین. <a href="/magazine/solar-panel-count">راهنمای محاسبهٔ تعداد پنل</a>.</p>
+          <p><b>اینورتر.</b> توان پنل‌ها ÷ {DC_AC.grid.toString().replace('.', '٫')} برای سامانهٔ متصل به شبکه و ÷ {DC_AC.hybrid.toString().replace('.', '٫')} برای هیبرید، گرد به اندازهٔ رایج بعدی بازار؛ در هیبرید دست‌کم به اندازهٔ مصرف ضروری. تا ۶ کیلووات تک‌فاز و بالاتر سه‌فاز پیشنهاد می‌شود. بالاتر از ۱۲۵ کیلووات، چند اینورتر ۱۰۰ کیلوواتی. <a href="/magazine/inverter-sizing">راهنمای محاسبهٔ توان اینورتر</a>.</p>
+          <p><b>رشته‌بندی.</b> بیشترین پنل در رشته: ولتاژ مدار باز پنل در سردترین دمای منطقه (ضریب دمایی Voc از دیتاشیت) نباید از سقف ولتاژ ورودی اینورتر بگذرد. کمترین: ولتاژ کاری پنل در دمای سلول ۷۰ درجه نباید زیر کف بازهٔ MPPT برود. رشته‌ها هم‌اندازه گرفته می‌شوند، پس تعداد پنل ممکن است کمی بالا برود. <a href="/magazine/solar-string-design">راهنمای رشته‌بندی پنل</a>.</p>
+          <p><b>باتری.</b> مصرف ضروری × ساعت پشتیبانی = انرژی مفید؛ تقسیم بر عمق تخلیهٔ {Math.round(BATTERY.dod * 100).toLocaleString('fa-IR')} درصد و بازده {Math.round(BATTERY.efficiency * 100).toLocaleString('fa-IR')} درصد = ظرفیت اسمی، در ماژول‌های لیتیوم‌آهن‌فسفات ۴۸ ولتی رایج ۵٫۱۲ کیلووات‌ساعتی. <a href="/magazine/solar-battery-sizing">راهنمای محاسبهٔ باتری</a>.</p>
+          <p><b>کابل DC.</b> جریان طراحی هر رشته = جریان اتصال کوتاه پنل × ۱٫۲۵. سطح مقطع نهایی از طول مسیر و افت ولتاژ مجاز تعیین می‌شود. <a href="/magazine/solar-dc-cable-sizing">راهنمای کابل DC</a>.</p>
         </div>
       </details>
     </div>
@@ -264,6 +265,12 @@ const schema = [
       </div>
     </section>
   )}
+
+  <RelatedArticles
+    slugs={['solar-panel-count', 'inverter-sizing', 'solar-string-design', 'solar-battery-sizing', 'solar-panel-tilt-angle', 'solar-dc-cable-sizing']}
+    eyebrow="راهنمای محاسبه"
+    title="هر عدد این ماشین‌حساب از کجا می‌آید"
+  />
 
   <script type="application/json" id="szData" set:html={JSON.stringify(data).replace(/</g, '\\u003c')}></script>
 </Base>
