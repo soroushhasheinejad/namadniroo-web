@@ -13,13 +13,7 @@ import { seoProps } from '../server/seo/pageSeo';
    درون‌حافظه‌ای است، پس هزینه‌اش ناچیز است. */
 export const prerender = false;
 
-const [{ site }, c] = await Promise.all([getSiteSettings(), getPageContent(contactPage)]);
-
-const info = [
-  { icon: 'phone', title: c.info.phoneTitle, text: site.phone, href: site.phoneHref, dir: 'ltr' },
-  { icon: 'pin', title: c.info.placeTitle, text: site.city },
-  { icon: 'clock', title: c.info.hoursTitle, text: c.info.hours },
-];
+const [{ offices }, c] = await Promise.all([getSiteSettings(), getPageContent(contactPage)]);
 
 const pageSchema = breadcrumbSchema([{ name: 'تماس با ما', href: '/contact' }]);
 const seo = await seoProps(c.seo);
@@ -35,15 +29,19 @@ const seo = await seoProps(c.seo);
   <section class="about-sec">
     <div class="wrap">
       <div class="cap-grid">
-        {info.map((i) => (
+        {offices.map((o) => (
           <div class="cap-card">
-            <span class="cap-ic"><Icon name={i.icon} /></span>
-            <h3>{i.title}</h3>
-            {i.href
-              ? <p><a href={i.href} dir={i.dir}>{i.text}</a></p>
-              : <p>{i.text}</p>}
+            <span class="cap-ic"><Icon name="pin" /></span>
+            <h3>{o.title}</h3>
+            {o.address && <p>{o.address}</p>}
+            {o.phone && <p class="cap-tel"><a href={o.phoneHref} dir="ltr">{o.phone}</a></p>}
           </div>
         ))}
+        <div class="cap-card">
+          <span class="cap-ic"><Icon name="clock" /></span>
+          <h3>{c.info.hoursTitle}</h3>
+          <p>{c.info.hours}</p>
+        </div>
       </div>
     </div>
   </section>

@@ -14,9 +14,10 @@ describe('organizationSchema', () => {
       url: 'https://namadniroo.ir',
       logo: 'https://namadniroo.ir/assets/logo.png',
       foundingDate: '2008',
-      telephone: '+983432521416',
+      telephone: '+989190360999',
       address: {
         '@type': 'PostalAddress',
+        streetAddress: 'خیابان مالک اشتر، نبش کوچهٔ ۴۷',
         addressLocality: 'کرمان',
         addressRegion: 'کرمان',
         addressCountry: 'IR',
@@ -44,7 +45,7 @@ describe('localBusinessSchema', () => {
       '@type': 'LocalBusiness',
       '@id': 'https://namadniroo.ir/#localbusiness',
       name: 'شرکت کرمان نماد نیرو',
-      telephone: '+983432521416',
+      telephone: '+989190360999',
       priceRange: '$$',
       address: { addressLocality: 'کرمان', addressRegion: 'کرمان', addressCountry: 'IR' },
     });

@@ -98,6 +98,7 @@ function withImages<T extends Record<string, unknown>>(rows: T[], fallbacks: str
 function currentValue(key: string, stored: Record<string, unknown>): unknown {
   switch (key) {
     case 'site':
+    case 'offices':
     case 'portfolio':
     case 'nav':
     case 'stats':
@@ -143,7 +144,16 @@ export function validate(key: string, value: unknown): string | null {
     const site = value as { name: string; phoneHref: string };
     if (!site.name) return 'نام شرکت نمی‌تواند خالی باشد — در عنوان همهٔ صفحات استفاده می‌شود.';
     if (site.phoneHref && !/^tel:\+?\d+$/.test(site.phoneHref)) {
-      return 'پیوند تماس باید به شکل tel:03432521416 باشد — بدون فاصله و خط تیره.';
+      return 'پیوند تماس باید به شکل tel:09190360999 باشد — بدون فاصله و خط تیره.';
+    }
+  }
+
+  if (key === 'offices') {
+    const bad = (value as { title: string; phoneHref: string }[]).find(
+      (o) => !o.title || (o.phoneHref && !/^tel:\+?\d+$/.test(o.phoneHref)),
+    );
+    if (bad) {
+      return `دفتر «${bad.title || 'بی‌نام'}» ناقص است. هر دفتر عنوان لازم دارد و پیوند تماسش باید به شکل tel:09190360999 باشد.`;
     }
   }
 
@@ -155,7 +165,7 @@ export function validate(key: string, value: unknown): string | null {
       geo: { lat: string; lng: string };
     };
     if (b.telephone && !/^\+\d{8,15}$/.test(b.telephone)) {
-      return 'تلفن باید به شکل بین‌المللی باشد، مثل +983432521416 — با + و بدون صفر ابتدایی یا فاصله.';
+      return 'تلفن باید به شکل بین‌المللی باشد، مثل +989190360999 — با + و بدون صفر ابتدایی یا فاصله.';
     }
     if (b.foundingYear && !/^\d{4}$/.test(b.foundingYear)) {
       return 'سال تأسیس باید یک سال میلادی چهاررقمی باشد، مثل 2008.';

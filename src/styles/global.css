@@ -333,6 +333,10 @@ section { scroll-margin-top: 84px; }
 .footer-brand .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; }
 .footer-brand .brand-mark { color: var(--yellow); }
 .footer-note { color: var(--muted); font-size: 14.5px; margin: 16px 0 0; max-width: 42ch; }
+.footer-offices { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 14px; max-width: 46ch; }
+.footer-offices li { display: grid; gap: 3px; color: var(--muted); font-size: 13.5px; line-height: 1.7; }
+.footer-offices b { color: var(--ink); font-size: 14px; font-weight: 700; }
+.footer-offices a { justify-self: start; color: inherit; font-weight: 600; }
 .footer-col h4 { margin: 0 0 16px; font-size: 15px; }
 .footer-col a { display: block; color: var(--muted); font-size: 14.5px; padding: 5px 0; transition: color .2s; }
 .footer-col a:hover { color: var(--yellow); }
@@ -523,6 +527,7 @@ section { scroll-margin-top: 84px; }
 .cap-ic svg { width: 24px; height: 24px; }
 .cap-card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 700; }
 .cap-card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.75; }
+.cap-card .cap-tel { margin-top: 8px; font-weight: 700; }
 
 .logo-row { display: flex; flex-wrap: wrap; gap: 12px; }
 .brand-chip { padding: 13px 24px; border: 1px solid var(--line-2); border-radius: 12px; font-family: var(--mono); font-size: 15px; letter-spacing: 1px; color: var(--cerulean-3); background: var(--bg-2); }

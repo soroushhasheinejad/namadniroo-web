@@ -20,6 +20,7 @@ describe('ذخیرهٔ بی‌تغییر هیچ چیزی را عوض نمی‌ک
      می‌زند، نباید حتی یک حرف از سایت را عوض کند. */
   const cases: [string, unknown][] = [
     ['site', defaults.site],
+    ['offices', defaults.offices],
     ['nav', defaults.nav],
     ['stats', defaults.stats],
     ['promoSlides', defaults.promoSlides],

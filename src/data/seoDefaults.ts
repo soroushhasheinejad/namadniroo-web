@@ -15,12 +15,12 @@ export const seoDefaults = {
 export const businessDefaults = {
   legalName: 'شرکت کرمان نماد نیرو',
   alternateName: 'کرمان نماد نیرو',
-  telephone: '+983432521416',
+  telephone: '+989190360999',
   email: '',
   foundingYear: '2008',
   priceRange: '$$',
   address: {
-    street: '',
+    street: 'خیابان مالک اشتر، نبش کوچهٔ ۴۷',
     locality: 'کرمان',
     region: 'کرمان',
     postalCode: '',

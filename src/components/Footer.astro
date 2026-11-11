@@ -1,7 +1,7 @@
 ---
 import { getSiteSettings } from '../server/repos/siteSettings';
 
-const { site, portfolio } = await getSiteSettings();
+const { site, offices, portfolio } = await getSiteSettings();
 ---
 <footer class="site-footer">
   <div class="wrap footer-grid">
@@ -10,7 +10,15 @@ const { site, portfolio } = await getSiteSettings();
         <img class="brand-logo" src="/assets/logo.png" alt={site.name} width="148" height="32" />
       </span>
       <p class="footer-note">از سال {site.since}، انرژیِ پایدار برای صنعت ایران. {site.city}</p>
-      <p class="footer-note" dir="ltr">{site.phone}</p>
+      <ul class="footer-offices">
+        {offices.map((o) => (
+          <li>
+            <b>{o.title}</b>
+            {o.address && <span>{o.address}</span>}
+            {o.phone && <a href={o.phoneHref} dir="ltr">{o.phone}</a>}
+          </li>
+        ))}
+      </ul>
     </div>
     <nav class="footer-col" aria-label="حوزه‌ها">
       <h4>حوزه‌ها</h4>

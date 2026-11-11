@@ -33,9 +33,11 @@ export type Stat = (typeof defaults.stats)[number];
 export type TimelineItem = (typeof defaults.timeline)[number];
 export type Capability = (typeof defaults.capabilities)[number];
 export type Brand = (typeof defaults.brands)[number];
+export type Office = (typeof defaults.offices)[number];
 
 export interface SiteSettings {
   site: SiteInfo;
+  offices: Office[];
   portfolio: typeof defaults.portfolio;
   nav: NavItem[];
   stats: Stat[];
@@ -68,6 +70,7 @@ function pickList<T>(fallback: readonly T[], stored: unknown): T[] {
 export function resolveSiteSettings(stored: Record<string, unknown>): SiteSettings {
   return {
     site: mergeObject<SiteInfo>(defaults.site, stored.site),
+    offices: pickList(defaults.offices, stored.offices),
     portfolio: mergeObject(defaults.portfolio, stored.portfolio),
     nav: pickList(defaults.nav, stored.nav),
     stats: pickList(defaults.stats, stored.stats),
