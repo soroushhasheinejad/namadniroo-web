@@ -9,6 +9,7 @@ import {
 } from '../analytics/track';
 import { channelLabel } from '../analytics/channel';
 import { logActivity } from '../repos/leadActivity';
+import { getProduct } from '../repos/content';
 import type { QuoteInput } from '../validation/quote';
 
 /**
@@ -128,6 +129,8 @@ export async function submitQuote(
     firstUtmSource: profile?.firstUtmSource ?? null,
     firstUtmMedium: profile?.firstUtmMedium ?? null,
     firstUtmCampaign: profile?.firstUtmCampaign ?? null,
+    /* ستونش از مهاجرت 0006 هست ولی تا امروز پر نمی‌شد */
+    firstUtmContent: profile?.firstUtmContent ?? null,
     firstReferrer: profile?.firstReferrer ?? null,
     landingPage: profile?.firstLanding ?? null,
   });
@@ -160,7 +163,7 @@ export async function submitQuote(
               utmMedium: lastSeenTouch.utmMedium,
               utmCampaign: lastSeenTouch.utmCampaign,
               utmTerm: null,
-              utmContent: null,
+              utmContent: lastSeenTouch.utmContent ?? null,
               referrer: null,
             }
           : undefined,
@@ -168,6 +171,13 @@ export async function submitQuote(
       });
     })().catch((err) => console.error('[quote] ثبت رویداد لید ناموفق:', err));
   }
+
+  /* اگر فرم از صفحهٔ یک محصول آمده، نام محصول را همان اول پرونده بگذاریم:
+     کارشناس فروش با «/shop/kaco-blueplanet-10-0-nx3-m2» کاری نمی‌تواند بکند،
+     با «اینورتر سه‌فاز KACO blueplanet 10.0 NX3 M2» می‌تواند. */
+  const productSlug = /^\/shop\/([a-z0-9-]+)\/?(?:[?#].*)?$/.exec(input.source || '')?.[1];
+  const product = productSlug ? await getProduct(productSlug).catch(() => null) : null;
+  const creative = profile?.firstUtmContent || touch?.utmContent || '';
 
   /* اولین سطر خط زمانی پرونده. بدون آن، کارشناسی که فردا پرونده را باز
      می‌کند نمی‌داند این لید از کجا آمده — فقط یک شماره تلفن می‌بیند. */
@@ -177,6 +187,8 @@ export async function submitQuote(
     body:
       `${REQUEST_LABEL[input.intent ?? ''] ?? 'درخواست'} از ${input.source || 'سایت'} ثبت شد` +
       (touch?.channel ? ` · کانال: ${channelLabel(touch.channel)}` : '') +
+      (product ? ` · محصول: ${product.name}` : '') +
+      (creative ? ` · ریل/خلاقه: ${creative}` : '') +
       (profile ? ` · ${profile.pageviews} بازدید پیش از این فرم` : ''),
   }).catch((err) => console.error('[quote] ثبت خط زمانی ناموفق:', err));
 
@@ -200,6 +212,8 @@ export async function submitQuote(
         `حوزهٔ درخواست: ${input.area || '—'}\n` +
         `راه تماس دلخواه: ${input.contactVia || 'تماس تلفنی'}\n` +
         `صفحهٔ مبدأ: ${input.source || '—'}\n` +
+        (product ? `محصول: ${product.name}\n` : '') +
+        (creative ? `ریل یا خلاقهٔ مبدأ (utm_content): ${creative}\n` : '') +
         (input.estimate ? `\nبرآوردی که کاربر دیده بود:\n${input.estimate}\n` : '') +
         (input.qualifiers ? `پاسخ‌های کاربر: ${input.qualifiers}\n` : '') +
         (touch?.channel ? `کانال ورود: ${channelLabel(touch.channel)}\n` : '') +

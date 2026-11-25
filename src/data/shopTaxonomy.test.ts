@@ -70,7 +70,8 @@ describe('ساختار فروشگاه', () => {
 
 describe('تطبیق محصول با صفحهٔ نیت', () => {
   it('هیبرید و متصل به شبکه از زیرنوع می‌آیند', () => {
-    expect(slugsOf('inverter', 'hybrid')).toEqual(['deye-sun-g05']);
+    /* ذخیره‌ساز یکپارچه (اینورتر هیبرید + باتری) هم در صفحهٔ هیبرید می‌آید */
+    expect(slugsOf('inverter', 'hybrid')).toEqual(['deye-sun-g05', 'deye-ai-w51']);
     expect(slugsOf('inverter', 'on-grid')).not.toContain('deye-sun-g05');
   });
 

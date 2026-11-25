@@ -165,6 +165,8 @@ export async function lastTouch(visitorId: string) {
       utmSource: events.utmSource,
       utmMedium: events.utmMedium,
       utmCampaign: events.utmCampaign,
+      /* شناسهٔ ریل یا خلاقه (مثلاً reel-01)؛ بدون آن معلوم نمی‌شود کدام ریل لید آورده */
+      utmContent: events.utmContent,
     })
     .from(events)
     .where(and(eq(events.visitorId, visitorId), ne(events.channel, 'internal')))

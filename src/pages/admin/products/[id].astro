@@ -48,6 +48,8 @@ if (Astro.request.method === 'POST') {
       powerMin: Number(form.get('powerMin')) > 0 ? Number(form.get('powerMin')) : null,
       powerMax: Number(form.get('powerMax')) > 0 ? Number(form.get('powerMax')) : null,
       official: form.get('official') === '1',
+      /* موجودی روی صفحهٔ محصول نمایش داده می‌شود («موجود در انبار» یا «استعلام موجودی») */
+      inStock: form.get('inStock') === '1',
       body: String(form.get('body') ?? '').trim() || null,
       imageMediaId: mediaId > 0 ? mediaId : null,
       sortOrder: Number(form.get('sortOrder')) || 999,
@@ -190,6 +192,7 @@ const p = row ?? null;
         </div>
         <p class="a-hint">واحد توان: اینورتر کیلووات، پنل وات، ذخیره‌ساز کیلووات‌ساعت. برای مدل تک‌توان هر دو را یکی بگذارید.</p>
         <label class="a-check"><input type="checkbox" name="official" value="1" checked={p?.official ?? false} /> از نمایندگی رسمی سازنده با ضمانت رسمی (فقط وقتی واقعاً هست)</label>
+        <label class="a-check"><input type="checkbox" name="inStock" value="1" checked={p?.inStock ?? false} /> موجود در انبار (روی صفحهٔ محصول «موجود در انبار» نشان داده می‌شود؛ خاموش یعنی «استعلام موجودی»)</label>
       </fieldset>
 
       <div class="a-field">

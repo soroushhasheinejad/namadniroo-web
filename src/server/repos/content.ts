@@ -39,6 +39,10 @@ export interface ProductView {
   powerMin: number | null;
   powerMax: number | null;
   official: boolean;
+  /** موجود در انبار؛ null یعنی هنوز معلوم نشده (برچسب «استعلام موجودی») */
+  inStock: boolean | null;
+  /** قیمت به ریال؛ null یعنی قیمت آنلاین ندارد و فقط استعلام می‌شود */
+  price: number | null;
   body: string | null;
   featured: boolean;
   image: ImageRef | null;
@@ -72,6 +76,8 @@ export function listProducts(): Promise<ProductView[]> {
         powerMin: products.powerMin,
         powerMax: products.powerMax,
         official: products.official,
+        inStock: products.inStock,
+        price: products.price,
         body: products.body,
         featured: products.featured,
         seoTitle: products.seoTitle,
@@ -119,6 +125,8 @@ function toProductView(row: Record<string, any>): ProductView {
     powerMin: row.powerMin ?? null,
     powerMax: row.powerMax ?? null,
     official: !!row.official,
+    inStock: row.inStock == null ? null : !!row.inStock,
+    price: typeof row.price === 'number' && row.price > 0 ? row.price : null,
     body: row.body,
     featured: row.featured,
     image: toImageRef(row, row.name),

@@ -133,6 +133,13 @@ export const facetsOfType = (type: string): FacetDef[] => FACETS.filter((f) => f
 /** آیا محصول در این صفحهٔ نیت می‌آید؟ */
 export function matches(f: FacetDef, p: TaxProduct): boolean {
   const t = typeBySlug(f.type);
+  /* ذخیره‌ساز یکپارچه اینورتر هیبرید و باتری را در یک بدنه دارد، پس در صفحهٔ
+     «اینورتر هیبرید» هم می‌آید. در فهرست موجودی ۱۳ آبان اینورتر هیبرید
+     جداگانه نیست، ولی در Search Console «اینورتر هیبرید» و «اینورتر هیبریدی
+     … deye» صدها بار نمایش داشتند. ذخیره‌سازهای کوچک بالکنی (زیر ۵
+     کیلووات‌ساعت) جواب این جست‌وجو نیستند و نمی‌آیند. */
+  if (t && f.type === 'inverter' && f.dim === 'subkind' && f.value === 'hybrid'
+      && p.kind === 'storage' && p.subkind === 'all-in-one' && (p.powerMax ?? 0) >= 5) return true;
   if (!t || p.kind !== t.kind) return false;
   switch (f.dim) {
     case 'subkind':
