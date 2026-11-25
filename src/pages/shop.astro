@@ -1,14 +1,15 @@
 ---
 import Base from '../layouts/Base.astro';
 import RelatedArticles from '../components/RelatedArticles.astro';
-import PageHero from '../components/PageHero.astro';
-import ProductCard from '../components/ProductCard.astro';
+import ShopCard from '../components/ShopCard.astro';
+import LadderCampaign from '../components/LadderCampaign.astro';
 import { breadcrumbSchema } from '../utils';
-import { listProducts } from '../server/repos/content';
+import { getSetting, listProducts } from '../server/repos/content';
 import { seoProps } from '../server/seo/pageSeo';
 import { getPageContent } from '../server/repos/pageContent';
 import { shopPage } from '../data/pages';
 import { TYPES, liveFacets, productsOfType, shopSections } from '../data/shopTaxonomy';
+import { ladderDemo, ladderView, tierBySlug, type LadderStored } from '../data/ladder';
 
 /* محتوا از دیتابیس می‌آید، پس صفحه باید روی سرور ساخته شود تا تغییرات پنل
    بدون بیلد دوباره دیده شوند. لایهٔ کش باعث می‌شود این کار در عمل هزینهٔ
@@ -17,93 +18,76 @@ export const prerender = false;
 
 const products = await listProducts();
 
-/* پدر به فرزند: هر نوع کالا با صفحه‌های نیتش، بالای فهرست کامل */
-const live = liveFacets(products);
-const types = TYPES.map((t) => ({ t, count: productsOfType(t, products).length }))
-  .filter((x) => x.count > 0);
+/* کمپین تخفیف پله‌ای: از پنل («متن‌های سایت» ← کمپین تخفیف پله‌ای). در محیط
+   توسعه `?demo=ladder` طراحی را با دادهٔ نمونه نشان می‌دهد. */
+const demo = import.meta.env.DEV && Astro.url.searchParams.get('demo') === 'ladder';
+const ladder = demo
+  ? ladderView(ladderDemo)
+  : ladderView(await getSetting<Partial<LadderStored> | null>('ladder', null));
+const tiers = tierBySlug(ladder);
 
-/* یک خط زیر نام هر دسته، تا کاشی‌ها هم‌قد بمانند و فهرست بلند صفحه‌های
-   نیت (که فقط اینورتر دارد) کارت‌ها را نامتقارن نکند؛ آن صفحه‌ها پایین‌تر
-   در یک ردیف «جست‌وجوهای پرتکرار» آمده‌اند. */
-const TYPE_LEAD: Record<string, string> = {
-  inverter: 'هیبرید، تک‌فاز، سه‌فاز تا نیروگاهی',
-  panel: 'تک‌رو و دوطرفه',
-  battery: 'ذخیره‌ساز یکپارچه و باتری لیتیومی',
-  monitoring: 'دیتالاگر و پایش تولید',
-  tools: 'کانکتور MC4 و ابزار اتصال',
-};
-
-/* فهرست کامل، دسته‌به‌دسته: اینورترها بر اساس کاربرد، بقیه بر اساس نوع */
 const sections = shopSections(products);
+/* پیوند دسته‌ها و جست‌وجوهای پرتکرار برای مسیرهای داخلی سایت لازم‌اند،
+   ولی پایین صفحه می‌نشینند تا بالای فروشگاه آرام بماند. */
+const types = TYPES.map((t) => ({ t, count: productsOfType(t, products).length })).filter((x) => x.count > 0);
+const live = liveFacets(products);
+const n = (v: number) => v.toLocaleString('fa-IR');
 
 const pageSchema = breadcrumbSchema([{ name: 'فروشگاه', href: '/shop' }]);
 const c = await getPageContent(shopPage);
 const seo = await seoProps(c.seo);
-
 ---
 <Base {...seo} schema={pageSchema}>
-  <PageHero
-    crumb="فروشگاه"
-    title={c.hero.title}
-    lead={c.hero.lead}
-  />
-
-  <section class="shop-types" aria-label="دسته‌های فروشگاه">
+  <section class="sp-hero">
     <div class="wrap">
-      <div class="type-tiles">
-        {types.map(({ t, count }) => (
-          <a class="type-tile" href={`/shop/${t.slug}`} title={t.h1}>
-            <span class="tile-count">{count.toLocaleString('fa-IR')} محصول</span>
-            <span class="tile-name">{t.label}</span>
-            <span class="tile-lead">{TYPE_LEAD[t.slug] ?? ''}</span>
-            <span class="tile-go">مشاهده ←</span>
-          </a>
-        ))}
+      <p class="breadcrumb"><a href="/">خانه</a><span>/</span>فروشگاه</p>
+      <h1 class="sp-title">{c.hero.title}</h1>
+      {c.hero.lead && <p class="sp-lead">{c.hero.lead}</p>}
+    </div>
+  </section>
+
+  {ladder && <LadderCampaign view={ladder} products={products} demo={demo} />}
+
+  <nav class="sp-jump" aria-label="بخش‌های فروشگاه">
+    <div class="wrap sp-jump-row">
+      {sections.map(({ section }) => <a href={`#${section.id}`} data-jump={section.id}>{section.short}</a>)}
+    </div>
+  </nav>
+
+  {sections.map(({ section, items }) => (
+    <section class="sp-group" id={section.id}>
+      <div class="wrap">
+        <header class="sp-group-head">
+          <h2>{section.title}</h2>
+          {section.href
+            ? <a href={section.href}>همه ({n(items.length)}) ←</a>
+            : <span>{n(items.length)} محصول</span>}
+        </header>
+        <div class="sp-grid">
+          {items.map((p) => <ShopCard p={p} ladder={tiers.get(p.slug)} />)}
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <RelatedArticles slugs={['inverter-role', 'how-panel-works', 'ongrid-offgrid']} title={c.related} />
+
+  <section class="sp-index" aria-label="دسته‌ها و جست‌وجوهای پرتکرار">
+    <div class="wrap sp-index-in">
+      <div>
+        <h2>دسته‌ها</h2>
+        <ul>{types.map(({ t, count }) => <li><a href={`/shop/${t.slug}`} title={t.h1}>{t.label} <span>{n(count)}</span></a></li>)}</ul>
       </div>
       {live.length > 0 && (
-        <div class="shop-popular">
-          <span class="popular-label">جست‌وجوهای پرتکرار</span>
+        <div>
+          <h2>جست‌وجوهای پرتکرار</h2>
           <ul>{live.map((f) => <li><a href={`/shop/${f.type}/${f.slug}`}>{f.h1}</a></li>)}</ul>
         </div>
       )}
     </div>
   </section>
 
-  <nav class="shop-jump" aria-label="دسته‌های محصولات">
-    <div class="wrap shop-jump-row">
-      <span class="jump-label">اینورتر</span>
-      {sections.map(({ section, items }, i) => (
-        <>
-          {i > 0 && section.id === 'panel' && <span class="jump-sep" aria-hidden="true"></span>}
-          <a href={`#${section.id}`}>{section.short}<span>{items.length.toLocaleString('fa-IR')}</span></a>
-        </>
-      ))}
-    </div>
-  </nav>
-
-  {sections.map(({ section, items }) => (
-    <section class="shop-sec shop-group" id={section.id}>
-      <div class="wrap">
-        <header class="group-head">
-          <div>
-            <h2 class="group-title">{section.title}</h2>
-            <p class="group-lead">{section.lead} · {items.length.toLocaleString('fa-IR')} محصول</p>
-          </div>
-          {section.href && <a class="group-more" href={section.href}>همهٔ {section.title} ←</a>}
-        </header>
-        <div class="shop-grid">
-          {items.map((p) => <ProductCard p={p} />)}
-        </div>
-      </div>
-    </section>
-  ))}
-
-  <RelatedArticles
-    slugs={['inverter-role', 'how-panel-works', 'ongrid-offgrid']}
-    title={c.related}
-  />
-
-  <section class="cta-band">
+  <section class="cta-band sp-cta">
     <div class="wrap">
       <h2>{c.cta.title}</h2>
       <p>{c.cta.text}</p>
@@ -112,35 +96,65 @@ const seo = await seoProps(c.seo);
   </section>
 </Base>
 
+<script>
+  /* نوار بخش‌ها: بخشی که الان روی صفحه است پررنگ می‌شود */
+  const links = new Map(
+    [...document.querySelectorAll<HTMLAnchorElement>('.sp-jump a[data-jump]')].map((a) => [a.dataset.jump!, a]),
+  );
+  if (links.size && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          links.forEach((a) => a.removeAttribute('aria-current'));
+          const a = links.get(e.target.id);
+          if (a) {
+            a.setAttribute('aria-current', 'true');
+            a.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          }
+        }
+      },
+      { rootMargin: '-140px 0px -60% 0px' },
+    );
+    links.forEach((_, id) => { const s = document.getElementById(id); if (s) io.observe(s); });
+  }
+</script>
+
 <style>
-  .shop-types { padding: 34px 0 6px; }
-  .type-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
-  .type-tile { display: flex; flex-direction: column; gap: 6px; padding: 18px 18px 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg-1); color: var(--ink); transition: border-color .2s, transform .2s; }
-  .type-tile:hover { border-color: var(--yellow); transform: translateY(-2px); }
-  .tile-count { color: var(--faint); font-size: 12.5px; }
-  .tile-name { font-size: 21px; font-weight: 800; line-height: 1.35; }
-  .tile-lead { color: var(--muted); font-size: 13.5px; line-height: 1.6; flex: 1; }
-  .tile-go { color: var(--yellow); font-size: 13.5px; font-weight: 700; margin-top: 4px; }
-  .shop-popular { display: flex; gap: 14px; align-items: baseline; margin-top: 18px; }
-  .popular-label { flex: none; color: var(--faint); font-size: 13px; }
-  .shop-popular ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
-  .shop-popular li a { display: inline-block; padding: 4px 11px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); font-size: 13px; }
-  .shop-popular li a:hover { color: var(--yellow); border-color: var(--yellow); }
-  .shop-jump { position: sticky; top: 72px; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); padding: 12px 0; margin-top: 18px; }
-  .shop-jump-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
-  .shop-jump-row::-webkit-scrollbar { display: none; }
-  .shop-jump a { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); font-size: 13px; white-space: nowrap; }
-  .shop-jump-row { align-items: center; }
-  .jump-label { flex: none; color: var(--faint); font-size: 13px; }
-  .jump-sep { flex: none; width: 1px; height: 20px; background: var(--line-2); margin: 0 6px; }
-  .shop-jump a span { color: var(--faint); font-size: 12px; }
-  .shop-jump a:hover { color: var(--yellow); border-color: var(--yellow); }
-  .shop-group { scroll-margin-top: 150px; padding: 40px 0 24px; }
-  .group-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 18px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
-  .group-title { margin: 0; font-size: 24px; font-weight: 800; color: var(--ink); }
-  .group-lead { margin: 4px 0 0; color: var(--faint); font-size: 14px; }
-  .group-more { flex: none; color: var(--yellow); font-size: 14px; font-weight: 700; }
-  @media (max-width: 760px) { .shop-popular { flex-direction: column; gap: 8px; } }
-  @media (max-width: 560px) { .type-tiles { grid-template-columns: repeat(2, 1fr); } .tile-name { font-size: 18px; } }
-  @media (max-width: 560px) { .group-head { flex-direction: column; align-items: flex-start; } .group-title { font-size: 20px; } }
+  .sp-hero { padding: 72px 0 48px; }
+  .sp-title { margin: 0; font-size: clamp(30px, 4.4vw, 50px); font-weight: 800; line-height: 1.25; }
+  .sp-lead { margin: 14px 0 0; max-width: 56ch; color: var(--muted); font-size: 17px; }
+
+  .sp-jump { position: sticky; top: 72px; z-index: 5; background: rgba(10,10,10,.92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .sp-jump-row { display: flex; gap: 28px; overflow-x: auto; scrollbar-width: none; }
+  .sp-jump-row::-webkit-scrollbar { display: none; }
+  .sp-jump a { flex: none; padding: 16px 0 14px; font-size: 14px; color: var(--faint); white-space: nowrap; border-bottom: 2px solid transparent; transition: color .2s, border-color .2s; }
+  .sp-jump a:hover { color: var(--ink); }
+  .sp-jump a[aria-current] { color: var(--ink); border-color: var(--yellow); }
+
+  .sp-group { scroll-margin-top: 130px; padding: 56px 0 8px; }
+  .sp-group-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 24px; }
+  .sp-group-head h2 { margin: 0; font-size: 22px; font-weight: 800; }
+  .sp-group-head a { flex: none; font-size: 14px; color: var(--muted); }
+  .sp-group-head a:hover { color: var(--yellow); }
+  .sp-group-head span { flex: none; font-size: 14px; color: var(--faint); }
+  .sp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px 24px; }
+
+  .sp-index { padding: 56px 0; border-top: 1px solid var(--line); }
+  .sp-index-in { display: grid; grid-template-columns: 1fr 2fr; gap: 40px; }
+  .sp-index h2 { margin: 0 0 14px; font-size: 15px; font-weight: 700; color: var(--muted); }
+  .sp-index ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .sp-index a { font-size: 14px; color: var(--faint); }
+  .sp-index a:hover { color: var(--yellow); }
+  .sp-index a span { font-size: 12px; color: #5f5f5f; }
+
+  .sp-cta { background: var(--bg-1); }
+
+  @media (max-width: 1024px) { .sp-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 760px) {
+    .sp-hero { padding: 44px 0 32px; }
+    .sp-grid { grid-template-columns: repeat(2, 1fr); gap: 28px 14px; }
+    .sp-index-in { grid-template-columns: 1fr; gap: 28px; }
+    .sp-jump-row { gap: 22px; }
+  }
 </style>

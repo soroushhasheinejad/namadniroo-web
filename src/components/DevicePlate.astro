@@ -1,0 +1,82 @@
+---
+/**
+ * جای عکس، برای محصولی که هنوز عکس ندارد.
+ *
+ * عکس جعلی نیست: یک طرح خطی ساده از نوع دستگاه (اینورتر، پنل، ذخیره‌ساز)
+ * با عدد اصلی خود محصول روی نمایشگرش. همهٔ کارت‌های بی‌عکس یک‌شکل می‌شوند
+ * و قاب خالیِ فقط‌اسم‌برند حذف می‌شود.
+ */
+interface Props {
+  kind: 'inverter' | 'panel' | 'storage' | 'accessory' | 'tool';
+  brand: string;
+  spec: string;
+  unit: string;
+}
+const { kind, brand, spec, unit } = Astro.props;
+---
+<div class="plate" data-kind={kind} aria-hidden="true">
+  {kind === 'panel' ? (
+    <svg class="plate-art" viewBox="0 0 120 150" fill="none">
+      <rect x="10" y="6" width="100" height="138" rx="3" class="ln" />
+      {Array.from({ length: 6 }, (_, r) => Array.from({ length: 3 }, (_, c) => (
+        <rect x={16 + c * 30.6} y={12 + r * 21.6} width="27" height="18" rx="1" class="cell" />
+      )))}
+    </svg>
+  ) : kind === 'storage' ? (
+    <svg class="plate-art" viewBox="0 0 120 150" fill="none">
+      <rect x="18" y="6" width="84" height="138" rx="8" class="ln" />
+      <rect x="30" y="22" width="60" height="8" rx="4" class="led-bar" />
+      {Array.from({ length: 4 }, (_, i) => <rect x="30" y={44 + i * 22} width="60" height="14" rx="2" class="cell" />)}
+    </svg>
+  ) : kind === 'inverter' ? (
+    <svg class="plate-art" viewBox="0 0 120 150" fill="none">
+      <rect x="14" y="6" width="92" height="132" rx="7" class="ln" />
+      <rect x="28" y="22" width="64" height="40" rx="3" class="screen" />
+      <text x="60" y="47" text-anchor="middle" class="scr-num" direction="ltr">{spec}<tspan class="scr-unit" dx="3">{unit}</tspan></text>
+      <circle cx="34" cy="76" r="2.6" class="led" />
+      <circle cx="43" cy="76" r="2.6" class="dot" />
+      <circle cx="52" cy="76" r="2.6" class="dot" />
+      {Array.from({ length: 5 }, (_, i) => <line x1="28" x2="92" y1={92 + i * 8} y2={92 + i * 8} class="fin" />)}
+      <rect x="36" y="138" width="10" height="6" class="ln" />
+      <rect x="74" y="138" width="10" height="6" class="ln" />
+    </svg>
+  ) : (
+    <svg class="plate-art" viewBox="0 0 120 150" fill="none">
+      <rect x="22" y="30" width="76" height="90" rx="6" class="ln" />
+      <circle cx="60" cy="75" r="16" class="cell" />
+    </svg>
+  )}
+  {kind !== 'inverter' && (
+    <span class="plate-read">
+      <b>{spec}</b>
+      <i>{unit}</i>
+    </span>
+  )}
+  <span class="plate-brand">{brand}</span>
+</div>
+
+<style>
+  .plate { position: absolute; inset: 0; display: grid; place-items: center; background: var(--tile, #E9E8E4); overflow: hidden; }
+  .plate-art { height: 74%; width: auto; }
+  .ln { stroke: #9b9a95; stroke-width: 1.4; fill: #F4F3F0; }
+  .cell { stroke: #b5b4ae; stroke-width: 1; fill: #DCDDE0; }
+  .screen { fill: #141414; stroke: #555; stroke-width: 1; }
+  .fin { stroke: #c9c8c2; stroke-width: 1.2; }
+  .dot { fill: #c2c1bb; }
+  .led { fill: #E0A800; }
+  .led-bar { fill: var(--yellow); opacity: .85; }
+
+  .scr-num { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: var(--yellow); }
+  .scr-unit { font-size: 7.5px; font-weight: 500; fill: #c9a43a; }
+  .plate-read {
+    position: absolute; bottom: 9%; inset-inline: 0;
+    display: flex; align-items: baseline; justify-content: center; gap: 4px; direction: ltr;
+    font-family: var(--mono); color: #141414; line-height: 1;
+  }
+  .plate-read b { font-size: clamp(20px, 2.4vw, 28px); font-weight: 700; }
+  .plate-read i { font-style: normal; font-size: 12px; color: #6b6a66; }
+  .plate-brand {
+    position: absolute; bottom: 10px; inset-inline-end: 12px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 2.4px; color: #8f8e89;
+  }
+</style>

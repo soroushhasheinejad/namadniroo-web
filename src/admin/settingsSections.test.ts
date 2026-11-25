@@ -4,6 +4,7 @@ import { comparable, toEntries } from './formEntries';
 import { SECTIONS } from './settingsSections';
 import * as defaults from '../data/siteContent';
 import { businessDefaults, seoDefaults, webmasterDefaults } from '../data/seoDefaults';
+import { ladderDemo } from '../data/ladder';
 
 function roundTrip(key: string, stored: unknown): unknown {
   const section = SECTIONS.find((s) => s.key === key)!;
@@ -31,6 +32,7 @@ describe('ذخیرهٔ بی‌تغییر هیچ چیزی را عوض نمی‌ک
     ['clients', defaults.clients],
     ['portfolio', defaults.portfolio],
     ['robots', 'User-agent: *\nAllow: /'],
+    ['ladder', ladderDemo],
     ['seoDefaults', seoDefaults],
     ['business', businessDefaults],
     ['webmaster', { ...webmasterDefaults, google: 'abc123', ga4: 'G-ABC123', customHead: '<meta name="x" content="y">' }],

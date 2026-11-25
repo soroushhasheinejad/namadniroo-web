@@ -1,0 +1,59 @@
+---
+/**
+ * کارت محصول فروشگاه — نسخهٔ ساده.
+ *
+ * فقط عکس، نام و یک خط مشخصات. محصول بی‌عکس طرح «پلاک دستگاه» می‌گیرد.
+ * اگر محصول در کمپین تخفیف پله‌ای باشد، فقط درصد تخفیف پلهٔ جاری روی
+ * عکسش می‌آید (قیمت هرگز).
+ */
+import DbImage from './DbImage.astro';
+import DevicePlate from './DevicePlate.astro';
+import { BRANDS, brandKey } from '../data/shopTaxonomy';
+import type { ProductView } from '../server/repos/content';
+import type { LadderState } from '../data/ladder';
+
+interface Props { p: ProductView; ladder?: LadderState }
+const { p, ladder } = Astro.props;
+
+const brand = BRANDS[brandKey(p.brand)] ?? p.brand.replace(/&nbsp;/g, ' ');
+const unit = p.specUnit.split('·')[0]?.trim() ?? '';
+const off = ladder?.current?.off;
+---
+<a class="sc" href={`/shop/${p.slug}`}>
+  <div class="sc-thumb">
+    {p.image
+      ? <DbImage image={p.image} class="sc-img" sizes="(max-width: 700px) 45vw, 280px" decorative />
+      : <DevicePlate kind={p.kind} brand={brand} spec={p.spec} unit={unit} />}
+    {off && <span class="sc-off">{off.toLocaleString('fa-IR')}٪ تخفیف</span>}
+  </div>
+  <h3 class="sc-name">{p.name}</h3>
+  <p class="sc-meta">
+    {brand} · <span class="sc-spec">{p.spec}</span> {p.specUnit}
+    {p.inStock === false && <span class="sc-out"> · ناموجود</span>}
+  </p>
+</a>
+
+<style>
+  .sc { display: block; color: var(--ink); }
+  .sc-thumb {
+    position: relative; aspect-ratio: 1 / 1; margin-bottom: 14px;
+    background: #E9E8E4; border-radius: var(--r); overflow: hidden;
+  }
+  .sc-thumb :global(.sc-img) {
+    position: absolute; inset: 12%; width: 76%; height: 76%; object-fit: contain; mix-blend-mode: multiply;
+    transition: transform .35s var(--ease);
+  }
+  .sc-thumb :global(.plate-art) { transition: transform .35s var(--ease); }
+  .sc:hover .sc-thumb :global(:is(.sc-img, .plate-art)) { transform: scale(1.04); }
+  .sc-off {
+    position: absolute; top: 12px; inset-inline-start: 12px;
+    padding: 3px 10px; font-size: 12px; font-weight: 700; color: #1A1400;
+    background: var(--yellow); border-radius: 999px;
+  }
+  .sc-name { margin: 0 0 4px; font-size: 15px; font-weight: 700; line-height: 1.6; transition: color .2s; }
+  .sc:hover .sc-name { color: var(--yellow); }
+  .sc-meta { margin: 0; font-size: 13px; color: var(--faint); }
+  .sc-spec { color: var(--muted); }
+  .sc-out { color: var(--faint); }
+  @media (prefers-reduced-motion: reduce) { .sc:hover .sc-thumb :global(*) { transform: none; } }
+</style>
