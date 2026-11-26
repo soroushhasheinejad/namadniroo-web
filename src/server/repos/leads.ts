@@ -25,7 +25,25 @@ export interface LeadQuery {
   due?: boolean;
   /** فقط پرونده‌های یک کارشناس */
   assignedTo?: number;
+  /** فقط درخواست‌هایی که از صفحه‌های فروشگاه آمده‌اند */
+  from?: 'shop';
 }
+
+/**
+ * درخواست «فروشگاه» یعنی فرمی که از خود فروشگاه، صفحهٔ محصول، صفحه‌های
+ * AE Solar یا نشانی‌های قدیمی محصول فرستاده شده، به‌علاوهٔ جواب‌های چالش
+ * کمپین تخفیف پله‌ای. ملاک صفحهٔ ارسال است، نه گزینهٔ «خرید تجهیزات» در
+ * فرم: کسی که از ماشین‌حساب خرید تجهیزات را زده درخواست فروشگاه نیست.
+ */
+const shopSource = () =>
+  or(
+    eq(leads.source, '/shop'),
+    like(leads.source, '/shop/%'),
+    like(leads.source, '/shop?%'),
+    like(leads.source, '/ae-solar%'),
+    like(leads.source, '/product%'),
+    eq(leads.source, 'ladder-challenge'),
+  )!;
 
 export interface LeadPage {
   rows: Lead[];
@@ -70,6 +88,8 @@ function buildFilter(query: LeadQuery) {
   if (query.assignedTo) {
     clauses.push(eq(leads.assignedTo, query.assignedTo));
   }
+
+  if (query.from === 'shop') clauses.push(shopSource());
 
   return clauses.length ? and(...clauses) : undefined;
 }

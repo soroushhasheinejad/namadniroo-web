@@ -42,6 +42,18 @@ const status = (params.get('status') ?? 'all') as LeadStatus | 'all';
 const q = params.get('q') ?? '';
 const page = Number(params.get('page') ?? 1) || 1;
 const due = params.get('due') === '1';
+const from = params.get('from') === 'shop' ? ('shop' as const) : undefined;
+const filter = { status, q, due, from };
+
+/** روشن و خاموش کردن یک فیلتر دکمه‌ای، بی‌آنکه بقیهٔ فیلترها بپرند */
+const toggleLink = (key: string, value: string, on: boolean) => {
+  const next = new URLSearchParams(params);
+  next.delete('page');
+  if (on) next.delete(key);
+  else next.set(key, value);
+  const qs = next.toString();
+  return qs ? `?${qs}` : '/admin/leads';
+};
 
 /* خروجی CSV همان فیلتر فعلی را دنبال می‌کند، پس آنچه روی صفحه دیده می‌شود
    همان چیزی است که دانلود می‌شود. */
@@ -57,7 +69,7 @@ const due = params.get('due') === '1';
  * فرستادنشان فقط فایل را بزرگ می‌کند.
  */
 if (params.get('export') === 'ga4') {
-  const rows = (await allLeads({ status, q, due })).filter((l) => l.gaClientId);
+  const rows = (await allLeads(filter)).filter((l) => l.gaClientId);
   const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const csv =
     [
@@ -84,7 +96,7 @@ if (params.get('export') === 'ga4') {
 }
 
 if (params.get('export') === 'csv') {
-  const rows = await allLeads({ status, q, due });
+  const rows = await allLeads(filter);
   const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const csv =
     '﻿' + // تا اکسل فارسی را درست باز کند
@@ -124,7 +136,7 @@ if (params.get('export') === 'csv') {
   });
 }
 
-const result = await listLeads({ status, q, page, due });
+const result = await listLeads({ ...filter, page });
 
 /** حفظ فیلترهای فعلی هنگام ساخت لینک صفحه */
 const pageLink = (n: number) => {
@@ -170,10 +182,18 @@ const statusLabel = Object.fromEntries(STATUSES.map((s) => [s.key, s.label]));
     <button class="a-btn" type="submit">اعمال</button>
     {/* سررسید همراه بقیهٔ فیلترها می‌رود تا با یک کلیک برداشته شود */}
     <input type="hidden" name="due" value={due ? '1' : ''} />
-    <a class:list={['a-btn', 'a-btn-sm', due && 'a-btn-primary']} href={due ? '/admin/leads' : '?due=1'}>
+    <input type="hidden" name="from" value={from ?? ''} />
+    <a class:list={['a-btn', 'a-btn-sm', due && 'a-btn-primary']} href={toggleLink('due', '1', due)}>
       فقط سررسیدشده‌ها
     </a>
-    {(q || status !== 'all' || due) && <a class="a-btn a-btn-sm" href="/admin/leads">حذف فیلترها</a>}
+    <a
+      class:list={['a-btn', 'a-btn-sm', from && 'a-btn-primary']}
+      href={toggleLink('from', 'shop', !!from)}
+      title="فرم‌هایی که از فروشگاه، صفحهٔ محصول یا AE Solar فرستاده شده، به‌علاوهٔ جواب‌های چالش"
+    >
+      فقط فروشگاه
+    </a>
+    {(q || status !== 'all' || due || from) && <a class="a-btn a-btn-sm" href="/admin/leads">حذف فیلترها</a>}
   </form>
 
   {result.rows.length === 0 ? (
